@@ -726,6 +726,73 @@ html.dark .presignup-agent-platforms-note {
   color: rgba(255, 255, 255, 0.5);
 }
 
+/* Supporting line rendered between the input card and the integrations
+   section (Vendor ID page hero). */
+
+.presignup-agent-cta-note {
+  margin: 1.25rem auto 0;
+  max-width: 720px;
+  text-align: center;
+  font-family: inherit;
+  font-size: 0.9375rem;
+  line-height: 1.5;
+  color: var(--text-secondary, rgba(26, 26, 24, 0.6));
+}
+
+html.dark .presignup-agent-cta-note {
+  color: rgba(255, 255, 255, 0.6);
+}
+
+/* Eyebrow header above the integrations section. */
+
+.presignup-agent-platforms-header {
+  margin: 0 0 4px;
+  text-align: center;
+  font-family: inherit;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-secondary, rgba(26, 26, 24, 0.6));
+}
+
+html.dark .presignup-agent-platforms-header {
+  color: rgba(255, 255, 255, 0.6);
+}
+
+/* Categorized integration groups (Vendor ID page). Each group is a small
+   uppercase category label with its own row of chips beneath. Falls back to
+   a flat row when `platformGroups` isn't supplied. */
+
+.presignup-agent-platform-groups {
+  display: flex;
+  flex-flow: row wrap;
+  justify-content: center;
+  align-items: flex-start;
+  gap: 18px 28px;
+  width: 100%;
+}
+
+.presignup-agent-platform-group {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+
+.presignup-agent-platform-group-label {
+  font-family: inherit;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: rgba(26, 26, 24, 0.55);
+}
+
+html.dark .presignup-agent-platform-group-label {
+  color: rgba(255, 255, 255, 0.45);
+}
+
 /* Product overview — three-card preview shown above the results grid */
 
 .presignup-agent-product-overview {

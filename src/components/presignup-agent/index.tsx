@@ -57,6 +57,13 @@ type Platform = {
   href?: string;
 };
 
+type PlatformGroup = {
+  /** Category eyebrow rendered above the row (e.g. "Ads", "AI"). */
+  category: string;
+  /** Chips inside the category. */
+  items: Platform[];
+};
+
 const LinkedInIcon = (
   <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
     <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.268 2.37 4.268 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z" />
@@ -142,6 +149,15 @@ type PresignupAgentProps = {
    * navigates to the matching product-page section on click.
    */
   platforms?: Platform[];
+  /** Supporting line rendered between the input card and the integrations section. */
+  ctaNote?: string;
+  /** Eyebrow header rendered above the integrations row (e.g. "Covers your entire vendor ecosystem"). */
+  platformsHeader?: string;
+  /**
+   * Categorized integration chips. When provided, takes precedence over the
+   * flat `platforms` prop and renders each group with its own category label.
+   */
+  platformGroups?: PlatformGroup[];
 };
 
 const DEFAULT_TITLE = "Connect. Audit. Get Money Back";
@@ -150,6 +166,137 @@ const DEFAULT_SUBTITLE =
 const DEFAULT_PLACEHOLDER =
   "Enter your website (e.g. stripe.com), describe your stack, or paste a list of vendors you want audited…";
 const DEFAULT_CTA = "Audit My Vendors";
+
+// Categorized vendor list for the Vendor ID product page. The Ads row reuses
+// the brand-color CDN SVGs already uploaded to Webflow; the rest pull from
+// simpleicons.org (single-color brand-tinted SVGs that render cleanly inside
+// the chip's white logo background). Each chip's href smooth-scrolls to a
+// matching `#anchor` section the page can host below the agent.
+const VENDOR_GROUPS: PlatformGroup[] = [
+  {
+    category: "Ads",
+    items: [
+      {
+        label: "Google Ads",
+        iconUrl:
+          "https://cdn.prod.website-files.com/67e174863b0c93ae0a0cffee/69e8a965ab121368400dc44f_google-ads.svg",
+        href: "#google-ads",
+      },
+      {
+        label: "Meta Ads",
+        iconUrl:
+          "https://cdn.prod.website-files.com/67e174863b0c93ae0a0cffee/69e8a965d6f564a86b177302_meta-ads.svg",
+        href: "#meta-ads",
+      },
+      {
+        label: "TikTok Ads",
+        iconUrl:
+          "https://cdn.prod.website-files.com/67e174863b0c93ae0a0cffee/69e8a965a560d2adf0a6e474_tiktok-ads.svg",
+        href: "#tiktok-ads",
+      },
+    ],
+  },
+  {
+    category: "AI",
+    items: [
+      {
+        label: "OpenAI",
+        iconUrl: "https://cdn.simpleicons.org/openai",
+        href: "#openai",
+      },
+      {
+        label: "Anthropic",
+        iconUrl: "https://cdn.simpleicons.org/anthropic",
+        href: "#anthropic",
+      },
+      {
+        label: "Google AI",
+        iconUrl: "https://cdn.simpleicons.org/googlegemini",
+        href: "#google-ai",
+      },
+    ],
+  },
+  {
+    category: "SaaS",
+    items: [
+      {
+        label: "Salesforce",
+        iconUrl: "https://cdn.simpleicons.org/salesforce",
+        href: "#salesforce",
+      },
+      {
+        label: "HubSpot",
+        iconUrl: "https://cdn.simpleicons.org/hubspot",
+        href: "#hubspot",
+      },
+      {
+        label: "Slack",
+        iconUrl: "https://cdn.simpleicons.org/slack",
+        href: "#slack",
+      },
+    ],
+  },
+  {
+    category: "Cloud",
+    items: [
+      {
+        label: "AWS",
+        iconUrl: "https://cdn.simpleicons.org/amazonaws",
+        href: "#aws",
+      },
+      {
+        label: "Azure",
+        iconUrl: "https://cdn.simpleicons.org/microsoftazure",
+        href: "#azure",
+      },
+      {
+        label: "Google Cloud",
+        iconUrl: "https://cdn.simpleicons.org/googlecloud",
+        href: "#google-cloud",
+      },
+    ],
+  },
+  {
+    category: "Payments",
+    items: [
+      {
+        label: "Stripe",
+        iconUrl: "https://cdn.simpleicons.org/stripe",
+        href: "#stripe",
+      },
+      {
+        label: "Shopify Payments",
+        iconUrl: "https://cdn.simpleicons.org/shopify",
+        href: "#shopify-payments",
+      },
+      {
+        label: "PayPal",
+        iconUrl: "https://cdn.simpleicons.org/paypal",
+        href: "#paypal",
+      },
+    ],
+  },
+  {
+    category: "Shipping & Logistics",
+    items: [
+      {
+        label: "UPS",
+        iconUrl: "https://cdn.simpleicons.org/ups",
+        href: "#ups",
+      },
+      {
+        label: "FedEx",
+        iconUrl: "https://cdn.simpleicons.org/fedex",
+        href: "#fedex",
+      },
+      {
+        label: "DHL",
+        iconUrl: "https://cdn.simpleicons.org/dhl",
+        href: "#dhl",
+      },
+    ],
+  },
+];
 
 const AD_PLATFORMS: Platform[] = [
   {
@@ -250,6 +397,24 @@ export const meta: ComponentMeta<PresignupAgentProps> = {
         "Integration chips rendered under the input card. `href` accepts `#anchor` (smooth-scrolls on the current page) or any URL/path (navigates normally).",
       default: "none",
     },
+    ctaNote: {
+      type: "string",
+      description:
+        "Supporting line rendered between the input card and the integrations section.",
+      default: "none",
+    },
+    platformsHeader: {
+      type: "string",
+      description:
+        "Eyebrow header rendered above the integrations row.",
+      default: "none",
+    },
+    platformGroups: {
+      type: "{ category: string; items: Platform[] }[]",
+      description:
+        "Categorized integration chips. When set, overrides `platforms` and renders one labelled row per category.",
+      default: "none",
+    },
   },
   variants: {
     "default (auto-detect prod/staging)": {},
@@ -265,6 +430,18 @@ export const meta: ComponentMeta<PresignupAgentProps> = {
       ctaLabel: "Audit My Ad Spend",
       platformsLabel: "Start with ads. Expand to every bill.",
       platforms: AD_PLATFORMS,
+    },
+    "vendor ID page (categorized vendors)": {
+      title: "Connect. Verify. Uncover Recoverable Value.",
+      subtitle:
+        "One system to verify billing across ads, AI, SaaS, cloud, payments, shipping, and operational vendors. Find discrepancies, contract leakage, and recoverable value before it becomes accepted cost.",
+      placeholder:
+        "Enter your ERP, accounting system, or vendor stack to uncover billing discrepancies, unused spend, and recoverable value across every vendor.",
+      ctaLabel: "Audit My Vendor Spend",
+      ctaNote:
+        "One integration. One verification layer. Clear proof of recoverable value across every vendor you pay.",
+      platformsHeader: "Covers your entire vendor ecosystem",
+      platformGroups: VENDOR_GROUPS,
     },
   },
 };
@@ -313,6 +490,41 @@ function wait(ms: number): Promise<void> {
   return new Promise((r) => setTimeout(r, ms));
 }
 
+function renderPlatformChip(
+  p: Platform,
+  key: string,
+  onClick: (e: React.MouseEvent<HTMLAnchorElement>, href: string | undefined) => void,
+) {
+  const resolvedIcon =
+    typeof p.icon === "string" ? ICON_REGISTRY[p.icon] : p.icon;
+  return (
+    <a
+      key={key}
+      className="presignup-agent-platform"
+      href={p.href || "#"}
+      onClick={(e) => onClick(e, p.href)}
+    >
+      {resolvedIcon ? (
+        <span className="presignup-agent-platform-icon" aria-hidden="true">
+          {resolvedIcon}
+        </span>
+      ) : p.iconUrl ? (
+        <img
+          className="presignup-agent-platform-logo"
+          src={p.iconUrl}
+          alt=""
+          aria-hidden="true"
+          loading="lazy"
+          onError={(e) => {
+            (e.currentTarget as HTMLImageElement).style.display = "none";
+          }}
+        />
+      ) : null}
+      <span>{p.label}</span>
+    </a>
+  );
+}
+
 function buildScanItems(products: Product[]): ScanItem[] {
   const returnedKeys = products.map((p) => idToKey(p.id));
   const items: ScanItem[] = products.map((p) => ({
@@ -345,6 +557,9 @@ export default function PresignupAgent({
   ctaLabel = DEFAULT_CTA,
   platformsLabel,
   platforms,
+  ctaNote,
+  platformsHeader,
+  platformGroups,
 }: PresignupAgentProps) {
   const [phase, setPhase] = useState<AgentPhase>({ kind: "idle" });
   const [statusText, setStatusText] = useState<{
@@ -716,49 +931,47 @@ export default function PresignupAgent({
           )}
         </div>
 
-        {platforms && platforms.length > 0 && (
+        {ctaNote && <p className="presignup-agent-cta-note">{ctaNote}</p>}
+
+        {(platformGroups?.length || platforms?.length) ? (
           <div className="presignup-agent-platforms">
-            <div className="presignup-agent-platforms-row">
-              {platforms.map((p, i) => {
-                const resolvedIcon =
-                  typeof p.icon === "string" ? ICON_REGISTRY[p.icon] : p.icon;
-                return (
-                  <a
-                    key={`${p.label}-${i}`}
-                    className="presignup-agent-platform"
-                    href={p.href || "#"}
-                    onClick={(e) => handlePlatformClick(e, p.href)}
+            {platformsHeader && (
+              <p className="presignup-agent-platforms-header">
+                {platformsHeader}
+              </p>
+            )}
+
+            {platformGroups && platformGroups.length > 0 ? (
+              <div className="presignup-agent-platform-groups">
+                {platformGroups.map((group, gi) => (
+                  <div
+                    key={`${group.category}-${gi}`}
+                    className="presignup-agent-platform-group"
                   >
-                    {resolvedIcon ? (
-                      <span
-                        className="presignup-agent-platform-icon"
-                        aria-hidden="true"
-                      >
-                        {resolvedIcon}
-                      </span>
-                    ) : p.iconUrl ? (
-                      <img
-                        className="presignup-agent-platform-logo"
-                        src={p.iconUrl}
-                        alt=""
-                        aria-hidden="true"
-                        loading="lazy"
-                        onError={(e) => {
-                          (e.currentTarget as HTMLImageElement).style.display =
-                            "none";
-                        }}
-                      />
-                    ) : null}
-                    <span>{p.label}</span>
-                  </a>
-                );
-              })}
-            </div>
+                    <span className="presignup-agent-platform-group-label">
+                      {group.category}
+                    </span>
+                    <div className="presignup-agent-platforms-row">
+                      {group.items.map((p, i) =>
+                        renderPlatformChip(p, `${group.category}-${i}`, handlePlatformClick),
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="presignup-agent-platforms-row">
+                {platforms!.map((p, i) =>
+                  renderPlatformChip(p, `${p.label}-${i}`, handlePlatformClick),
+                )}
+              </div>
+            )}
+
             {platformsLabel && (
               <p className="presignup-agent-platforms-note">{platformsLabel}</p>
             )}
           </div>
-        )}
+        ) : null}
 
         <div className="presignup-agent-steps" hidden={!showSteps}>
           {(["finding", "sizing", "auditing"] as StepName[]).map((step) => {

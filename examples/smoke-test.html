@@ -8,6 +8,15 @@
     <style>
       [data-rc]:not([data-rc-mounted="true"]) { visibility: hidden; }
 
+      /* Theme tokens that Webflow provides in production — mirrored here so
+         components that read `var(--text-primary)` / `var(--text-secondary)`
+         render correctly in this standalone test page too. */
+      :root {
+        --bg: #ffffff;
+        --text-primary: #1a1a18;
+        --text-secondary: #555;
+      }
+
       /* Demo page styling (not part of the bundle). */
       body { font-family: system-ui, -apple-system, sans-serif; padding: 2rem; margin: 0; }
       .demo-grid { display: flex; gap: 1rem; flex-wrap: wrap; align-items: flex-start; }
@@ -50,6 +59,58 @@
     <section class="demo-section">
       <h1>presignup-agent (live, hits staging API)</h1>
       <div data-rc="presignup-agent"></div>
+    </section>
+
+    <section class="demo-section">
+      <h1>presignup-agent — Vendor ID page (categorized vendors)</h1>
+      <div
+        data-rc="presignup-agent"
+        data-prop='{
+          "title": "Connect. Verify. Uncover Recoverable Value.",
+          "subtitle": "One system to verify billing across ads, AI, SaaS, cloud, payments, shipping, and operational vendors. Find discrepancies, contract leakage, and recoverable value before it becomes accepted cost.",
+          "placeholder": "Enter your ERP, accounting system, or vendor stack to uncover billing discrepancies, unused spend, and recoverable value across every vendor.",
+          "ctaLabel": "Audit My Vendor Spend",
+          "ctaNote": "One integration. One verification layer. Clear proof of recoverable value across every vendor you pay.",
+          "platformsHeader": "Covers your entire vendor ecosystem",
+          "platformGroups": [
+            { "category": "Ads", "items": [
+              { "label": "Google Ads", "iconUrl": "https://cdn.prod.website-files.com/67e174863b0c93ae0a0cffee/69e8a965ab121368400dc44f_google-ads.svg", "href": "#google-ads" },
+              { "label": "Meta Ads",   "iconUrl": "https://cdn.prod.website-files.com/67e174863b0c93ae0a0cffee/69e8a965d6f564a86b177302_meta-ads.svg",   "href": "#meta-ads" },
+              { "label": "TikTok Ads", "iconUrl": "https://cdn.prod.website-files.com/67e174863b0c93ae0a0cffee/69e8a965a560d2adf0a6e474_tiktok-ads.svg", "href": "#tiktok-ads" }
+            ]},
+            { "category": "AI", "items": [
+              { "label": "OpenAI",    "iconUrl": "https://cdn.simpleicons.org/openai",        "href": "#openai" },
+              { "label": "Anthropic", "iconUrl": "https://cdn.simpleicons.org/anthropic",     "href": "#anthropic" },
+              { "label": "Google AI", "iconUrl": "https://cdn.simpleicons.org/googlegemini",  "href": "#google-ai" }
+            ]},
+            { "category": "SaaS", "items": [
+              { "label": "Salesforce", "iconUrl": "https://cdn.simpleicons.org/salesforce", "href": "#salesforce" },
+              { "label": "HubSpot",    "iconUrl": "https://cdn.simpleicons.org/hubspot",    "href": "#hubspot" },
+              { "label": "Slack",      "iconUrl": "https://cdn.simpleicons.org/slack",      "href": "#slack" }
+            ]},
+            { "category": "Cloud", "items": [
+              { "label": "AWS",          "iconUrl": "https://cdn.simpleicons.org/amazonaws",      "href": "#aws" },
+              { "label": "Azure",        "iconUrl": "https://cdn.simpleicons.org/microsoftazure", "href": "#azure" },
+              { "label": "Google Cloud", "iconUrl": "https://cdn.simpleicons.org/googlecloud",    "href": "#google-cloud" }
+            ]},
+            { "category": "Payments", "items": [
+              { "label": "Stripe",            "iconUrl": "https://cdn.simpleicons.org/stripe",  "href": "#stripe" },
+              { "label": "Shopify Payments",  "iconUrl": "https://cdn.simpleicons.org/shopify", "href": "#shopify-payments" },
+              { "label": "PayPal",            "iconUrl": "https://cdn.simpleicons.org/paypal",  "href": "#paypal" }
+            ]},
+            { "category": "Shipping & Logistics", "items": [
+              { "label": "UPS",   "iconUrl": "https://cdn.simpleicons.org/ups",   "href": "#ups" },
+              { "label": "FedEx", "iconUrl": "https://cdn.simpleicons.org/fedex", "href": "#fedex" },
+              { "label": "DHL",   "iconUrl": "https://cdn.simpleicons.org/dhl",   "href": "#dhl" }
+            ]}
+          ]
+        }'
+      ></div>
+    </section>
+
+    <section class="demo-section">
+      <h1>vendor-coverage (default — bundled list of 6 categories)</h1>
+      <div data-rc="vendor-coverage"></div>
     </section>
 
     <script src="../dist/vaudit.js"></script>
