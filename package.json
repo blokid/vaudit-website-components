@@ -1,0 +1,26 @@
+{
+  "name": "vaudit-components",
+  "version": "0.1.0",
+  "private": true,
+  "description": "React + TS components rendered into Webflow via jsDelivr CDN. Mounts onto <div data-rc=\"...\"> markers.",
+  "type": "module",
+  "scripts": {
+    "dev": "vite build --watch",
+    "build": "tsc --noEmit && vite build",
+    "typecheck": "tsc --noEmit",
+    "preview": "vite preview",
+    "release": "npm run build && git add dist && git commit -m \"build: release dist\" && npm version patch && git push --follow-tags"
+  },
+  "dependencies": {
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0"
+  },
+  "devDependencies": {
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "@vitejs/plugin-react": "^4.3.4",
+    "babel-plugin-react-compiler": "19.0.0-beta-decd7b8-20250118",
+    "typescript": "^5.7.2",
+    "vite": "^6.0.7"
+  }
+}

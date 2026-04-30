@@ -1,0 +1,1 @@
+.rc-hello{display:inline-flex;flex-direction:column;gap:.5rem;padding:1rem 1.25rem;border:1px solid currentColor;border-radius:.5rem;font-family:system-ui,sans-serif}.rc-hello__title{margin:0;font-size:1.125rem;font-weight:600}.rc-hello__btn{padding:.4rem .75rem;border:1px solid currentColor;border-radius:.375rem;background:transparent;color:inherit;cursor:pointer;font:inherit}
