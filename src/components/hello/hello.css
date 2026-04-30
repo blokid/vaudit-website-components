@@ -5,7 +5,11 @@
   padding: 1rem 1.25rem;
   border: 1px solid currentColor;
   border-radius: 0.5rem;
-  font-family: system-ui, sans-serif;
+  /* font-family is inherited from the page on purpose — see CLAUDE.md */
+}
+
+.rc-hello--muted {
+  opacity: 0.55;
 }
 
 .rc-hello__title {
@@ -22,4 +26,14 @@
   color: inherit;
   cursor: pointer;
   font: inherit;
+}
+
+.rc-hello__btn:hover {
+  background: rgba(127, 127, 127, 0.08);
+}
+
+/* Dark mode follows the existing html.dark cascade convention from
+   docs/WEBFLOW-THEME-CONVENTION.md — no JS-side theming. */
+html.dark .rc-hello {
+  /* nothing to override here today; left as a marker of where to put dark rules */
 }

@@ -12,14 +12,24 @@ React + TypeScript components for the Vaudit Webflow site, served from GitHub vi
 
 ## Webflow setup
 
-In **Project Settings → Custom Code → Footer**, add **after** the existing theme toggle script:
+**Project Settings → Custom Code → Head** (one-time, anti-flicker cloak):
 
 ```html
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/<org>/vaudit-components@v0.1.0/dist/vaudit.css">
-<script src="https://cdn.jsdelivr.net/gh/<org>/vaudit-components@v0.1.0/dist/vaudit.js" defer></script>
+<style>
+  [data-rc]:not([data-rc-mounted="true"]) { visibility: hidden; }
+</style>
 ```
 
-Replace `<org>` with the GitHub owner and bump `@v0.1.0` per release. For local iteration use `@<commit-sha>` — branch URLs (`@main`) are cached for ~12 hours.
+**Project Settings → Custom Code → Footer** (after the existing theme toggle script):
+
+```html
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/blokid/vaudit-website-components@v0.2.0/dist/vaudit.css">
+<script src="https://cdn.jsdelivr.net/gh/blokid/vaudit-website-components@v0.2.0/dist/vaudit.js" defer></script>
+```
+
+Bump `@v0.2.0` per release. For local iteration use `@<commit-sha>` — branch URLs (`@main`) are cached for ~12 hours.
+
+The bootstrap flips `data-rc-mounted="true"` on each marker after React commits but before the browser paints, so the Head cloak prevents any flash of empty markers. After all initial markers mount, `html.rc-ready` is added — use it for any whole-page reveal effects you want to gate on the bundle being live.
 
 ## Mount markers
 
