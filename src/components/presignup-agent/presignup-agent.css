@@ -1,0 +1,2301 @@
+/* Pre-signup agent — sim section. Paste into the presignup-agent-css embed. */
+
+/* Section wrapper */
+
+.presignup-agent-section {
+  position: relative;
+  width: 100%;
+  padding: 4rem 1.5rem 3rem;
+  background: var(--bg);
+  color: var(--text-primary);
+  overflow: hidden;
+}
+
+.sim {
+  margin: 0 auto;
+  padding: 0 2rem 1.5rem;
+  color: #ffffff;
+}
+
+/* Title + subtitle — inherit font-family from the page so it matches the rest of the marketing type. */
+
+.sim-title {
+  text-align: center;
+  font-family: inherit;
+  font-size: 2.5rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  text-transform: uppercase;
+  line-height: 1.05;
+  max-width: 960px;
+  margin: 0 auto 20px;
+  color: var(--text-primary);
+}
+
+.sim-sub {
+  text-align: center;
+  font-family: inherit;
+  color: var(--text-secondary);
+  font-size: 1rem !important;
+  letter-spacing: normal !important;
+  line-height: 1.55;
+  max-width: 640px;
+  margin: 0 auto 36px;
+}
+
+@media (max-width: 767px) {
+  .sim-title { font-size: 2rem; }
+}
+
+html.dark .sim-title {
+  color: #ffffff;
+}
+
+html.dark .sim-sub {
+  color: rgba(255, 255, 255, 0.6);
+}
+
+/* Shimmer card form — verbatim from hero.html .sim-input-row */
+
+@property --sim-shimmer-angle {
+  syntax: "<angle>";
+  initial-value: 0deg;
+  inherits: false;
+}
+
+.sim-input-row {
+  --sim-card-bg: #ffffff;
+  --sim-card-shimmer-dim: 0.35;
+  --sim-card-shimmer-arc-a: 255, 150, 80;
+  --sim-card-shimmer-arc-b: 255, 120, 50;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 20px;
+  border-radius: 22px;
+  border: 2px solid transparent;
+  isolation: isolate;
+  background:
+    linear-gradient(var(--sim-card-bg), var(--sim-card-bg)) padding-box,
+    conic-gradient(
+      from var(--sim-shimmer-angle),
+      rgba(240, 101, 31, var(--sim-card-shimmer-dim)) 0deg,
+      rgba(240, 101, 31, var(--sim-card-shimmer-dim)) 150deg,
+      rgba(var(--sim-card-shimmer-arc-a), 0.95) 172deg,
+      rgba(var(--sim-card-shimmer-arc-b), 1) 180deg,
+      rgba(var(--sim-card-shimmer-arc-a), 0.95) 188deg,
+      rgba(240, 101, 31, var(--sim-card-shimmer-dim)) 210deg,
+      rgba(240, 101, 31, var(--sim-card-shimmer-dim)) 360deg
+    )
+      border-box;
+  animation: sim-card-shimmer 7s cubic-bezier(0.45, 0.05, 0.55, 0.95) infinite;
+}
+
+html.dark .sim-input-row {
+  --sim-card-bg: #0f100e;
+  --sim-card-shimmer-dim: 0.18;
+  --sim-card-shimmer-arc-a: 255, 180, 120;
+  --sim-card-shimmer-arc-b: 255, 215, 170;
+}
+
+.sim-input-row::after {
+  content: "";
+  position: absolute;
+  inset: -90px;
+  z-index: -1;
+  pointer-events: none;
+  border-radius: inherit;
+  filter: blur(60px);
+  opacity: 0.55;
+  background: conic-gradient(
+    from var(--sim-shimmer-angle),
+    transparent 0deg,
+    transparent 140deg,
+    rgba(240, 101, 31, 0.25) 180deg,
+    transparent 220deg,
+    transparent 360deg
+  );
+}
+
+@keyframes sim-card-shimmer {
+  to {
+    --sim-shimmer-angle: 360deg;
+  }
+}
+
+.sim.scanning .sim-input-row {
+  animation-duration: 3s;
+}
+
+.sim.scanning .sim-input-row::after {
+  opacity: 0.8;
+}
+
+/* While scanning, hide the chip row + lock the textarea from edits.           */
+.sim.scanning .sim-run {
+  pointer-events: none;
+}
+
+.sim.scanning .sim-input-bottom {
+  display: none;
+}
+
+.sim.scanning .sim-input-top {
+  opacity: 0.55;
+  pointer-events: none;
+}
+
+/* Scan panel — rendered inside .sim-input-row when .sim has .scanning (verbatim from hero.html) */
+
+.scan-panel {
+  display: none;
+  padding: 2px 4px 4px;
+}
+
+.sim.scanning .scan-panel {
+  display: block;
+  animation: scan-panel-in 0.4s ease both;
+}
+
+@keyframes scan-panel-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.scan-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.scan-title-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.scan-eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: #f0651f;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+
+.scan-eyebrow::before {
+  content: "";
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #f0651f;
+  box-shadow: 0 0 0 0 rgba(240, 101, 31, 0.55);
+  animation: scan-pulse-dot 1.4s ease-in-out infinite;
+}
+
+@keyframes scan-pulse-dot {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgba(240, 101, 31, 0.55);
+  }
+  50% {
+    box-shadow: 0 0 0 8px rgba(240, 101, 31, 0);
+  }
+}
+
+.scan-title {
+  color: var(--text-primary);
+  font-size: 1.25rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+html.dark .scan-title {
+  color: #ffffff;
+}
+
+.scan-title .scan-caret {
+  display: inline-block;
+  width: 2px;
+  height: 18px;
+  background: #f0651f;
+  margin-left: 4px;
+  vertical-align: -3px;
+  animation: scan-caret-blink 1s steps(1) infinite;
+}
+
+@keyframes scan-caret-blink {
+  50% {
+    opacity: 0;
+  }
+}
+
+.scan-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin: 8px 0 14px;
+}
+
+.scan-item {
+  display: grid;
+  grid-template-columns: 16px 1fr auto auto;
+  column-gap: 12px;
+  align-items: center;
+  padding: 9px 2px;
+  border-bottom: 1px solid rgba(26, 26, 24, 0.08);
+  color: var(--text-primary);
+  transition: opacity 0.3s ease;
+  opacity: 0.3;
+}
+
+html.dark .scan-item {
+  border-bottom-color: #1f1f20;
+  color: #ffffff;
+}
+
+.scan-item:last-child {
+  border-bottom: 0;
+}
+
+.scan-item.active,
+.scan-item.done {
+  opacity: 1;
+}
+
+.scan-status {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  position: relative;
+}
+
+.scan-item.pending .scan-status {
+  border: 1.5px dashed rgba(26, 26, 24, 0.3);
+}
+
+html.dark .scan-item.pending .scan-status {
+  border-color: #3a3a3f;
+}
+
+.scan-item.active .scan-status {
+  background: #f0651f;
+  box-shadow: 0 0 0 0 rgba(240, 101, 31, 0.55);
+  animation: scan-pulse-dot 1s ease-in-out infinite;
+}
+
+.scan-item.done .scan-status {
+  background: #f0651f;
+}
+
+.scan-item.done .scan-status::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 14 14' fill='none' stroke='%23fff' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'><path d='M3 7.5 6 10.5l5-7'/></svg>")
+    center / 10px no-repeat;
+}
+
+.scan-item-name {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+html.dark .scan-item-name {
+  color: #ffffff;
+}
+
+.scan-item-name .emoji {
+  font-size: 0.875rem;
+  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1em;
+  height: 1em;
+  color: #f0651f;
+  flex-shrink: 0;
+}
+
+.scan-item-name .emoji svg {
+  width: 1em;
+  height: 1em;
+  display: block;
+}
+
+.scan-item-vendor {
+  color: var(--text-secondary);
+  font-size: 0.71875rem;
+  min-width: 100px;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  transition:
+    opacity 0.3s ease,
+    color 0.3s ease;
+}
+
+html.dark .scan-item-vendor {
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.scan-item.active .scan-item-vendor {
+  color: #f0651f;
+  opacity: 1;
+}
+
+.scan-item-amount {
+  color: var(--text-primary);
+  font-weight: 600;
+  font-size: 0.8125rem;
+  min-width: 80px;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  opacity: 0;
+  transition: opacity 0.4s ease;
+}
+
+html.dark .scan-item-amount {
+  color: #ffffff;
+}
+
+.scan-item.done .scan-item-amount {
+  opacity: 1;
+}
+
+.scan-progress {
+  height: 2px;
+  border-radius: 2px;
+  overflow: hidden;
+  background: rgba(26, 26, 24, 0.1);
+}
+
+html.dark .scan-progress {
+  background: #1f1f20;
+}
+
+.scan-progress-fill {
+  height: 100%;
+  width: 0;
+  background: linear-gradient(90deg, #f0651f, #ffb080);
+  box-shadow: 0 0 8px rgba(240, 101, 31, 0.6);
+  transition: width 0.5s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* Input top: caret + textarea */
+
+.sim-input-top {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+}
+
+.sim-input-row .caret-i {
+  color: #f0651f;
+  flex-shrink: 0;
+  padding-top: 3px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.sim-input-row .caret-i svg {
+  width: 18px;
+  height: 18px;
+}
+
+.sim-input-row textarea {
+  flex: 1;
+  background: transparent;
+  border: 0;
+  outline: 0;
+  color: var(--text-primary);
+  font-size: 1rem;
+  font-family: inherit;
+  line-height: 1.5;
+  resize: none;
+  padding: 0;
+  margin: 0;
+  min-height: 66px;
+  width: 100%;
+}
+
+.sim-input-row textarea::placeholder {
+  color: var(--text-secondary);
+}
+
+html.dark .sim-input-row textarea {
+  color: #ffffff;
+}
+
+html.dark .sim-input-row textarea::placeholder {
+  color: #6a6a70;
+}
+
+/* Input bottom: templates + run button */
+
+.sim-input-bottom {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+/* Loading stepper — sits between the input card and the results grid.
+   Toggled visible by JS during a run; updates active step from SSE events. */
+.presignup-agent-steps {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  flex-wrap: wrap;
+  margin: 16px auto 0;
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+}
+
+.presignup-agent-steps[hidden] {
+  display: none;
+}
+
+.presignup-agent-step {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.presignup-agent-step-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.25);
+  flex-shrink: 0;
+  transition: background 0.25s ease;
+}
+
+.presignup-agent-step-label {
+  white-space: nowrap;
+  transition: color 0.25s ease;
+}
+
+.presignup-agent-step-sep {
+  opacity: 0.4;
+  font-size: 1rem;
+}
+
+.presignup-agent-step.is-active .presignup-agent-step-dot {
+  background: #f0651f;
+  animation: presignup-step-pulse 1.4s ease-in-out infinite;
+}
+
+.presignup-agent-step.is-active .presignup-agent-step-label {
+  color: #f0651f;
+  font-weight: 600;
+}
+
+.presignup-agent-step.is-done .presignup-agent-step-dot {
+  background: rgba(240, 101, 31, 0.55);
+}
+
+@keyframes presignup-step-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(240, 101, 31, 0.45); }
+  50% { box-shadow: 0 0 0 6px rgba(240, 101, 31, 0); }
+}
+
+/* Template pills — standalone, under the input card, centered horizontally.
+   Hidden for now; remove `display: none` (or flip to `flex`) to re-enable. */
+.template-row {
+  display: none;
+  gap: 8px;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  margin: 16px auto 0;
+}
+
+.template {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 999px;
+  border: 1px solid rgba(26, 26, 24, 0.15);
+  background: transparent;
+  color: var(--text-secondary);
+  font-family: inherit;
+  font-size: 0.78125rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition:
+    border-color 0.15s ease,
+    color 0.15s ease,
+    background 0.15s ease;
+}
+
+.template:hover {
+  border-color: rgba(26, 26, 24, 0.4);
+  color: var(--text-primary);
+}
+
+html.dark .template {
+  border-color: #2a2a2e;
+  color: #b9bdc5;
+}
+
+html.dark .template:hover {
+  border-color: #4a4a4f;
+  color: #ffffff;
+}
+
+.template.active {
+  border-color: #f0651f;
+  color: var(--text-primary);
+  background: rgba(240, 101, 31, 0.08);
+}
+
+html.dark .template.active {
+  color: #ffffff;
+}
+
+.template .t-icon {
+  width: 14px;
+  height: 14px;
+  flex-shrink: 0;
+}
+
+.template-refresh {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid rgba(26, 26, 24, 0.15);
+  background: transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition:
+    border-color 0.15s ease,
+    color 0.15s ease,
+    transform 0.3s ease;
+}
+
+.template-refresh:hover {
+  border-color: rgba(26, 26, 24, 0.4);
+  color: var(--text-primary);
+}
+
+html.dark .template-refresh {
+  border-color: #2a2a2e;
+  color: #b9bdc5;
+}
+
+html.dark .template-refresh:hover {
+  border-color: #4a4a4f;
+  color: #ffffff;
+}
+
+.template-refresh svg {
+  width: 13px;
+  height: 13px;
+}
+
+.template-refresh.spin {
+  transform: rotate(360deg);
+}
+
+/* Platform display — supported-platforms strip shown above the results grid */
+
+.platform-display {
+  margin: 1.75rem auto 1.5rem;
+  max-width: 780px;
+  text-align: center;
+}
+
+.platform-display-title {
+  font-size: 0.875rem !important;
+  letter-spacing: normal !important;
+  line-height: 1.5;
+  color: var(--text-secondary);
+  margin-bottom: 0.75rem;
+}
+
+html.dark .platform-display-title {
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.platform-display-title strong {
+  color: var(--text-primary);
+  font-weight: 600;
+}
+
+html.dark .platform-display-title strong {
+  color: #ffffff;
+}
+
+.platform-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  justify-content: center;
+}
+
+.platform-card {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.625rem;
+  padding: 0.5rem 0.875rem;
+  border-radius: 10px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  color: var(--text-primary);
+}
+
+html.dark .platform-card {
+  background: rgba(255, 255, 255, 0.04);
+  border-color: rgba(255, 255, 255, 0.08);
+  color: #ffffff;
+}
+
+.platform-icon {
+  width: 32px;
+  height: 32px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  flex-shrink: 0;
+  background: #ffffff;
+}
+
+.platform-icon img,
+.platform-icon svg {
+  width: 18px;
+  height: 18px;
+  object-fit: contain;
+  display: block;
+}
+
+.platform-icon--google { background: #ffffff; }
+.platform-icon--meta { background: #ffffff; }
+.platform-icon--tiktok { background: #000000; }
+.platform-icon--applovin { background: #ff3366; }
+
+.platform-name {
+  font-size: 0.875rem !important;
+  letter-spacing: normal !important;
+  font-weight: 500;
+}
+
+.sim-run {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 44px;
+  padding: 0 22px;
+  border-radius: 999px;
+  border: 0;
+  cursor: pointer;
+  background: #f0651f;
+  color: #ffffff;
+  font-family: inherit;
+  font-weight: 700;
+  font-size: 0.8125rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  transition: background 0.15s ease;
+}
+
+.sim-run:hover {
+  background: #ff7a2a;
+}
+
+.sim-run[disabled] {
+  opacity: 0.6;
+  cursor: wait;
+}
+
+.sim-run svg {
+  width: 15px;
+  height: 15px;
+}
+
+.sim-kbd {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 7px;
+  border-radius: 5px;
+  background: rgba(255, 255, 255, 0.22);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  color: #ffffff;
+  font-family: inherit;
+  font-size: 0.625rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  line-height: 1;
+  margin: 0 6px 0 2px;
+  text-transform: none;
+}
+
+/* Loading state — matches hero.html's .sim-run[disabled] and dims textarea. */
+.sim-input-row[data-state="loading"] .sim-run {
+  opacity: 0.6;
+  cursor: wait;
+  pointer-events: none;
+}
+
+.sim-input-row[data-state="loading"] textarea {
+  opacity: 0.7;
+}
+
+/* Mobile */
+
+@media (max-width: 720px) {
+  .sim-title {
+    font-size: 1.375rem;
+  }
+  .sim-input-row {
+    flex-wrap: wrap;
+  }
+  .sim-run {
+    width: 100%;
+    justify-content: center;
+  }
+}
+
+/* Status line + error (under the shimmer card) */
+
+.presignup-agent-status {
+  min-height: 1.5rem;
+  margin-top: 1.25rem;
+  text-align: center;
+  font-size: 0.9375rem;
+  color: var(--text-secondary);
+  animation: presignup-fade-in 240ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.presignup-agent-status:empty {
+  display: none;
+}
+
+.presignup-agent-status-dot {
+  display: inline-block;
+  width: 0.5rem;
+  height: 0.5rem;
+  margin-right: 0.5rem;
+  border-radius: 999px;
+  background: var(--primary);
+  vertical-align: middle;
+  animation: presignup-pulse 1200ms ease-in-out infinite;
+}
+
+.presignup-agent-error {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  max-width: 34rem;
+  margin: 0 auto;
+  padding: 0.75rem 1rem;
+  border-left: 3px solid var(--primary);
+  border-radius: 0.5rem;
+  background: rgba(254, 96, 44, 0.06);
+  color: var(--text-primary);
+  font-size: 0.9375rem;
+  text-align: left;
+  animation: presignup-fade-in 240ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.presignup-agent-error-retry {
+  margin-left: auto;
+  color: var(--primary);
+  font-weight: 600;
+  text-decoration: underline;
+  cursor: pointer;
+  background: none;
+  border: 0;
+  padding: 0;
+  font: inherit;
+}
+
+.presignup-agent-error-retry:hover {
+  color: var(--primary-hover);
+}
+
+html.dark .presignup-agent-error {
+  background: rgba(254, 96, 44, 0.1);
+  color: #fafafa;
+}
+
+html.dark .presignup-agent-status {
+  color: var(--charcoal-100, #d4d4cc);
+}
+
+/* Card grid — 12-column (hero.html verbatim) */
+
+.presignup-agent-results {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 18px;
+  margin: 1.5rem auto 0;
+  padding: 0;
+}
+
+.presignup-agent-results:empty {
+  display: none;
+}
+
+.presignup-agent-results .pa-card {
+  flex: 0 1 calc(33.333% - 12px);
+  max-width: 360px;
+  min-width: 0;
+}
+
+/* Tablet + mobile: hero, input, cards and banner all stretch edge-to-edge. */
+@media screen and (max-width: 991px) {
+  .presignup-agent-section {
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
+  .sim {
+    padding-left: 0;
+    padding-right: 0;
+  }
+  .sim-title,
+  .sim-sub,
+  .sim-input-row,
+  .presignup-agent-total {
+    max-width: none;
+  }
+  .presignup-agent-results {
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
+  .presignup-agent-results .pa-card {
+    flex: 0 1 100%;
+    max-width: none;
+  }
+}
+
+/* Card — monochrome dark (hero.html verbatim) */
+
+.presignup-agent-results .pa-card {
+  position: relative;
+  border-radius: 12px;
+  border: 1px solid rgba(26, 26, 24, 0.12);
+  background: #ffffff;
+  padding: 18px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-height: 220px;
+  overflow: hidden;
+  box-shadow:
+    0 2px 12px rgba(26, 26, 24, 0.06),
+    0 1px 3px rgba(26, 26, 24, 0.04);
+  transition:
+    border-color 0.25s ease,
+    box-shadow 0.35s ease,
+    transform 0.25s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+html.dark .presignup-agent-results .pa-card {
+  border-color: #232324;
+  background: #121311;
+  box-shadow: none;
+}
+
+.presignup-agent-results .pa-card.preview .card-head,
+.presignup-agent-results .pa-card.preview .card-hero,
+.presignup-agent-results .pa-card.preview .card-vendors {
+  display: none;
+}
+
+.presignup-agent-results .pa-card:not(.preview) .card-preview-viz,
+.presignup-agent-results .pa-card:not(.preview) .preview-head,
+.presignup-agent-results .pa-card:not(.preview) .preview-desc {
+  display: none;
+}
+
+.preview-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+}
+
+.preview-title {
+  color: var(--text-primary);
+  font-size: 1rem !important;
+  font-weight: 500;
+  letter-spacing: -0.01em !important;
+  margin: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+html.dark .preview-title {
+  color: #ffffff;
+}
+
+.preview-title .emoji {
+  font-size: 0.875rem;
+  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1em;
+  height: 1em;
+  color: #f0651f;
+  flex-shrink: 0;
+}
+
+.emoji svg {
+  width: 1em;
+  height: 1em;
+  display: block;
+}
+
+.preview-desc {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: 0.875rem !important;
+  letter-spacing: normal !important;
+  line-height: 1.5;
+}
+
+html.dark .preview-desc {
+  color: rgba(255, 255, 255, 0.45);
+}
+
+.card-preview-viz {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-height: 110px;
+  padding: 18px 12px 14px;
+  justify-content: center;
+  align-items: center;
+}
+
+.viz {
+  color: #f0651f;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+}
+
+/* Hover glow (hero.html verbatim) */
+.presignup-agent-results .pa-card::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background:
+    radial-gradient(120% 70% at 50% 0%, rgba(240, 101, 31, 0.22), transparent 60%),
+    radial-gradient(100% 80% at 50% 100%, rgba(240, 101, 31, 0.08), transparent 70%);
+  opacity: 0;
+  transition: opacity 0.35s ease;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.presignup-agent-results .pa-card > * {
+  position: relative;
+  z-index: 1;
+}
+
+.presignup-agent-results .pa-card:hover,
+html.dark .presignup-agent-results .pa-card:hover {
+  border-color: #f0651f;
+  box-shadow:
+    0 10px 30px rgba(240, 101, 31, 0.18),
+    0 0 60px rgba(240, 101, 31, 0.12);
+  transform: translateY(-3px);
+}
+
+.presignup-agent-results .pa-card:hover::before {
+  opacity: 1;
+}
+
+/* Reveal animation when a card flips preview → complete */
+@keyframes card-reveal {
+  0% {
+    transform: scale(0.98);
+    filter: blur(4px);
+  }
+  55% {
+    transform: scale(1.01);
+    filter: blur(0);
+  }
+  100% {
+    transform: scale(1);
+    filter: blur(0);
+  }
+}
+
+.presignup-agent-results .pa-card.revealing {
+  animation: card-reveal 0.7s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+/* Completed: head + hero + vendor rows */
+.card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid rgba(26, 26, 24, 0.08);
+}
+
+html.dark .card-head {
+  border-bottom-color: rgba(255, 255, 255, 0.06);
+}
+
+.card-name {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  color: var(--text-primary);
+  font-weight: 500;
+  font-size: 0.875rem !important;
+  letter-spacing: normal !important;
+}
+
+html.dark .card-name {
+  color: #ffffff;
+}
+
+.card-name .emoji {
+  font-size: 0.875rem;
+  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1em;
+  height: 1em;
+  color: #f0651f;
+  flex-shrink: 0;
+}
+
+.card-badge {
+  font-size: 0.53125rem !important;
+  font-weight: 500;
+  letter-spacing: 0.14em !important;
+  text-transform: uppercase;
+  padding: 2px 8px;
+  border-radius: 999px;
+  border: 1px solid rgba(26, 26, 24, 0.18);
+  color: var(--text-primary);
+  background: transparent;
+  opacity: 0.6;
+}
+
+html.dark .card-badge {
+  border-color: #2b2b2c;
+  color: #ffffff;
+  opacity: 0.5;
+}
+
+.card-hero {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 14px 0 14px;
+  border-bottom: 1px solid rgba(26, 26, 24, 0.08);
+  text-align: center;
+}
+
+html.dark .card-hero {
+  border-bottom-color: rgba(255, 255, 255, 0.06);
+}
+
+.card-desc {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: 0.75rem !important;
+  letter-spacing: normal !important;
+  font-weight: 400;
+  line-height: 1.4;
+  max-width: 260px;
+}
+
+html.dark .card-desc {
+  color: rgba(255, 255, 255, 0.55);
+}
+
+.card-amount {
+  font-size: 1.375rem !important;
+  font-weight: 700;
+  color: #f0651f;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em !important;
+  line-height: 1;
+  transition:
+    text-shadow 0.4s ease,
+    transform 0.4s ease;
+}
+
+.card-amount.pulse {
+  text-shadow: 0 0 22px rgba(240, 101, 31, 0.35);
+  transform: scale(1.02);
+}
+
+.card-vendors {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding-top: 4px;
+}
+
+.card-vendor {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  font-size: 0.71875rem;
+}
+
+.card-vendor-name {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--text-primary);
+  font-weight: 500;
+  font-size: 0.875rem !important;
+  letter-spacing: normal !important;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+html.dark .card-vendor-name {
+  color: #ffffff;
+}
+
+.card-vendor-logo {
+  width: 20px;
+  height: 20px;
+  padding: 3px;
+  background: #ffffff;
+  border-radius: 4px;
+  box-sizing: border-box;
+  flex-shrink: 0;
+  object-fit: contain;
+}
+
+.card-vendor-fig {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: flex-end;
+  flex-shrink: 0;
+  gap: 2px;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.2;
+}
+
+.card-vendor-spend {
+  color: var(--text-secondary);
+  font-size: 0.6875rem !important;
+  letter-spacing: normal !important;
+  font-weight: 400;
+}
+
+html.dark .card-vendor-spend {
+  color: rgba(255, 255, 255, 0.45);
+}
+
+.card-vendor-waste {
+  color: #f0651f;
+  font-size: 0.75rem !important;
+  font-weight: 600;
+  letter-spacing: -0.01em !important;
+}
+
+/* Per-product VIZ animations — hero.html verbatim */
+
+/* ── ShipID — package tracked along a path + recovered credit pop ── */
+.viz-ship {
+  position: relative;
+  width: 110px;
+  height: 36px;
+  justify-content: flex-start;
+}
+
+.viz-ship .ship-path {
+  position: absolute;
+  left: 2px;
+  right: 2px;
+  top: 70%;
+  border-top: 1px dashed #f0651f;
+  opacity: 0.35;
+}
+
+.viz-ship .ship-box {
+  position: absolute;
+  top: 70%;
+  width: 14px;
+  height: 10px;
+  background: #f0651f;
+  border-radius: 2px;
+  transform: translateY(-50%);
+  box-shadow: 0 0 8px rgba(240, 101, 31, 0.5);
+  animation: ship-move 3.2s linear infinite;
+}
+
+@keyframes ship-move {
+  0% {
+    left: -18px;
+  }
+  100% {
+    left: calc(100% + 2px);
+  }
+}
+
+.viz-ship .ship-credit {
+  position: absolute;
+  top: 20%;
+  left: 55%;
+  color: #f0651f;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  text-shadow: 0 0 6px rgba(240, 101, 31, 0.55);
+  opacity: 0;
+  animation: ship-credit 3.2s ease-in-out infinite;
+}
+
+@keyframes ship-credit {
+  0%,
+  50% {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  65% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  90% {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+/* ── SeatID — 5×2 grid, some billed-but-empty, scanner sweeps ── */
+.viz-seat {
+  position: relative;
+  width: 70px;
+  height: 32px;
+  padding: 3px;
+}
+
+.viz-seat .seat-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 9px);
+  grid-auto-rows: 9px;
+  gap: 3px;
+  width: 100%;
+  justify-content: center;
+  align-content: center;
+  position: relative;
+}
+
+.viz-seat .ss {
+  width: 9px;
+  height: 9px;
+  border-radius: 2px;
+  background: #f0651f;
+  animation: seat-active 2.2s ease-in-out infinite;
+}
+
+.viz-seat .ss:nth-child(2n) {
+  animation-delay: 0.2s;
+}
+
+.viz-seat .ss:nth-child(3n) {
+  animation-delay: 0.45s;
+}
+
+.viz-seat .ss:nth-child(5n) {
+  animation-delay: 0.7s;
+}
+
+.viz-seat .ss-empty {
+  background: transparent;
+  border: 1px dashed #f0651f;
+  opacity: 0.35;
+  animation: none;
+}
+
+@keyframes seat-active {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.45;
+  }
+}
+
+.viz-seat .seat-scan {
+  position: absolute;
+  left: 2px;
+  right: 2px;
+  height: 1.5px;
+  background: #f0651f;
+  box-shadow: 0 0 4px currentColor;
+  opacity: 0;
+  animation: seat-scan 2.8s ease-in-out infinite;
+}
+
+@keyframes seat-scan {
+  0% {
+    top: 0;
+    opacity: 0;
+  }
+  10% {
+    opacity: 0.9;
+  }
+  90% {
+    opacity: 0.9;
+  }
+  100% {
+    top: 100%;
+    opacity: 0;
+  }
+}
+
+/* ── KloudID — vertical bars + dashed "paid capacity" ceiling ── */
+.viz-kloud {
+  position: relative;
+  width: 92px;
+  height: 36px;
+  padding: 4px;
+  align-items: flex-end;
+}
+
+.viz-kloud .k-ceiling {
+  position: absolute;
+  left: 4px;
+  right: 4px;
+  top: 5px;
+  border-top: 1.5px dashed #f0651f;
+  opacity: 0.5;
+}
+
+.viz-kloud .k-ceiling::after {
+  content: "";
+  position: absolute;
+  right: 0;
+  top: -4px;
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: #f0651f;
+  box-shadow: 0 0 4px currentColor;
+}
+
+.viz-kloud .k-bars {
+  display: flex;
+  gap: 3px;
+  width: 100%;
+  height: 100%;
+  align-items: flex-end;
+}
+
+.viz-kloud .kb {
+  flex: 1;
+  background: #f0651f;
+  border-radius: 1.5px 1.5px 0 0;
+  transform-origin: bottom;
+  animation: k-bar 2.4s ease-in-out infinite;
+}
+
+.viz-kloud .kb:nth-child(1) {
+  animation-delay: 0s;
+  height: 48%;
+}
+.viz-kloud .kb:nth-child(2) {
+  animation-delay: 0.15s;
+  height: 70%;
+}
+.viz-kloud .kb:nth-child(3) {
+  animation-delay: 0.3s;
+  height: 32%;
+}
+.viz-kloud .kb:nth-child(4) {
+  animation-delay: 0.45s;
+  height: 58%;
+}
+.viz-kloud .kb:nth-child(5) {
+  animation-delay: 0.6s;
+  height: 40%;
+}
+.viz-kloud .kb:nth-child(6) {
+  animation-delay: 0.75s;
+  height: 65%;
+}
+.viz-kloud .kb:nth-child(7) {
+  animation-delay: 0.9s;
+  height: 36%;
+}
+
+@keyframes k-bar {
+  0%,
+  100% {
+    transform: scaleY(1);
+    opacity: 0.9;
+  }
+  50% {
+    transform: scaleY(0.55);
+    opacity: 0.6;
+  }
+}
+
+/* ── TokenID — tokens flowing left→right through a chip ── */
+.viz-token {
+  position: relative;
+  width: 110px;
+  height: 36px;
+}
+
+.viz-token .token-chip {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: 42px;
+  height: 18px;
+  border: 1.5px solid #f0651f;
+  border-radius: 3px;
+  opacity: 0.8;
+  display: flex;
+  align-items: center;
+  justify-content: space-around;
+  padding: 0 3px;
+}
+
+.viz-token .token-chip::before,
+.viz-token .token-chip::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  width: 28px;
+  height: 1px;
+  background: #f0651f;
+  opacity: 0.45;
+}
+
+.viz-token .token-chip::before {
+  left: -30px;
+}
+
+.viz-token .token-chip::after {
+  right: -30px;
+}
+
+.viz-token .token-node {
+  width: 3px;
+  height: 3px;
+  border-radius: 50%;
+  background: #f0651f;
+  animation: token-blink 1.4s ease-in-out infinite;
+}
+
+.viz-token .token-node:nth-child(2) {
+  animation-delay: 0.2s;
+}
+.viz-token .token-node:nth-child(3) {
+  animation-delay: 0.4s;
+}
+.viz-token .token-node:nth-child(4) {
+  animation-delay: 0.6s;
+}
+
+@keyframes token-blink {
+  0%,
+  100% {
+    opacity: 0.35;
+    transform: scale(0.8);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.3);
+  }
+}
+
+.viz-token .t-flow {
+  position: absolute;
+  top: 50%;
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: #f0651f;
+  box-shadow: 0 0 4px currentColor;
+  transform: translateY(-50%);
+  opacity: 0;
+  animation: token-flow 2.6s linear infinite;
+}
+
+.viz-token .tf1 {
+  animation-delay: 0s;
+}
+.viz-token .tf2 {
+  animation-delay: 0.87s;
+}
+.viz-token .tf3 {
+  animation-delay: 1.73s;
+}
+
+@keyframes token-flow {
+  0% {
+    left: 0;
+    opacity: 0;
+  }
+  15% {
+    opacity: 1;
+  }
+  85% {
+    opacity: 1;
+  }
+  100% {
+    left: calc(100% - 4px);
+    opacity: 0;
+  }
+}
+
+/* ── AdID — reticle with expanding rings + invalid click "×" markers ── */
+.viz-ad {
+  position: relative;
+  width: 80px;
+  height: 36px;
+}
+
+.viz-ad .ad-ring {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 6px;
+  height: 6px;
+  margin: -3px 0 0 -3px;
+  border-radius: 50%;
+  border: 1px solid #f0651f;
+  opacity: 0;
+  animation: ad-ring 2s ease-out infinite;
+}
+
+.viz-ad .ad-ring.r2 {
+  animation-delay: 1s;
+}
+
+.viz-ad .ad-target {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 5px;
+  height: 5px;
+  margin: -2.5px 0 0 -2.5px;
+  border-radius: 50%;
+  background: #f0651f;
+  box-shadow: 0 0 5px currentColor;
+}
+
+@keyframes ad-ring {
+  0% {
+    opacity: 1;
+    transform: scale(0.4);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(5);
+  }
+}
+
+.viz-ad .ad-click {
+  position: absolute;
+  color: #f0651f;
+  font-family: inherit;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  line-height: 1;
+  opacity: 0;
+  animation: ad-click 3.2s ease-in-out infinite;
+}
+
+.viz-ad .ad-click.ac1 {
+  top: 10%;
+  left: 14%;
+  animation-delay: 0.3s;
+}
+
+.viz-ad .ad-click.ac2 {
+  top: 68%;
+  left: 82%;
+  animation-delay: 1.5s;
+}
+
+.viz-ad .ad-click.ac3 {
+  top: 72%;
+  left: 10%;
+  animation-delay: 2.4s;
+}
+
+@keyframes ad-click {
+  0%,
+  8% {
+    opacity: 0;
+    transform: scale(0.5);
+  }
+  18% {
+    opacity: 1;
+    transform: scale(1.2);
+  }
+  38% {
+    opacity: 0.6;
+    transform: scale(1);
+  }
+  55% {
+    opacity: 0;
+    transform: scale(1.4);
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+/* ── PaymentID — ledger rows being scanned, one flagged ── */
+.viz-pay {
+  position: relative;
+  width: 72px;
+  height: 36px;
+  padding: 4px 3px;
+}
+
+.viz-pay .pay-rows {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-around;
+}
+
+.viz-pay .pr {
+  height: 2.5px;
+  background: #f0651f;
+  opacity: 0.35;
+  border-radius: 1.5px;
+}
+
+.viz-pay .pr:nth-child(1) {
+  width: 90%;
+}
+.viz-pay .pr:nth-child(2) {
+  width: 70%;
+}
+.viz-pay .pr:nth-child(3) {
+  width: 85%;
+}
+.viz-pay .pr:nth-child(4) {
+  width: 60%;
+}
+
+.viz-pay .pr-flag {
+  animation: pay-flag 3s ease-in-out infinite;
+}
+
+@keyframes pay-flag {
+  0%,
+  55%,
+  100% {
+    opacity: 0.35;
+    box-shadow: none;
+  }
+  65%,
+  85% {
+    opacity: 1;
+    box-shadow: 0 0 8px rgba(240, 101, 31, 0.7);
+  }
+}
+
+.viz-pay .pay-scan {
+  position: absolute;
+  left: 3px;
+  right: 3px;
+  height: 1.5px;
+  background: #f0651f;
+  box-shadow: 0 0 6px currentColor;
+  opacity: 0;
+  animation: pay-scan 3s ease-in-out infinite;
+}
+
+@keyframes pay-scan {
+  0% {
+    top: 4px;
+    opacity: 0;
+  }
+  10% {
+    opacity: 0.9;
+  }
+  50% {
+    opacity: 0.9;
+    top: calc(100% - 5px);
+  }
+  60% {
+    opacity: 0;
+  }
+  100% {
+    top: 4px;
+    opacity: 0;
+  }
+}
+
+/* Total banner */
+
+.presignup-agent-total {
+  position: relative;
+  flex: 1 1 100%;
+  width: 100%;
+  /* Match the rendered width of .sim-input-row (960 max + 20*2 padding + 2*2 border). */
+  max-width: 1004px;
+  box-sizing: border-box;
+  margin: 0.5rem auto 0;
+  padding: 1rem 1.25rem;
+  background: #ffffff;
+  border: 1px solid rgba(26, 26, 24, 0.1);
+  border-radius: 0.875rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+  opacity: 0;
+  animation: presignup-total-enter 360ms cubic-bezier(0.22, 1, 0.36, 1) 80ms forwards;
+}
+
+/* Label + value sit on one horizontal line, separated by a small gap. */
+.presignup-agent-total-stack {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.75rem;
+  min-width: 0;
+  flex-wrap: wrap;
+}
+
+.presignup-agent-total-label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--text-secondary);
+}
+
+.presignup-agent-total-value {
+  font-size: 1.5rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  color: #f0651f;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Email-capture pill — fused input-group: mail icon + email field + Download
+   Report button all inside one rounded container. Hardened against Webflow's
+   global "All Inputs / All Buttons / All Forms" cascade by explicitly
+   resetting layout-critical properties with !important on every child. */
+
+.presignup-agent-total .presignup-agent-total-form,
+.presignup-agent-total .presignup-agent-total-form * {
+  box-sizing: border-box !important;
+}
+
+.presignup-agent-total .presignup-agent-total-form {
+  display: inline-flex !important;
+  align-items: stretch !important;
+  gap: 8px !important;
+  flex: 1 1 auto !important;
+  min-width: 360px !important;
+  max-width: 640px !important;
+  height: 44px !important;
+  margin: 0 !important;
+  padding: 4px 4px 4px 14px !important;
+  background: rgba(26, 26, 24, 0.04) !important;
+  border: 1px solid rgba(26, 26, 24, 0.12) !important;
+  border-radius: 999px !important;
+  box-shadow: none !important;
+  transition:
+    border-color 180ms cubic-bezier(0.4, 0, 0.2, 1),
+    box-shadow 180ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.presignup-agent-total .presignup-agent-total-form:focus-within {
+  border-color: rgba(240, 101, 31, 0.55) !important;
+  box-shadow: 0 0 0 3px rgba(240, 101, 31, 0.15) !important;
+}
+
+.presignup-agent-total .presignup-agent-total-form-icon {
+  flex: 0 0 auto !important;
+  width: 16px !important;
+  height: 16px !important;
+  align-self: center !important;
+  color: var(--text-secondary);
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+.presignup-agent-total .presignup-agent-total-email {
+  flex: 1 1 auto !important;
+  min-width: 0 !important;
+  width: auto !important;
+  height: auto !important;
+  align-self: center !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: 0 !important;
+  background: transparent !important;
+  color: var(--text-primary);
+  font: inherit;
+  font-size: 0.875rem !important;
+  line-height: 1.2 !important;
+  letter-spacing: normal !important;
+  outline: none !important;
+  box-shadow: none !important;
+  border-radius: 0 !important;
+  appearance: none !important;
+  -webkit-appearance: none !important;
+}
+
+.presignup-agent-total .presignup-agent-total-email::placeholder {
+  color: var(--text-secondary);
+  opacity: 0.8;
+}
+
+.presignup-agent-total .presignup-agent-total-cta {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 6px !important;
+  flex: 0 0 auto !important;
+  width: auto !important;
+  height: auto !important;
+  min-height: 0 !important;
+  position: relative !important;
+  cursor: pointer !important;
+  white-space: nowrap !important;
+  margin: 0 !important;
+  padding: 0 1.125rem !important;
+  border: 0 !important;
+  border-radius: 999px !important;
+  background: #f0651f !important;
+  color: #ffffff !important;
+  font: inherit;
+  font-size: 0.8125rem !important;
+  font-weight: 600 !important;
+  line-height: 1 !important;
+  letter-spacing: 0.01em !important;
+  text-decoration: none !important;
+  text-transform: none !important;
+  box-shadow: none !important;
+  appearance: none !important;
+  -webkit-appearance: none !important;
+  transition:
+    background-color 180ms cubic-bezier(0.4, 0, 0.2, 1),
+    transform 120ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.presignup-agent-total .presignup-agent-total-cta svg {
+  width: 14px !important;
+  height: 14px !important;
+  flex: 0 0 auto !important;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+.presignup-agent-total .presignup-agent-total-cta.is-loading {
+  cursor: wait !important;
+}
+
+.presignup-agent-total .presignup-agent-total-cta.is-loading svg {
+  display: none !important;
+}
+
+.presignup-agent-total .presignup-agent-total-cta.is-loading::before {
+  content: "" !important;
+  width: 14px !important;
+  height: 14px !important;
+  border-radius: 999px !important;
+  border: 2px solid rgba(255, 255, 255, 0.45) !important;
+  border-top-color: rgba(255, 255, 255, 1) !important;
+  box-sizing: border-box !important;
+  animation: presignup-spin 0.85s linear infinite;
+}
+
+@keyframes presignup-spin {
+  to { transform: rotate(360deg); }
+}
+
+.presignup-agent-total .presignup-agent-total-cta:hover:not(:disabled) {
+  background: #d75717 !important;
+}
+
+.presignup-agent-total .presignup-agent-total-cta:active:not(:disabled) {
+  transform: scale(0.97);
+}
+
+.presignup-agent-total .presignup-agent-total-cta:disabled,
+.presignup-agent-total .presignup-agent-total-cta[disabled] {
+  background: rgba(240, 101, 31, 0.8) !important;
+  color: #ffffff !important;
+  cursor: not-allowed !important;
+}
+
+html.dark .presignup-agent-total .presignup-agent-total-form {
+  background: rgba(255, 255, 255, 0.04) !important;
+  border-color: rgba(255, 255, 255, 0.1) !important;
+}
+
+html.dark .presignup-agent-total .presignup-agent-total-form:focus-within {
+  border-color: rgba(240, 101, 31, 0.6) !important;
+  box-shadow: 0 0 0 3px rgba(240, 101, 31, 0.18) !important;
+}
+
+html.dark .presignup-agent-total .presignup-agent-total-email {
+  color: #fafafa !important;
+}
+
+html.dark .presignup-agent-total .presignup-agent-total-email::placeholder {
+  color: rgba(255, 255, 255, 0.4);
+}
+
+@media (max-width: 560px) {
+  .presignup-agent-total .presignup-agent-total-form {
+    flex: 1 1 100% !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: none !important;
+    flex-direction: column !important;
+    align-items: stretch !important;
+    height: auto !important;
+    padding: 8px !important;
+    gap: 8px !important;
+    border-radius: 14px !important;
+    box-sizing: border-box !important;
+  }
+  .presignup-agent-total .presignup-agent-total-form-icon {
+    display: none !important;
+  }
+  .presignup-agent-total .presignup-agent-total-email {
+    padding: 10px 12px !important;
+    width: 100% !important;
+    line-height: 1.3 !important;
+  }
+  .presignup-agent-total .presignup-agent-total-cta {
+    width: 100% !important;
+    padding: 10px 16px !important;
+    min-height: 40px !important;
+  }
+}
+
+.presignup-agent-email-capture {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+}
+
+.presignup-agent-email-capture[hidden] {
+  display: none;
+}
+
+.presignup-agent-email-capture input {
+  flex: 1 1 auto;
+  min-width: 0;
+  padding: 0.75rem 0.875rem;
+  border-radius: 8px;
+  border: 1px solid rgba(26, 26, 24, 0.18);
+  background: #ffffff;
+  color: var(--text-primary);
+  font: inherit;
+  font-size: 0.875rem;
+  outline: none;
+  transition: border-color 0.15s ease;
+}
+
+.presignup-agent-email-capture input::placeholder {
+  color: var(--text-secondary);
+}
+
+.presignup-agent-email-capture input:focus {
+  border-color: var(--primary);
+}
+
+.presignup-agent-email-capture button {
+  flex: 0 0 auto;
+  padding: 0.75rem 1rem;
+  border-radius: 8px;
+  border: 0;
+  background: var(--primary);
+  color: #ffffff;
+  font: inherit;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition:
+    background 0.15s ease,
+    transform 0.08s ease;
+}
+
+.presignup-agent-email-capture button:hover {
+  background: var(--primary-hover);
+}
+
+.presignup-agent-email-capture button:active {
+  transform: translateY(1px);
+}
+
+html.dark .presignup-agent-email-capture input {
+  background: rgba(255, 255, 255, 0.04);
+  border-color: rgba(255, 255, 255, 0.12);
+  color: #fafafa;
+}
+
+html.dark .presignup-agent-email-capture input::placeholder {
+  color: #6a6a70;
+}
+
+/* Dark-mode cards / banner */
+
+html.dark .presignup-agent-section {
+  background: var(--charcoal-900, #1a1a18);
+  color: #fafafa;
+}
+
+html.dark .presignup-agent-card {
+  background: #1e1e1c;
+  border-color: rgba(254, 96, 44, 0.5);
+  box-shadow:
+    0 0 20px rgba(254, 96, 44, 0.12),
+    0 0 60px rgba(254, 96, 44, 0.06);
+}
+
+html.dark .presignup-agent-card[data-state="auditing"] {
+  border-color: rgba(254, 96, 44, 0.75);
+  box-shadow:
+    0 0 0 1px rgba(254, 96, 44, 0.25),
+    0 0 28px rgba(254, 96, 44, 0.25),
+    0 0 80px rgba(254, 96, 44, 0.12);
+}
+
+html.dark .presignup-agent-card-title {
+  color: #ffffff;
+}
+
+html.dark .presignup-agent-card-desc {
+  color: #a3a39b;
+}
+
+html.dark .presignup-agent-card-chip {
+  background: rgba(255, 255, 255, 0.06);
+  color: #a3a39b;
+}
+
+html.dark .presignup-agent-card[data-state="auditing"] .presignup-agent-card-chip {
+  background: rgba(254, 96, 44, 0.18);
+  color: #ff8c42;
+}
+
+html.dark
+  .presignup-agent-card[data-state="completed"]
+  .presignup-agent-card-chip {
+  background: rgba(34, 197, 94, 0.16);
+  color: #4ade80;
+}
+
+html.dark .presignup-agent-log {
+  background: rgba(255, 255, 255, 0.04);
+  color: #a3a39b;
+}
+
+html.dark .presignup-agent-log-line[data-level="sys"] {
+  color: #a3a39b;
+}
+
+html.dark .presignup-agent-log-line[data-level="ok"] {
+  color: #4ade80;
+}
+
+html.dark .presignup-agent-log-line[data-level="warn"] {
+  color: #ff8c42;
+}
+
+html.dark .presignup-agent-log-line[data-level="plain"] {
+  color: #fafafa;
+}
+
+html.dark .presignup-agent-vendor-list {
+  border-top-color: rgba(255, 255, 255, 0.08);
+}
+
+html.dark .presignup-agent-vendor-row {
+  border-bottom-color: rgba(255, 255, 255, 0.08);
+}
+
+html.dark .presignup-agent-vendor-name {
+  color: #fafafa;
+}
+
+html.dark .presignup-agent-vendor-spend {
+  color: #a3a39b;
+}
+
+html.dark .presignup-agent-vendor-waste {
+  color: #ff8c42;
+}
+
+html.dark .presignup-agent-card-cta {
+  background: rgba(255, 255, 255, 0.04);
+  border-color: rgba(255, 255, 255, 0.12);
+  color: #fafafa;
+}
+
+html.dark .presignup-agent-card-cta:hover {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(254, 96, 44, 0.5);
+}
+
+html.dark .presignup-agent-card-footnote {
+  color: #a3a39b;
+}
+
+html.dark .presignup-agent-total {
+  background: #121311;
+  border-color: #232324;
+  box-shadow: none;
+}
+
+html.dark .presignup-agent-total-label {
+  color: rgba(255, 255, 255, 0.55);
+}
+
+/* Value stays orange in dark mode too — the brand accent is the point. */
+html.dark .presignup-agent-total-value {
+  color: #f0651f;
+}
+
+/* Motion keyframes */
+
+@keyframes presignup-card-enter {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+    filter: blur(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+    filter: blur(0);
+  }
+}
+
+.presignup-agent-card[data-state="waiting"] {
+  animation: presignup-card-enter-waiting 320ms cubic-bezier(0.22, 1, 0.36, 1)
+    forwards;
+}
+
+@keyframes presignup-card-enter-waiting {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+    filter: blur(4px);
+  }
+  to {
+    opacity: 0.55;
+    transform: translateY(0);
+    filter: blur(0);
+  }
+}
+
+@keyframes presignup-log-line-enter {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes presignup-vendor-enter {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes presignup-total-enter {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+    filter: blur(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+    filter: blur(0);
+  }
+}
+
+@keyframes presignup-fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(2px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes presignup-pulse {
+  0%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.6;
+    transform: scale(0.85);
+  }
+}
