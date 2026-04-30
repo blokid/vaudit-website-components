@@ -27,10 +27,11 @@ Drop an HTML Embed in Webflow with:
 
 ```html
 <div data-rc="hello"></div>
-<div data-rc="hello" data-rc-name="Aung"></div>
+<div data-rc="hello" data-prop='{"name": "Aung"}'></div>
+<div data-rc="hello" data-prop='{"name": "Aung", "count": 5, "muted": true}'></div>
 ```
 
-Any `data-rc-foo="bar"` attribute becomes a `foo` prop. Strings `"true"`, `"false"`, and numerics are coerced.
+The `data-rc` attribute names the component. `data-prop` is a JSON object passed as props — strings, numbers, booleans, arrays, and nested objects all work. Use single quotes around the attribute so JSON's double quotes don't need escaping.
 
 ## Authoring a new component
 

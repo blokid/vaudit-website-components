@@ -5,21 +5,19 @@ import { registry } from "./registry";
 type MountedNode = HTMLElement & { __rcRoot?: Root };
 
 function readProps(node: HTMLElement): Record<string, unknown> {
-  const props: Record<string, unknown> = {};
-  for (const [key, raw] of Object.entries(node.dataset)) {
-    if (!key.startsWith("rc") || key === "rc" || key === "rcMounted") continue;
-    const propName = key.charAt(2).toLowerCase() + key.slice(3);
-    props[propName] = coerce(raw);
+  const raw = node.dataset.prop;
+  if (!raw) return {};
+  try {
+    const parsed = JSON.parse(raw);
+    if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
+      return parsed as Record<string, unknown>;
+    }
+    console.warn(`[vaudit-components] data-prop must be a JSON object on`, node);
+    return {};
+  } catch (err) {
+    console.warn(`[vaudit-components] invalid JSON in data-prop on`, node, err);
+    return {};
   }
-  return props;
-}
-
-function coerce(value: string | undefined): unknown {
-  if (value === undefined) return undefined;
-  if (value === "true") return true;
-  if (value === "false") return false;
-  if (value !== "" && !Number.isNaN(Number(value))) return Number(value);
-  return value;
 }
 
 function mountAll(): void {
