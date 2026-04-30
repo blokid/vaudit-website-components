@@ -38,10 +38,175 @@ const PRODUCT_OVERVIEW_OVERRIDES = {
   },
 } as const;
 
+type Platform = {
+  /** Visible chip label (e.g. "Google Ads"). */
+  label: string;
+  /** Brand-logo URL — rendered in an `<img>`. Use for full-color CDN SVGs. */
+  iconUrl?: string;
+  /**
+   * Inline SVG / React node, OR a built-in keyword string. Takes precedence
+   * over `iconUrl`. Use this for monochrome icons that should inherit
+   * `currentColor`. Built-in keywords usable from `data-prop` JSON:
+   * `"linkedin" | "dv360" | "trade-desk" | "dsps"`.
+   */
+  icon?: React.ReactNode | "linkedin" | "dv360" | "trade-desk" | "dsps";
+  /**
+   * Optional link target. `#anchor` smooth-scrolls to that id on the current
+   * page; absolute or path URLs navigate normally (so it works cross-page).
+   */
+  href?: string;
+};
+
+const LinkedInIcon = (
+  <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+    <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.268 2.37 4.268 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z" />
+  </svg>
+);
+
+const DV360Icon = (
+  <svg
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    aria-hidden="true"
+  >
+    <rect x="2" y="3" width="20" height="14" rx="2" />
+    <path d="M10 8.5v5l5-2.5z" fill="currentColor" stroke="none" />
+    <line x1="8" y1="21" x2="16" y2="21" />
+    <line x1="12" y1="17" x2="12" y2="21" />
+  </svg>
+);
+
+const TradeDeskIcon = (
+  <svg
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    aria-hidden="true"
+  >
+    <path d="M3 3v18h18" />
+    <path d="m7 14 3-3 3 3 5-5" />
+    <path d="M14 9h4v4" />
+  </svg>
+);
+
+const DSPsIcon = (
+  <svg
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    aria-hidden="true"
+  >
+    <circle cx="18" cy="5" r="3" />
+    <circle cx="6" cy="12" r="3" />
+    <circle cx="18" cy="19" r="3" />
+    <line x1="8.59" y1="13.51" x2="15.42" y2="17.49" />
+    <line x1="15.41" y1="6.51" x2="8.59" y2="11.49" />
+  </svg>
+);
+
+// Built-in inline SVGs addressable from Webflow `data-prop` JSON via string
+// keywords (since React nodes can't be serialized in JSON).
+const ICON_REGISTRY: Record<string, React.ReactNode> = {
+  linkedin: LinkedInIcon,
+  dv360: DV360Icon,
+  "trade-desk": TradeDeskIcon,
+  dsps: DSPsIcon,
+};
+
 type PresignupAgentProps = {
   /** Override the agent base URL — defaults to staging on non-vaudit.com origins. */
   agentBaseUrl?: string;
+  /** Main headline above the input card. */
+  title?: string;
+  /** Supporting line under the headline. */
+  subtitle?: string;
+  /** Textarea placeholder copy. */
+  placeholder?: string;
+  /** Submit-button label. */
+  ctaLabel?: string;
+  /** Small line shown above the integrations row (only when `platforms` is set). */
+  platformsLabel?: string;
+  /**
+   * Integration chips rendered directly under the input card. Each chip can
+   * carry a brand-logo URL and an `href` (anchor or path) that scrolls /
+   * navigates to the matching product-page section on click.
+   */
+  platforms?: Platform[];
 };
+
+const DEFAULT_TITLE = "Connect. Audit. Get Money Back";
+const DEFAULT_SUBTITLE =
+  "See what Vaudit would recover for your business in under 10 seconds.";
+const DEFAULT_PLACEHOLDER =
+  "Enter your website (e.g. stripe.com), describe your stack, or paste a list of vendors you want audited…";
+const DEFAULT_CTA = "Audit My Vendors";
+
+const AD_PLATFORMS: Platform[] = [
+  {
+    label: "Google Ads",
+    iconUrl:
+      "https://cdn.prod.website-files.com/67e174863b0c93ae0a0cffee/69e8a965ab121368400dc44f_google-ads.svg",
+    href: "#google-ads",
+  },
+  {
+    label: "Meta Ads",
+    iconUrl:
+      "https://cdn.prod.website-files.com/67e174863b0c93ae0a0cffee/69e8a965d6f564a86b177302_meta-ads.svg",
+    href: "#meta-ads",
+  },
+  {
+    label: "TikTok Ads",
+    iconUrl:
+      "https://cdn.prod.website-files.com/67e174863b0c93ae0a0cffee/69e8a965a560d2adf0a6e474_tiktok-ads.svg",
+    href: "#tiktok-ads",
+  },
+  {
+    label: "AppLovin",
+    iconUrl:
+      "https://cdn.prod.website-files.com/67e174863b0c93ae0a0cffee/69e8a9651ab5a69f0c7e99c1_applovin-ads.svg",
+    href: "#applovin",
+  },
+  {
+    label: "DV360",
+    iconUrl:
+      "https://cdn.prod.website-files.com/67e174863b0c93ae0a0cffee/69f30d0d639ab6b06147914f_google-display-and-video-ads.svg",
+    href: "#dv360",
+  },
+  {
+    label: "Trade Desk",
+    iconUrl:
+      "https://cdn.prod.website-files.com/67e174863b0c93ae0a0cffee/69f30e65b6ef9caacec11a54_The-Trade-Desk-Logo.svg",
+    href: "#trade-desk",
+  },
+  {
+    label: "Bing Ads",
+    iconUrl:
+      "https://cdn.prod.website-files.com/67e174863b0c93ae0a0cffee/69f30f19c4482ab1bb951e04_bing-1.svg",
+    href: "#bing-ads",
+  },
+  {
+    label: "LinkedIn Ads",
+    iconUrl:
+      "https://cdn.prod.website-files.com/67e174863b0c93ae0a0cffee/69f30f492136aba6741835f0_linkedin-icon-2.svg",
+    href: "#linkedin-ads",
+  },
+  {
+    label: "DSPs",
+    iconUrl:
+      "https://cdn.prod.website-files.com/67e174863b0c93ae0a0cffee/69f30fd7bc030dc4062dedce_amazon-simple.svg",
+    href: "#dsps",
+  },
+];
 
 export const meta: ComponentMeta<PresignupAgentProps> = {
   description:
@@ -53,10 +218,52 @@ export const meta: ComponentMeta<PresignupAgentProps> = {
         "Override the agent base URL. When omitted, uses prod on vaudit.com origins and staging elsewhere.",
       default: "auto-detect",
     },
+    title: {
+      type: "string",
+      description: "Main headline above the input card.",
+      default: `"${DEFAULT_TITLE}"`,
+    },
+    subtitle: {
+      type: "string",
+      description: "Supporting line under the headline.",
+      default: `"${DEFAULT_SUBTITLE}"`,
+    },
+    placeholder: {
+      type: "string",
+      description: "Textarea placeholder copy.",
+      default: "see source",
+    },
+    ctaLabel: {
+      type: "string",
+      description: "Submit-button label.",
+      default: `"${DEFAULT_CTA}"`,
+    },
+    platformsLabel: {
+      type: "string",
+      description:
+        "Small line shown above the integrations row (only rendered when `platforms` is set).",
+      default: "none",
+    },
+    platforms: {
+      type: "{ label: string; iconUrl?: string; href?: string }[]",
+      description:
+        "Integration chips rendered under the input card. `href` accepts `#anchor` (smooth-scrolls on the current page) or any URL/path (navigates normally).",
+      default: "none",
+    },
   },
   variants: {
     "default (auto-detect prod/staging)": {},
     "force staging": { agentBaseUrl: "https://onboarding-agent.staging.vaudit.com" },
+    "ad ID page (custom hero + ad platforms)": {
+      title: "Connect. Verify. Recover.",
+      subtitle:
+        "See what Vaudit can recover across your ad spend before billing discrepancies become accepted cost.",
+      placeholder:
+        "Enter your website, ad platforms, or paid media stack to identify invalid charges, missed credits, and recoverable spend.",
+      ctaLabel: "Audit My Ad Spend",
+      platformsLabel: "Start with ads. Expand to every bill.",
+      platforms: AD_PLATFORMS,
+    },
   },
 };
 
@@ -126,7 +333,15 @@ function buildScanItems(products: Product[]): ScanItem[] {
   return items;
 }
 
-export default function PresignupAgent({ agentBaseUrl }: PresignupAgentProps) {
+export default function PresignupAgent({
+  agentBaseUrl,
+  title = DEFAULT_TITLE,
+  subtitle = DEFAULT_SUBTITLE,
+  placeholder = DEFAULT_PLACEHOLDER,
+  ctaLabel = DEFAULT_CTA,
+  platformsLabel,
+  platforms,
+}: PresignupAgentProps) {
   const [phase, setPhase] = useState<AgentPhase>({ kind: "idle" });
   const [statusText, setStatusText] = useState<{ text: string; dot: boolean } | null>(null);
   const [scanItems, setScanItems] = useState<ScanItem[]>([]);
@@ -326,6 +541,18 @@ export default function PresignupAgent({ agentBaseUrl }: PresignupAgentProps) {
     await wait(POST_FINAL_MS);
   }, []);
 
+  // Smooth-scroll anchor hrefs to the matching id; let other URLs navigate.
+  const handlePlatformClick = useCallback(
+    (e: React.MouseEvent<HTMLAnchorElement>, href: string | undefined) => {
+      if (!href || !href.startsWith("#")) return;
+      const target = document.querySelector(href);
+      if (!target) return;
+      e.preventDefault();
+      target.scrollIntoView({ behavior: "smooth", block: "start" });
+    },
+    [],
+  );
+
   function pickTemplate(domain: string) {
     setActiveTemplate(domain);
     setDomainInput(domain);
@@ -356,10 +583,8 @@ export default function PresignupAgent({ agentBaseUrl }: PresignupAgentProps) {
         className={clsx("presignup-agent-container sim", sectionScanning && "scanning")}
         id="presignup-agent-root"
       >
-        <h2 className="sim-title">Connect. Audit. Get Money Back</h2>
-        <p className="sim-sub">
-          See what Vaudit would recover for your business in under 10 seconds.
-        </p>
+        <h2 className="sim-title">{title}</h2>
+        <p className="sim-sub">{subtitle}</p>
 
         <div
           className="sim-input-row"
@@ -382,7 +607,7 @@ export default function PresignupAgent({ agentBaseUrl }: PresignupAgentProps) {
             </span>
             <textarea
               rows={3}
-              placeholder="Enter your website (e.g. stripe.com), describe your stack, or paste a list of vendors you want audited…"
+              placeholder={placeholder}
               value={domainInput}
               onChange={(e) => setDomainInput(e.target.value)}
               onKeyDown={(e) => {
@@ -402,7 +627,7 @@ export default function PresignupAgent({ agentBaseUrl }: PresignupAgentProps) {
               onClick={handleSubmit}
               disabled={isLoading}
             >
-              Audit My Vendors
+              {ctaLabel}
               <kbd className="sim-kbd" aria-hidden="true">↵</kbd>
               <svg
                 viewBox="0 0 24 24"
@@ -462,6 +687,46 @@ export default function PresignupAgent({ agentBaseUrl }: PresignupAgentProps) {
             </div>
           )}
         </div>
+
+        {platforms && platforms.length > 0 && (
+          <div className="presignup-agent-platforms">
+            <div className="presignup-agent-platforms-row">
+              {platforms.map((p, i) => {
+                const resolvedIcon =
+                  typeof p.icon === "string" ? ICON_REGISTRY[p.icon] : p.icon;
+                return (
+                <a
+                  key={`${p.label}-${i}`}
+                  className="presignup-agent-platform"
+                  href={p.href || "#"}
+                  onClick={(e) => handlePlatformClick(e, p.href)}
+                >
+                  {resolvedIcon ? (
+                    <span className="presignup-agent-platform-icon" aria-hidden="true">
+                      {resolvedIcon}
+                    </span>
+                  ) : p.iconUrl ? (
+                    <img
+                      className="presignup-agent-platform-logo"
+                      src={p.iconUrl}
+                      alt=""
+                      aria-hidden="true"
+                      loading="lazy"
+                      onError={(e) => {
+                        (e.currentTarget as HTMLImageElement).style.display = "none";
+                      }}
+                    />
+                  ) : null}
+                  <span>{p.label}</span>
+                </a>
+                );
+              })}
+            </div>
+            {platformsLabel && (
+              <p className="presignup-agent-platforms-note">{platformsLabel}</p>
+            )}
+          </div>
+        )}
 
         <div className="presignup-agent-steps" hidden={!showSteps}>
           {(["finding", "sizing", "auditing"] as StepName[]).map((step) => {

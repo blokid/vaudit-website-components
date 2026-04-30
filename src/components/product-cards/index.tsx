@@ -5,6 +5,14 @@ import "./product-cards.css";
 export type ProductCardOverride = {
   title?: string;
   description?: string;
+  /**
+   * Per-card opt-in CTA shown at the bottom of the card. The card itself is
+   * already a link, so the CTA is a visual affordance — pass `true` to use
+   * the default "Learn More →" label, or `{ label }` to customize. Pass an
+   * `href` to override the card's own destination for both the card link
+   * and the CTA target.
+   */
+  cta?: boolean | { label?: string; href?: string };
 };
 
 export type ProductCardsProps = {
@@ -37,9 +45,9 @@ export const meta: ComponentMeta<ProductCardsProps> = {
       default: "all 6 in default order",
     },
     overrides: {
-      type: "Partial<Record<ProductKey, { title?: string; description?: string }>>",
+      type: "Partial<Record<ProductKey, { title?: string; description?: string; cta?: boolean | { label?: string; href?: string } }>>",
       description:
-        "Per-key overrides for title and/or description. Useful for retitling a card (e.g. Payment ID → Vendor ID) or rewriting body copy without editing the data file.",
+        "Per-key overrides for title, description, and/or CTA. Pass `cta: true` to show a default \"Learn More →\" affordance on that card, or an object to customize the label / link target.",
       default: "none",
     },
   },
@@ -56,6 +64,18 @@ export const meta: ComponentMeta<ProductCardsProps> = {
           description:
             "Verifies vendor billing across SaaS, cloud, payments, shipping, and operational spend to uncover hidden discrepancies, missed credits, and contract leakage.",
         },
+      },
+    },
+    "two-card with CTAs (vendor + ad)": {
+      order: ["pay", "ad"],
+      overrides: {
+        pay: {
+          title: "Vendor ID",
+          description:
+            "Verifies vendor billing across SaaS, cloud, payments, shipping, and operational spend to uncover billing discrepancies, unclaimed adjustments, and contract leakage.",
+          cta: true,
+        },
+        ad: { cta: true },
       },
     },
   },
@@ -86,12 +106,17 @@ export default function ProductCards({ order, overrides }: ProductCardsProps) {
         const override = overrides?.[key];
         const title = override?.title ?? card.title;
         const description = override?.description ?? card.description;
+        const ctaConfig = override?.cta;
+        const ctaEnabled = Boolean(ctaConfig);
+        const ctaObject = typeof ctaConfig === "object" ? ctaConfig : null;
+        const ctaLabel = ctaObject?.label ?? "Learn More";
+        const href = ctaObject?.href ?? card.href;
         return (
           <a
             key={key}
             className="pa-card preview"
             data-key={key}
-            href={card.href}
+            href={href}
           >
             <div className="card-preview-viz">{card.viz}</div>
             <div className="preview-head">
@@ -112,6 +137,22 @@ export default function ProductCards({ order, overrides }: ProductCardsProps) {
               </div>
             </div>
             <p className="preview-desc">{description}</p>
+            {ctaEnabled && (
+              <span className="product-card-cta" aria-hidden="true">
+                {ctaLabel}
+                <svg
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <path d="M5 12h14" />
+                  <path d="m12 5 7 7-7 7" />
+                </svg>
+              </span>
+            )}
           </a>
         );
       })}

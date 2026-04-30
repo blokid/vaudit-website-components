@@ -180,6 +180,32 @@ html.dark .preview-desc {
   color: rgba(255, 255, 255, 0.45);
 }
 
+/* ── Learn-more CTA (per-card opt-in via override.cta) ─ */
+.product-card-cta {
+  margin-top: auto;
+  padding-top: 14px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  color: #f0651f;
+  text-decoration: none;
+}
+
+.product-card-cta svg {
+  width: 14px;
+  height: 14px;
+  flex-shrink: 0;
+  transition: transform 0.2s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.product-card-grid .pa-card:hover .product-card-cta svg,
+.product-card-grid .pa-card:focus-visible .product-card-cta svg {
+  transform: translateX(3px);
+}
+
 /* ── Viz area + base viz container ───────────────────── */
 .card-preview-viz {
   display: flex;

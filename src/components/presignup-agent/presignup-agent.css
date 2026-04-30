@@ -621,6 +621,111 @@ html.dark .template-refresh:hover {
   transform: rotate(360deg);
 }
 
+/* Integrations row — platform logos under the input card. Each chip is a
+   link that scrolls to the matching product-page section (or navigates) on
+   click. Rendered only when the `platforms` prop is supplied. */
+
+.presignup-agent-platforms {
+  margin: 1.25rem auto 0;
+  max-width: 960px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+
+.presignup-agent-platforms-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.presignup-agent-platform {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+  border-radius: 999px;
+  border: 1px solid rgba(26, 26, 24, 0.12);
+  background: #ffffff;
+  color: var(--text-primary);
+  font-family: inherit;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  letter-spacing: normal;
+  text-decoration: none;
+  cursor: pointer;
+  transition:
+    border-color 0.15s ease,
+    color 0.15s ease,
+    background 0.15s ease,
+    transform 0.15s ease,
+    box-shadow 0.15s ease;
+}
+
+.presignup-agent-platform:hover {
+  border-color: rgba(240, 101, 31, 0.5);
+  color: #f0651f;
+  transform: translateY(-1px);
+  box-shadow: 0 6px 18px rgba(240, 101, 31, 0.12);
+}
+
+html.dark .presignup-agent-platform {
+  background: rgba(255, 255, 255, 0.03);
+  border-color: rgba(255, 255, 255, 0.1);
+  color: #ffffff;
+}
+
+html.dark .presignup-agent-platform:hover {
+  background: rgba(240, 101, 31, 0.08);
+  border-color: rgba(240, 101, 31, 0.5);
+  color: #ff8c42;
+}
+
+.presignup-agent-platform-logo {
+  width: 18px;
+  height: 18px;
+  object-fit: contain;
+  flex-shrink: 0;
+  background: #ffffff;
+  border-radius: 4px;
+  padding: 1px;
+}
+
+html.dark .presignup-agent-platform-logo {
+  background: #ffffff;
+}
+
+.presignup-agent-platform-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+  color: currentColor;
+}
+
+.presignup-agent-platform-icon svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.presignup-agent-platforms-note {
+  margin: 0;
+  text-align: center;
+  font-family: inherit;
+  font-size: 0.8125rem;
+  color: var(--text-secondary);
+}
+
+html.dark .presignup-agent-platforms-note {
+  color: rgba(255, 255, 255, 0.5);
+}
+
 /* Product overview — three-card preview shown above the results grid */
 
 .presignup-agent-product-overview {
