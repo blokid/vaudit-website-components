@@ -58,7 +58,21 @@ Because tagged URLs are immutable, **the browser cannot serve a stale version of
    https://purge.jsdelivr.net/gh/blokid/vaudit-website-components@main/dist/vaudit.js
    https://purge.jsdelivr.net/gh/blokid/vaudit-website-components@main/dist/vaudit.css
    ```
-   Visiting those URLs (in a browser tab is fine) flushes the jsDelivr edge cache for that exact path. The next request re-fetches from GitHub.
+   Visiting those URLs (in a browser tab is fine) flushes the jsDelivr edge cache for that exact path. Or run `npm run purge` (defaults to `@main`) to hit both at once. The next request re-fetches from GitHub.
+
+## Iterating without bumping a tag
+
+Tagged URLs are immutable end-to-end (jsDelivr edge AND browser disk cache), which is great for stability but inconvenient mid-iteration. Three patterns, in order of friction:
+
+1. **Use the commit SHA after each push.** `git rev-parse HEAD` → paste into the Webflow Footer Code as `@<sha>/dist/vaudit.js`. Every push = new URL = no cache to defeat. Annoying because you must update Webflow per push.
+2. **Use `@main` + purge after each push.** Webflow stays pointed at `@main`; you run `npm run purge` (or visit the purge URLs above) after pushing. Browser will still hold the previous file until its `Cache-Control` TTL expires — append `?v=<bump>` to the URL in Webflow if you need to bypass the browser too:
+   ```html
+   <script src="https://cdn.jsdelivr.net/gh/blokid/vaudit-website-components@main/dist/vaudit.js?v=3" defer></script>
+   ```
+   Bump the `v` value whenever you want to force visitors to re-fetch.
+3. **Use `@main` and just live with the ~12 h CDN cache.** Fine for low-stakes content updates that aren't time-critical.
+
+For day-to-day dev, the lowest-friction setup is: open DevTools, tick **Network → Disable cache**, leave DevTools open while testing. That removes the browser layer entirely for your session, leaving only jsDelivr's edge cache to worry about.
 
 ## Pre-flight checklist
 
