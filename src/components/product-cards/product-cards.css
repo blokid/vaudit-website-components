@@ -1,0 +1,532 @@
+/* product-card.css
+ * Standalone, display-only version of the preview card used by the presignup
+ * agent. Use on any page that wants to showcase the six Vaudit products as
+ * clickable cards without any audit/JS behavior.
+ *
+ * Sync with: webflow/presignup-agent.css (the preview-card + viz blocks there
+ * are the source of truth for the animated presignup flow; this file is a
+ * standalone copy for non-audit pages). If you tweak one, update both.
+ *
+ * Selectors are scoped under `.product-card-grid` for card-container rules so
+ * they won't clash with `.presignup-agent-results .pa-card` if both CSS files
+ * happen to load on the same page. Leaf selectors (.preview-head, .viz-*,
+ * etc.) are unscoped — identical values either way, no conflict.
+ */
+
+/* ── Grid container ──────────────────────────────────── */
+.product-card-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 18px;
+  justify-content: center;
+  width: 100%;
+}
+
+/* ── Card wrapper (anchor for click-through) ─────────── */
+.product-card-grid .pa-card {
+  flex: 0 1 calc(33.333% - 12px);
+  max-width: 360px;
+  min-width: 0;
+  position: relative;
+  border-radius: 12px;
+  border: 1px solid rgba(26, 26, 24, 0.12);
+  background: #ffffff;
+  padding: 18px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-height: 220px;
+  overflow: hidden;
+  box-shadow:
+    0 2px 12px rgba(26, 26, 24, 0.06),
+    0 1px 3px rgba(26, 26, 24, 0.04);
+  transition:
+    border-color 0.25s ease,
+    box-shadow 0.35s ease,
+    transform 0.25s cubic-bezier(0.22, 1, 0.36, 1);
+  text-decoration: none;
+  color: inherit;
+}
+
+html.dark .product-card-grid .pa-card {
+  border-color: #232324;
+  background: #121311;
+  box-shadow: none;
+}
+
+.product-card-grid .pa-card::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background:
+    radial-gradient(120% 70% at 50% 0%, rgba(240, 101, 31, 0.22), transparent 60%),
+    radial-gradient(100% 80% at 50% 100%, rgba(240, 101, 31, 0.08), transparent 70%);
+  opacity: 0;
+  transition: opacity 0.35s ease;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.product-card-grid .pa-card > * {
+  position: relative;
+  z-index: 1;
+}
+
+.product-card-grid .pa-card:hover,
+html.dark .product-card-grid .pa-card:hover {
+  border-color: #f0651f;
+  box-shadow:
+    0 10px 30px rgba(240, 101, 31, 0.18),
+    0 0 60px rgba(240, 101, 31, 0.12);
+  transform: translateY(-3px);
+}
+
+.product-card-grid .pa-card:hover::before {
+  opacity: 1;
+}
+
+.product-card-grid .pa-card:focus-visible {
+  outline: 2px solid #f0651f;
+  outline-offset: 3px;
+}
+
+@media screen and (max-width: 991px) {
+  .product-card-grid .pa-card {
+    flex: 0 1 calc(50% - 9px);
+    max-width: none;
+  }
+}
+
+@media screen and (max-width: 479px) {
+  .product-card-grid .pa-card {
+    flex: 0 1 100%;
+  }
+}
+
+/* ── Preview head (icon + title) ─────────────────────── */
+.preview-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+}
+
+.preview-logos {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.p-logo {
+  width: 22px;
+  height: 22px;
+  padding: 3px;
+  background: #ffffff;
+  border-radius: 5px;
+  box-sizing: border-box;
+  display: block;
+  object-fit: contain;
+  flex-shrink: 0;
+}
+
+.preview-title {
+  color: var(--text-primary);
+  font-size: 1rem !important;
+  font-weight: 500;
+  letter-spacing: -0.01em !important;
+  margin: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+html.dark .preview-title {
+  color: #ffffff;
+}
+
+.preview-title .emoji {
+  font-size: 0.875rem;
+  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1em;
+  height: 1em;
+  color: #f0651f;
+  flex-shrink: 0;
+}
+
+.emoji svg {
+  width: 1em;
+  height: 1em;
+  display: block;
+}
+
+.preview-desc {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: 0.875rem !important;
+  letter-spacing: normal !important;
+  line-height: 1.5;
+}
+
+html.dark .preview-desc {
+  color: rgba(255, 255, 255, 0.45);
+}
+
+/* ── Viz area + base viz container ───────────────────── */
+.card-preview-viz {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-height: 110px;
+  padding: 18px 12px 14px;
+  justify-content: center;
+  align-items: center;
+}
+
+.viz {
+  color: #f0651f;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+}
+
+/* ── Per-product viz animations (hero.html verbatim) ── */
+
+/* ShipID — package tracked along a path + recovered credit pop */
+.viz-ship {
+  position: relative;
+  width: 110px;
+  height: 36px;
+  justify-content: flex-start;
+}
+.viz-ship .ship-path {
+  position: absolute;
+  left: 2px;
+  right: 2px;
+  top: 70%;
+  border-top: 1px dashed #f0651f;
+  opacity: 0.35;
+}
+.viz-ship .ship-box {
+  position: absolute;
+  top: 70%;
+  width: 14px;
+  height: 10px;
+  background: #f0651f;
+  border-radius: 2px;
+  transform: translateY(-50%);
+  box-shadow: 0 0 8px rgba(240, 101, 31, 0.5);
+  animation: ship-move 3.2s linear infinite;
+}
+@keyframes ship-move {
+  0% { left: -18px; }
+  100% { left: calc(100% + 2px); }
+}
+.viz-ship .ship-credit {
+  position: absolute;
+  top: 20%;
+  left: 55%;
+  color: #f0651f;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  text-shadow: 0 0 6px rgba(240, 101, 31, 0.55);
+  opacity: 0;
+  animation: ship-credit 3.2s ease-in-out infinite;
+}
+@keyframes ship-credit {
+  0%, 50% { opacity: 0; transform: translateY(6px); }
+  65% { opacity: 1; transform: translateY(0); }
+  90% { opacity: 0; transform: translateY(-8px); }
+  100% { opacity: 0; }
+}
+
+/* SeatID — 5x2 grid, some billed-but-empty, scanner sweeps */
+.viz-seat {
+  position: relative;
+  width: 70px;
+  height: 32px;
+  padding: 3px;
+}
+.viz-seat .seat-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 9px);
+  grid-auto-rows: 9px;
+  gap: 3px;
+  width: 100%;
+  justify-content: center;
+  align-content: center;
+  position: relative;
+}
+.viz-seat .ss {
+  width: 9px;
+  height: 9px;
+  border-radius: 2px;
+  background: #f0651f;
+  animation: seat-active 2.2s ease-in-out infinite;
+}
+.viz-seat .ss:nth-child(2n) { animation-delay: 0.2s; }
+.viz-seat .ss:nth-child(3n) { animation-delay: 0.45s; }
+.viz-seat .ss:nth-child(5n) { animation-delay: 0.7s; }
+.viz-seat .ss-empty {
+  background: transparent;
+  border: 1px dashed #f0651f;
+  opacity: 0.35;
+  animation: none;
+}
+@keyframes seat-active {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.45; }
+}
+.viz-seat .seat-scan {
+  position: absolute;
+  left: 2px;
+  right: 2px;
+  height: 1.5px;
+  background: #f0651f;
+  box-shadow: 0 0 4px currentColor;
+  opacity: 0;
+  animation: seat-scan 2.8s ease-in-out infinite;
+}
+@keyframes seat-scan {
+  0% { top: 0; opacity: 0; }
+  10% { opacity: 0.9; }
+  90% { opacity: 0.9; }
+  100% { top: 100%; opacity: 0; }
+}
+
+/* KloudID — vertical bars + dashed "paid capacity" ceiling */
+.viz-kloud {
+  position: relative;
+  width: 92px;
+  height: 36px;
+  padding: 4px;
+  align-items: flex-end;
+}
+.viz-kloud .k-ceiling {
+  position: absolute;
+  left: 4px;
+  right: 4px;
+  top: 5px;
+  border-top: 1.5px dashed #f0651f;
+  opacity: 0.5;
+}
+.viz-kloud .k-ceiling::after {
+  content: "";
+  position: absolute;
+  right: 0;
+  top: -4px;
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: #f0651f;
+  box-shadow: 0 0 4px currentColor;
+}
+.viz-kloud .k-bars {
+  display: flex;
+  gap: 3px;
+  width: 100%;
+  height: 100%;
+  align-items: flex-end;
+}
+.viz-kloud .kb {
+  flex: 1;
+  background: #f0651f;
+  border-radius: 1.5px 1.5px 0 0;
+  transform-origin: bottom;
+  animation: k-bar 2.4s ease-in-out infinite;
+}
+.viz-kloud .kb:nth-child(1) { animation-delay: 0s;    height: 48%; }
+.viz-kloud .kb:nth-child(2) { animation-delay: 0.15s; height: 70%; }
+.viz-kloud .kb:nth-child(3) { animation-delay: 0.3s;  height: 32%; }
+.viz-kloud .kb:nth-child(4) { animation-delay: 0.45s; height: 58%; }
+.viz-kloud .kb:nth-child(5) { animation-delay: 0.6s;  height: 40%; }
+.viz-kloud .kb:nth-child(6) { animation-delay: 0.75s; height: 65%; }
+.viz-kloud .kb:nth-child(7) { animation-delay: 0.9s;  height: 36%; }
+@keyframes k-bar {
+  0%, 100% { transform: scaleY(1); opacity: 0.9; }
+  50% { transform: scaleY(0.55); opacity: 0.6; }
+}
+
+/* TokenID — tokens flowing left→right through a chip */
+.viz-token {
+  position: relative;
+  width: 110px;
+  height: 36px;
+}
+.viz-token .token-chip {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: 42px;
+  height: 18px;
+  border: 1.5px solid #f0651f;
+  border-radius: 3px;
+  opacity: 0.8;
+  display: flex;
+  align-items: center;
+  justify-content: space-around;
+  padding: 0 3px;
+}
+.viz-token .token-chip::before,
+.viz-token .token-chip::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  width: 28px;
+  height: 1px;
+  background: #f0651f;
+  opacity: 0.45;
+}
+.viz-token .token-chip::before { left: -30px; }
+.viz-token .token-chip::after { right: -30px; }
+.viz-token .token-node {
+  width: 3px;
+  height: 3px;
+  border-radius: 50%;
+  background: #f0651f;
+  animation: token-blink 1.4s ease-in-out infinite;
+}
+.viz-token .token-node:nth-child(2) { animation-delay: 0.2s; }
+.viz-token .token-node:nth-child(3) { animation-delay: 0.4s; }
+.viz-token .token-node:nth-child(4) { animation-delay: 0.6s; }
+@keyframes token-blink {
+  0%, 100% { opacity: 0.35; transform: scale(0.8); }
+  50% { opacity: 1; transform: scale(1.3); }
+}
+.viz-token .t-flow {
+  position: absolute;
+  top: 50%;
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: #f0651f;
+  box-shadow: 0 0 4px currentColor;
+  transform: translateY(-50%);
+  opacity: 0;
+  animation: token-flow 2.6s linear infinite;
+}
+.viz-token .tf1 { animation-delay: 0s; }
+.viz-token .tf2 { animation-delay: 0.87s; }
+.viz-token .tf3 { animation-delay: 1.73s; }
+@keyframes token-flow {
+  0% { left: 0; opacity: 0; }
+  15% { opacity: 1; }
+  85% { opacity: 1; }
+  100% { left: calc(100% - 4px); opacity: 0; }
+}
+
+/* AdID — reticle with expanding rings + invalid click "x" markers */
+.viz-ad {
+  position: relative;
+  width: 80px;
+  height: 36px;
+}
+.viz-ad .ad-ring {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 6px;
+  height: 6px;
+  margin: -3px 0 0 -3px;
+  border-radius: 50%;
+  border: 1px solid #f0651f;
+  opacity: 0;
+  animation: ad-ring 2s ease-out infinite;
+}
+.viz-ad .ad-ring.r2 { animation-delay: 1s; }
+.viz-ad .ad-target {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 5px;
+  height: 5px;
+  margin: -2.5px 0 0 -2.5px;
+  border-radius: 50%;
+  background: #f0651f;
+  box-shadow: 0 0 5px currentColor;
+}
+@keyframes ad-ring {
+  0% { opacity: 1; transform: scale(0.4); }
+  100% { opacity: 0; transform: scale(5); }
+}
+.viz-ad .ad-click {
+  position: absolute;
+  color: #f0651f;
+  font-family: inherit;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  line-height: 1;
+  opacity: 0;
+  animation: ad-click 3.2s ease-in-out infinite;
+}
+.viz-ad .ad-click.ac1 { top: 10%; left: 14%; animation-delay: 0.3s; }
+.viz-ad .ad-click.ac2 { top: 68%; left: 82%; animation-delay: 1.5s; }
+.viz-ad .ad-click.ac3 { top: 72%; left: 10%; animation-delay: 2.4s; }
+@keyframes ad-click {
+  0%, 8% { opacity: 0; transform: scale(0.5); }
+  18% { opacity: 1; transform: scale(1.2); }
+  38% { opacity: 0.6; transform: scale(1); }
+  55% { opacity: 0; transform: scale(1.4); }
+  100% { opacity: 0; }
+}
+
+/* PaymentID — ledger rows being scanned, one flagged */
+.viz-pay {
+  position: relative;
+  width: 72px;
+  height: 36px;
+  padding: 4px 3px;
+}
+.viz-pay .pay-rows {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-around;
+}
+.viz-pay .pr {
+  height: 2.5px;
+  background: #f0651f;
+  opacity: 0.35;
+  border-radius: 1.5px;
+}
+.viz-pay .pr:nth-child(1) { width: 90%; }
+.viz-pay .pr:nth-child(2) { width: 70%; }
+.viz-pay .pr:nth-child(3) { width: 85%; }
+.viz-pay .pr:nth-child(4) { width: 60%; }
+.viz-pay .pr-flag {
+  animation: pay-flag 3s ease-in-out infinite;
+}
+@keyframes pay-flag {
+  0%, 55%, 100% { opacity: 0.35; box-shadow: none; }
+  65%, 85% { opacity: 1; box-shadow: 0 0 8px rgba(240, 101, 31, 0.7); }
+}
+.viz-pay .pay-scan {
+  position: absolute;
+  left: 3px;
+  right: 3px;
+  height: 1.5px;
+  background: #f0651f;
+  box-shadow: 0 0 6px currentColor;
+  opacity: 0;
+  animation: pay-scan 3s ease-in-out infinite;
+}
+@keyframes pay-scan {
+  0% { top: 4px; opacity: 0; }
+  10% { opacity: 0.9; }
+  50% { opacity: 0.9; top: calc(100% - 5px); }
+  60% { opacity: 0; }
+  100% { top: 4px; opacity: 0; }
+}

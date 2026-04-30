@@ -51,8 +51,8 @@ function mountAll(): void {
     if (node.dataset.rcMounted === "true") return;
     const name = node.dataset.rc;
     if (!name) return;
-    const Component = registry[name];
-    if (!Component) {
+    const entry = registry[name];
+    if (!entry) {
       console.warn(`[vaudit-components] unknown component: ${name}`);
       return;
     }
@@ -61,7 +61,7 @@ function mountAll(): void {
     root.render(
       createElement(MountSignal, {
         node,
-        children: createElement(Component, readProps(node)),
+        children: createElement(entry.Component, readProps(node)),
       }),
     );
   });

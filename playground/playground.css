@@ -1,0 +1,195 @@
+/* Playground chrome — never shipped in vaudit.css. */
+
+:root {
+  --pg-bg: #fafafa;
+  --pg-surface: #ffffff;
+  --pg-border: rgba(0, 0, 0, 0.1);
+  --pg-text: #111;
+  --pg-muted: #666;
+  --pg-accent: #f0651f;
+}
+
+html.dark {
+  --pg-bg: #0c0c0c;
+  --pg-surface: #161616;
+  --pg-border: rgba(255, 255, 255, 0.1);
+  --pg-text: #f5f5f5;
+  --pg-muted: #999;
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  padding: 0;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+  background: var(--pg-bg);
+  color: var(--pg-text);
+  -webkit-font-smoothing: antialiased;
+}
+
+.pg-app {
+  display: grid;
+  grid-template-columns: 240px 1fr;
+  min-height: 100vh;
+}
+
+.pg-sidebar {
+  background: var(--pg-surface);
+  border-right: 1px solid var(--pg-border);
+  padding: 20px 0;
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  overflow-y: auto;
+}
+
+.pg-sidebar h1 {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--pg-muted);
+  margin: 0 20px 12px;
+  font-weight: 600;
+}
+
+.pg-sidebar ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.pg-sidebar button {
+  display: block;
+  width: 100%;
+  text-align: left;
+  background: transparent;
+  border: none;
+  color: inherit;
+  padding: 8px 20px;
+  font: inherit;
+  cursor: pointer;
+  border-left: 2px solid transparent;
+}
+
+.pg-sidebar button:hover {
+  background: rgba(127, 127, 127, 0.08);
+}
+
+.pg-sidebar button.is-active {
+  border-left-color: var(--pg-accent);
+  font-weight: 600;
+  color: var(--pg-accent);
+}
+
+.pg-main {
+  padding: 24px 32px;
+  min-width: 0;
+}
+
+.pg-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 20px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--pg-border);
+  flex-wrap: wrap;
+}
+
+.pg-toolbar h2 {
+  margin: 0;
+  font-size: 1.125rem;
+  font-weight: 600;
+}
+
+.pg-toolbar .description {
+  color: var(--pg-muted);
+  font-size: 0.875rem;
+  flex: 1;
+  min-width: 0;
+}
+
+.pg-control {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.8125rem;
+  color: var(--pg-muted);
+}
+
+.pg-control select,
+.pg-control button {
+  background: var(--pg-surface);
+  border: 1px solid var(--pg-border);
+  color: var(--pg-text);
+  padding: 6px 10px;
+  border-radius: 6px;
+  font: inherit;
+  cursor: pointer;
+}
+
+.pg-control button:hover {
+  border-color: var(--pg-accent);
+}
+
+.pg-control button.is-active {
+  background: var(--pg-accent);
+  color: white;
+  border-color: var(--pg-accent);
+}
+
+.pg-stage {
+  background: var(--pg-surface);
+  border: 1px solid var(--pg-border);
+  border-radius: 12px;
+  padding: 32px;
+  margin-bottom: 20px;
+  min-height: 200px;
+}
+
+.pg-stage--full-width > * {
+  width: 100%;
+}
+
+.pg-prop-editor {
+  background: var(--pg-surface);
+  border: 1px solid var(--pg-border);
+  border-radius: 12px;
+  padding: 16px;
+}
+
+.pg-prop-editor label {
+  display: block;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--pg-muted);
+  margin-bottom: 8px;
+}
+
+.pg-prop-editor textarea {
+  width: 100%;
+  min-height: 120px;
+  font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+  font-size: 0.8125rem;
+  line-height: 1.5;
+  background: var(--pg-bg);
+  color: var(--pg-text);
+  border: 1px solid var(--pg-border);
+  border-radius: 8px;
+  padding: 12px;
+  resize: vertical;
+}
+
+.pg-prop-editor .pg-error {
+  margin-top: 8px;
+  color: #c33;
+  font-size: 0.8125rem;
+}
+
+.pg-empty {
+  text-align: center;
+  color: var(--pg-muted);
+  padding: 60px 20px;
+}

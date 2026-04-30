@@ -1,10 +1,20 @@
 import { useState } from "react";
 import clsx from "clsx";
+import type { ComponentMeta } from "../../registry";
 import "./hello.css";
 
 type HelloProps = {
   name?: string;
   muted?: boolean;
+};
+
+export const meta: ComponentMeta<HelloProps> = {
+  description: "Sanity-check component used to verify the bundle pipeline.",
+  variants: {
+    default: {},
+    named: { name: "Aung" },
+    muted: { name: "muted state", muted: true },
+  },
 };
 
 export default function Hello({ name = "world", muted = false }: HelloProps) {
