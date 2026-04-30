@@ -20,11 +20,11 @@ git add -A
 git commit -m "release: vX.Y.Z"
 
 # 5. Tag and push together
-git tag vX.Y.Z
+git tag -a vX.Y.Z -m "release: vX.Y.Z"
 git push --follow-tags
 ```
 
-`--follow-tags` pushes the branch *and* any annotated/lightweight tags reachable from it, so the tag lands on the remote in the same operation.
+`--follow-tags` pushes the branch *and* any **annotated** tags reachable from it (note: lightweight tags created with `git tag vX.Y.Z` are *not* picked up by `--follow-tags` — they need `git push origin vX.Y.Z` explicitly). Use `git tag -a` so the single push covers both.
 
 There is a `npm run release` shortcut in `package.json` that does build → commit `dist/` → `npm version patch` → push, but it commits twice (once for `dist/`, once for the version bump) which makes the history noisier than the manual flow above. Prefer the manual sequence unless you specifically want the script's behaviour.
 
