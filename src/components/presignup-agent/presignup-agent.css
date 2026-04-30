@@ -621,87 +621,12 @@ html.dark .template-refresh:hover {
   transform: rotate(360deg);
 }
 
-/* Platform display — supported-platforms strip shown above the results grid */
+/* Product overview — three-card preview shown above the results grid */
 
-.platform-display {
+.presignup-agent-product-overview {
   margin: 1.75rem auto 1.5rem;
-  max-width: 780px;
-  text-align: center;
-}
-
-.platform-display-title {
-  font-size: 0.875rem !important;
-  letter-spacing: normal !important;
-  line-height: 1.5;
-  color: var(--text-secondary);
-  margin-bottom: 0.75rem;
-}
-
-html.dark .platform-display-title {
-  color: rgba(255, 255, 255, 0.6);
-}
-
-.platform-display-title strong {
-  color: var(--text-primary);
-  font-weight: 600;
-}
-
-html.dark .platform-display-title strong {
-  color: #ffffff;
-}
-
-.platform-row {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem;
-  justify-content: center;
-}
-
-.platform-card {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.625rem;
-  padding: 0.5rem 0.875rem;
-  border-radius: 10px;
-  background: var(--bg-surface);
-  border: 1px solid var(--border);
-  color: var(--text-primary);
-}
-
-html.dark .platform-card {
-  background: rgba(255, 255, 255, 0.04);
-  border-color: rgba(255, 255, 255, 0.08);
-  color: #ffffff;
-}
-
-.platform-icon {
-  width: 32px;
-  height: 32px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 8px;
-  flex-shrink: 0;
-  background: #ffffff;
-}
-
-.platform-icon img,
-.platform-icon svg {
-  width: 18px;
-  height: 18px;
-  object-fit: contain;
-  display: block;
-}
-
-.platform-icon--google { background: #ffffff; }
-.platform-icon--meta { background: #ffffff; }
-.platform-icon--tiktok { background: #000000; }
-.platform-icon--applovin { background: #ff3366; }
-
-.platform-name {
-  font-size: 0.875rem !important;
-  letter-spacing: normal !important;
-  font-weight: 500;
+  width: 100%;
+  max-width: 980px;
 }
 
 .sim-run {

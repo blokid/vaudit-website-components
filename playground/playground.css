@@ -152,6 +152,68 @@ html, body {
   width: 100%;
 }
 
+.pg-props-doc {
+  background: var(--pg-surface);
+  border: 1px solid var(--pg-border);
+  border-radius: 12px;
+  padding: 16px;
+  margin-bottom: 20px;
+  overflow-x: auto;
+}
+
+.pg-props-doc__label {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--pg-muted);
+  margin-bottom: 12px;
+}
+
+.pg-props-doc__table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.8125rem;
+}
+
+.pg-props-doc__table th {
+  text-align: left;
+  font-weight: 600;
+  color: var(--pg-muted);
+  padding: 6px 12px 6px 0;
+  border-bottom: 1px solid var(--pg-border);
+  white-space: nowrap;
+}
+
+.pg-props-doc__table td {
+  padding: 8px 12px 8px 0;
+  vertical-align: top;
+  border-bottom: 1px solid var(--pg-border);
+}
+
+.pg-props-doc__table tr:last-child td {
+  border-bottom: none;
+}
+
+.pg-props-doc__table code {
+  font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+  font-size: 0.78125rem;
+  background: var(--pg-bg);
+  border: 1px solid var(--pg-border);
+  border-radius: 4px;
+  padding: 1px 6px;
+  color: var(--pg-text);
+}
+
+.pg-props-doc__muted {
+  color: var(--pg-muted);
+}
+
+.pg-props-doc__req {
+  color: var(--pg-accent);
+  margin-left: 4px;
+  font-weight: 600;
+}
+
 .pg-prop-editor {
   background: var(--pg-surface);
   border: 1px solid var(--pg-border);

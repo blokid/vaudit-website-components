@@ -129,6 +129,7 @@ The `docs/` folder holds Webflow-side conventions and frozen copies of the legac
 - [`docs/WEBFLOW-THEME-CONVENTION.md`](docs/WEBFLOW-THEME-CONVENTION.md) — dark-mode mechanism (`html.dark .foo` cascade). Critical.
 - [`docs/COLOR-SYSTEM.md`](docs/COLOR-SYSTEM.md) — hex ↔ Webflow Base-collection variable map (`Primary`, `charcoal-900`, `--muted-foreground`, etc.).
 - [`docs/DESIGN.md`](docs/DESIGN.md) — broader visual system / token notes.
+- [`docs/RELEASING.md`](docs/RELEASING.md) — how to cut a new version, update the Webflow Footer URL, and reason about jsDelivr caching.
 
 **Page + section context:**
 

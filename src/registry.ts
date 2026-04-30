@@ -1,8 +1,21 @@
 import type { ComponentType } from "react";
 
+export type PropDoc = {
+  /** Type displayed verbatim, e.g. `string`, `"a" | "b"`, `ProductKey[]`. */
+  type: string;
+  /** Short prose description shown in the playground props table. */
+  description: string;
+  /** Default value displayed as code. Omit if the prop is required. */
+  default?: string;
+  /** Marks the prop as required (rendered with a `*` in the playground). */
+  required?: boolean;
+};
+
 export type ComponentMeta<P = unknown> = {
   /** Description shown in the playground sidebar. */
   description?: string;
+  /** Per-prop documentation — keys should match the component's prop names. */
+  props?: Partial<Record<keyof P & string, PropDoc>>;
   /** Named prop presets for the playground variant picker. */
   variants?: Record<string, P>;
 };

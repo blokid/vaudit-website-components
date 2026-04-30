@@ -1,6 +1,7 @@
 import { StrictMode, useEffect, useMemo, useState } from "react";
 import { createRoot } from "react-dom/client";
 import { registry, componentNames } from "../src/registry";
+import type { PropDoc } from "../src/registry";
 
 function readHashState(): { name: string | null; variant: string | null } {
   const hash = window.location.hash.replace(/^#\/?/, "");
@@ -20,7 +21,7 @@ function writeHashState(name: string, variant: string): void {
 }
 
 function readTheme(): "light" | "dark" {
-  return localStorage.getItem("pg-theme") === "dark" ? "dark" : "light";
+  return localStorage.getItem("pg-theme") === "light" ? "light" : "dark";
 }
 
 function applyTheme(theme: "light" | "dark"): void {
@@ -46,6 +47,11 @@ function App() {
 
   const entry = name ? registry[name] : null;
   const variants = entry?.meta?.variants ?? {};
+  const propDocs = entry?.meta?.props;
+  const propDocEntries = useMemo<[string, PropDoc][]>(
+    () => (propDocs ? (Object.entries(propDocs) as [string, PropDoc][]) : []),
+    [propDocs],
+  );
   const variantNames = useMemo(() => {
     const keys = Object.keys(variants);
     return keys.length ? keys : ["default"];
@@ -167,6 +173,45 @@ function App() {
         <section className="pg-stage pg-stage--full-width">
           <Component {...(parsedProps as Record<string, unknown>)} />
         </section>
+
+        {propDocEntries.length > 0 && (
+          <section className="pg-props-doc">
+            <div className="pg-props-doc__label">props</div>
+            <table className="pg-props-doc__table">
+              <thead>
+                <tr>
+                  <th>name</th>
+                  <th>type</th>
+                  <th>default</th>
+                  <th>description</th>
+                </tr>
+              </thead>
+              <tbody>
+                {propDocEntries.map(([propName, doc]) => (
+                  <tr key={propName}>
+                    <td>
+                      <code>{propName}</code>
+                      {doc.required && <span className="pg-props-doc__req">*</span>}
+                    </td>
+                    <td>
+                      <code>{doc.type}</code>
+                    </td>
+                    <td>
+                      {doc.required ? (
+                        <span className="pg-props-doc__muted">required</span>
+                      ) : doc.default ? (
+                        <code>{doc.default}</code>
+                      ) : (
+                        <span className="pg-props-doc__muted">—</span>
+                      )}
+                    </td>
+                    <td>{doc.description}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </section>
+        )}
 
         <section className="pg-prop-editor">
           <label htmlFor="props-editor">props (JSON — same shape as data-prop in Webflow)</label>
