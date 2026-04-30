@@ -52,7 +52,7 @@ export const meta: ComponentMeta<ProductCardsProps> = {
     overrides: {
       type: "Partial<Record<ProductKey, { title?: string; description?: string; href?: string; cta?: boolean | { label?: string } }>>",
       description:
-        "Per-key overrides for title, description, link target, and/or CTA. Pass `href` to retarget the whole card (e.g. point `pay` at a new `/vendor-id` page). Pass `cta: true` to show a \"Learn More →\" affordance, or `{ label }` to customize.",
+        'Per-key overrides for title, description, link target, and/or CTA. Pass `href` to retarget the whole card (e.g. point `pay` at a new `/vendor-id` page). Pass `cta: true` to show a "Learn More →" affordance, or `{ label }` to customize.',
       default: "none",
     },
   },
@@ -60,14 +60,16 @@ export const meta: ComponentMeta<ProductCardsProps> = {
     "default (all 6)": {},
     "single (kloud only)": { order: ["kloud"] },
     "trio (ship, kloud, pay)": { order: ["ship", "kloud", "pay"] },
-    "reordered (ad first)": { order: ["ad", "kloud", "ship", "token", "seat", "pay"] },
+    "reordered (ad first)": {
+      order: ["ad", "kloud", "ship", "token", "seat", "pay"],
+    },
     "vendor-id rename (ad, pay→vendor, token)": {
       order: ["ad", "pay", "token"],
       overrides: {
         pay: {
           title: "Vendor ID",
           description:
-            "Verifies vendor billing across SaaS, cloud, payments, shipping, and operational spend to uncover hidden discrepancies, missed credits, and contract leakage.",
+            "Verifies vendor billing across SaaS, cloud, payments, shipping, and operational spend to uncover hidden discrepancies, billing discrepancies, and contract leakage.",
         },
       },
     },
@@ -118,12 +120,7 @@ export default function ProductCards({ order, overrides }: ProductCardsProps) {
         const ctaLabel = ctaObject?.label ?? "Learn More";
         const href = override?.href ?? card.href;
         return (
-          <a
-            key={key}
-            className="pa-card preview"
-            data-key={key}
-            href={href}
-          >
+          <a key={key} className="pa-card preview" data-key={key} href={href}>
             <div className="card-preview-viz">{card.viz}</div>
             <div className="preview-head">
               <div className="preview-title">

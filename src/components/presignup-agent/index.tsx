@@ -25,12 +25,12 @@ import "./presignup-agent.css";
 const PRODUCT_OVERVIEW_OVERRIDES = {
   ad: {
     description:
-      "Verifies ad platform billing to identify invalid charges, missed credits, and recoverable spend across Google, Meta, DSPs, and programmatic platforms.",
+      "Verifies ad platform billing to identify invalid charges, billing discrepancies, and recoverable spend across Google, Meta, DSPs, and programmatic platforms.",
   },
   pay: {
     title: "Vendor ID",
     description:
-      "Verifies vendor billing across SaaS, cloud, payments, shipping, and operational spend to uncover hidden discrepancies, missed credits, and contract leakage.",
+      "Verifies vendor billing across SaaS, cloud, payments, shipping, and operational spend to uncover hidden discrepancies, billing discrepancies, and contract leakage.",
   },
   token: {
     description:
@@ -253,13 +253,15 @@ export const meta: ComponentMeta<PresignupAgentProps> = {
   },
   variants: {
     "default (auto-detect prod/staging)": {},
-    "force staging": { agentBaseUrl: "https://onboarding-agent.staging.vaudit.com" },
+    "force staging": {
+      agentBaseUrl: "https://onboarding-agent.staging.vaudit.com",
+    },
     "ad ID page (custom hero + ad platforms)": {
       title: "Connect. Verify. Recover.",
       subtitle:
         "See what Vaudit can recover across your ad spend before billing discrepancies become accepted cost.",
       placeholder:
-        "Enter your website, ad platforms, or paid media stack to identify invalid charges, missed credits, and recoverable spend.",
+        "Enter your website, ad platforms, or paid media stack to identify invalid charges, billing discrepancies, and recoverable spend.",
       ctaLabel: "Audit My Ad Spend",
       platformsLabel: "Start with ads. Expand to every bill.",
       platforms: AD_PLATFORMS,
@@ -274,13 +276,15 @@ const POST_MODULE_MS = 180;
 const POST_FINAL_MS = 350;
 const TOTALING_MS = 500;
 
-const TEMPLATES: { domain: string; label: string; iconPath: React.ReactNode }[] = [
+const TEMPLATES: {
+  domain: string;
+  label: string;
+  iconPath: React.ReactNode;
+}[] = [
   {
     domain: "stripe.com",
     label: "B2B SaaS",
-    iconPath: (
-      <path d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z" />
-    ),
+    iconPath: <path d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z" />,
   },
   {
     domain: "sportforlife.co.th",
@@ -343,7 +347,10 @@ export default function PresignupAgent({
   platforms,
 }: PresignupAgentProps) {
   const [phase, setPhase] = useState<AgentPhase>({ kind: "idle" });
-  const [statusText, setStatusText] = useState<{ text: string; dot: boolean } | null>(null);
+  const [statusText, setStatusText] = useState<{
+    text: string;
+    dot: boolean;
+  } | null>(null);
   const [scanItems, setScanItems] = useState<ScanItem[]>([]);
   const [scanProgress, setScanProgress] = useState(0);
   const [scanTitle, setScanTitle] = useState("");
@@ -376,7 +383,10 @@ export default function PresignupAgent({
   const handleSubmit = useCallback(async () => {
     const domain = normalizeDomain(domainInput);
     if (!isValidDomain(domain)) {
-      setPhase({ kind: "error", message: "Enter a valid domain, like sportforlife.co.th." });
+      setPhase({
+        kind: "error",
+        message: "Enter a valid domain, like sportforlife.co.th.",
+      });
       return;
     }
 
@@ -454,7 +464,8 @@ export default function PresignupAgent({
       if ((err as Error)?.name === "AbortError" || cancelledRef.current) return;
       setPhase({
         kind: "error",
-        message: (err as Error)?.message || "Something went wrong. Please try again.",
+        message:
+          (err as Error)?.message || "Something went wrong. Please try again.",
       });
     } finally {
       if (sizingTimer != null) window.clearTimeout(sizingTimer);
@@ -493,7 +504,10 @@ export default function PresignupAgent({
       if (product?.vendors[0]) {
         setScanItems((prev) => {
           const next = prev.slice();
-          next[idx] = { ...next[idx], vendorText: `checking ${product.vendors[0].name}…` };
+          next[idx] = {
+            ...next[idx],
+            vendorText: `checking ${product.vendors[0].name}…`,
+          };
           return next;
         });
         await wait(PER_VENDOR_MS);
@@ -502,7 +516,10 @@ export default function PresignupAgent({
       if (product?.vendors[1]) {
         setScanItems((prev) => {
           const next = prev.slice();
-          next[idx] = { ...next[idx], vendorText: `checking ${product.vendors[1].name}…` };
+          next[idx] = {
+            ...next[idx],
+            vendorText: `checking ${product.vendors[1].name}…`,
+          };
           return next;
         });
         await wait(PER_VENDOR_NEXT_MS);
@@ -515,7 +532,8 @@ export default function PresignupAgent({
         next[idx] = {
           ...next[idx],
           status: "done",
-          vendorText: (product?.vendors || []).map((v) => v.name).join(", ") || "—",
+          vendorText:
+            (product?.vendors || []).map((v) => v.name).join(", ") || "—",
           amount: product?.wasteTotal || 0,
         };
         return next;
@@ -524,7 +542,9 @@ export default function PresignupAgent({
       // Reveal the matching card in the grid.
       if (product) {
         setRevealedProducts((prev) =>
-          prev.some((p) => idToKey(p.id) === it.key) ? prev : [...prev, product],
+          prev.some((p) => idToKey(p.id) === it.key)
+            ? prev
+            : [...prev, product],
         );
       }
 
@@ -569,7 +589,8 @@ export default function PresignupAgent({
 
   const isLoading = phase.kind === "running" || phase.kind === "scanning";
   const showSteps = phase.kind === "running";
-  const currentStep: StepName | null = phase.kind === "running" ? phase.step : null;
+  const currentStep: StepName | null =
+    phase.kind === "running" ? phase.step : null;
   const showScanPanel = scanTitle !== "" || scanItems.length > 0;
   const isComplete = phase.kind === "complete";
   const isError = phase.kind === "error";
@@ -580,16 +601,16 @@ export default function PresignupAgent({
   return (
     <section className="presignup-agent-section">
       <div
-        className={clsx("presignup-agent-container sim", sectionScanning && "scanning")}
+        className={clsx(
+          "presignup-agent-container sim",
+          sectionScanning && "scanning",
+        )}
         id="presignup-agent-root"
       >
         <h2 className="sim-title">{title}</h2>
         <p className="sim-sub">{subtitle}</p>
 
-        <div
-          className="sim-input-row"
-          data-state={isLoading ? "loading" : ""}
-        >
+        <div className="sim-input-row" data-state={isLoading ? "loading" : ""}>
           <div className="sim-input-top">
             <span className="caret-i" aria-hidden="true">
               <svg
@@ -628,7 +649,9 @@ export default function PresignupAgent({
               disabled={isLoading}
             >
               {ctaLabel}
-              <kbd className="sim-kbd" aria-hidden="true">↵</kbd>
+              <kbd className="sim-kbd" aria-hidden="true">
+                ↵
+              </kbd>
               <svg
                 viewBox="0 0 24 24"
                 fill="none"
@@ -669,7 +692,9 @@ export default function PresignupAgent({
                         <span className="emoji">{spec.emoji}</span>
                         {spec.name}
                       </span>
-                      <span className="scan-item-vendor">{item.vendorText}</span>
+                      <span className="scan-item-vendor">
+                        {item.vendorText}
+                      </span>
                       <span className="scan-item-amount">
                         {item.matched && item.status === "done"
                           ? USD.format(item.amount)
@@ -682,7 +707,10 @@ export default function PresignupAgent({
                 })}
               </div>
               <div className="scan-progress">
-                <div className="scan-progress-fill" style={{ width: `${scanProgress}%` }} />
+                <div
+                  className="scan-progress-fill"
+                  style={{ width: `${scanProgress}%` }}
+                />
               </div>
             </div>
           )}
@@ -695,30 +723,34 @@ export default function PresignupAgent({
                 const resolvedIcon =
                   typeof p.icon === "string" ? ICON_REGISTRY[p.icon] : p.icon;
                 return (
-                <a
-                  key={`${p.label}-${i}`}
-                  className="presignup-agent-platform"
-                  href={p.href || "#"}
-                  onClick={(e) => handlePlatformClick(e, p.href)}
-                >
-                  {resolvedIcon ? (
-                    <span className="presignup-agent-platform-icon" aria-hidden="true">
-                      {resolvedIcon}
-                    </span>
-                  ) : p.iconUrl ? (
-                    <img
-                      className="presignup-agent-platform-logo"
-                      src={p.iconUrl}
-                      alt=""
-                      aria-hidden="true"
-                      loading="lazy"
-                      onError={(e) => {
-                        (e.currentTarget as HTMLImageElement).style.display = "none";
-                      }}
-                    />
-                  ) : null}
-                  <span>{p.label}</span>
-                </a>
+                  <a
+                    key={`${p.label}-${i}`}
+                    className="presignup-agent-platform"
+                    href={p.href || "#"}
+                    onClick={(e) => handlePlatformClick(e, p.href)}
+                  >
+                    {resolvedIcon ? (
+                      <span
+                        className="presignup-agent-platform-icon"
+                        aria-hidden="true"
+                      >
+                        {resolvedIcon}
+                      </span>
+                    ) : p.iconUrl ? (
+                      <img
+                        className="presignup-agent-platform-logo"
+                        src={p.iconUrl}
+                        alt=""
+                        aria-hidden="true"
+                        loading="lazy"
+                        onError={(e) => {
+                          (e.currentTarget as HTMLImageElement).style.display =
+                            "none";
+                        }}
+                      />
+                    ) : null}
+                    <span>{p.label}</span>
+                  </a>
                 );
               })}
             </div>
@@ -753,7 +785,9 @@ export default function PresignupAgent({
                   </span>
                 </div>
                 {step !== "auditing" && (
-                  <span className="presignup-agent-step-sep" aria-hidden="true">›</span>
+                  <span className="presignup-agent-step-sep" aria-hidden="true">
+                    ›
+                  </span>
                 )}
               </span>
             );
@@ -764,7 +798,10 @@ export default function PresignupAgent({
           {TEMPLATES.map((t) => (
             <button
               key={t.domain}
-              className={clsx("template", activeTemplate === t.domain && "active")}
+              className={clsx(
+                "template",
+                activeTemplate === t.domain && "active",
+              )}
               type="button"
               onClick={() => pickTemplate(t.domain)}
             >
@@ -808,7 +845,10 @@ export default function PresignupAgent({
           {statusText && (
             <>
               {statusText.dot && (
-                <span className="presignup-agent-status-dot" aria-hidden="true" />
+                <span
+                  className="presignup-agent-status-dot"
+                  aria-hidden="true"
+                />
               )}
               {statusText.text}
             </>
@@ -841,7 +881,10 @@ export default function PresignupAgent({
             <ResultCard key={idToKey(p.id)} product={p} />
           ))}
           {isComplete && phase.kind === "complete" && (
-            <TotalBanner products={phase.products} agentBaseUrl={agentBaseUrl} />
+            <TotalBanner
+              products={phase.products}
+              agentBaseUrl={agentBaseUrl}
+            />
           )}
         </div>
       </div>

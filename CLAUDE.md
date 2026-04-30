@@ -87,13 +87,63 @@ Cache busting: tags and commit SHAs are immutable on jsDelivr. `@main` caches ~1
 
 ## Webflow custom-code
 
-**Head** — paste this once (anti-flicker cloak; must be synchronous-inline, not from the CDN, so it applies before the body parses):
+**Head** — paste this once. Must be synchronous-inline (not from the CDN) so it applies before the body parses. The selector stops matching the moment React commits and sets `data-rc-mounted="true"`, so the skeleton disappears automatically.
 
 ```html
 <style>
-  [data-rc]:not([data-rc-mounted="true"]) { visibility: hidden; }
+  [data-rc]:not([data-rc-mounted="true"]) {
+    position: relative;
+    min-height: 240px;
+    border-radius: 16px;
+    background: #f5f5f3;
+    overflow: hidden;
+    isolation: isolate;
+  }
+  [data-rc="presignup-agent"]:not([data-rc-mounted="true"]) {
+    min-height: 720px;
+  }
+  [data-rc]:not([data-rc-mounted="true"]) > * { visibility: hidden; }
+  [data-rc]:not([data-rc-mounted="true"])::before {
+    content: "Vaudit";
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: inherit;
+    font-weight: 700;
+    font-size: 1.5rem;
+    letter-spacing: -0.02em;
+    color: rgba(26, 26, 24, 0.18);
+    z-index: 1;
+  }
+  [data-rc]:not([data-rc-mounted="true"])::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(110deg, transparent 35%, rgba(255,255,255,0.65) 50%, transparent 65%);
+    background-size: 220% 100%;
+    animation: rc-shimmer 1.6s linear infinite;
+    z-index: 2;
+    pointer-events: none;
+  }
+  @keyframes rc-shimmer {
+    0%   { background-position: 220% 0; }
+    100% { background-position: -120% 0; }
+  }
+  html.dark [data-rc]:not([data-rc-mounted="true"]) { background: #1a1a18; }
+  html.dark [data-rc]:not([data-rc-mounted="true"])::before { color: rgba(255,255,255,0.12); }
+  html.dark [data-rc]:not([data-rc-mounted="true"])::after {
+    background: linear-gradient(110deg, transparent 35%, rgba(255,255,255,0.07) 50%, transparent 65%);
+    background-size: 220% 100%;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    [data-rc]:not([data-rc-mounted="true"])::after { animation: none; }
+  }
 </style>
 ```
+
+The block does three things at once: cloaks any nested HTML the Webflow author left inside the marker, paints a soft skeleton card with a diagonal shimmer sweep so the page doesn't show a blank rectangle while jsDelivr is in flight, and centers a "Vaudit" wordmark (inherits Webflow's font; swap `content: "Vaudit"` for `background-image: url(...)` to use a logo asset). Per-component `min-height` overrides keep the skeleton close to the eventual component size so layout doesn't jump on mount.
 
 **Footer** — bundle and stylesheet from jsDelivr:
 
@@ -104,9 +154,9 @@ Cache busting: tags and commit SHAs are immutable on jsDelivr. `@main` caches ~1
 
 Place the footer block **after** the existing theme bootstrap and nav-dropdown scripts (see `docs/webflow/theme-custom-code.html.md`) so the `html.dark` class is set before any component reads it.
 
-## Anti-flicker (no FOUC)
+## Anti-flicker + skeleton loader (no FOUC, no blank rectangle)
 
-The bootstrap flips `data-rc-mounted="true"` on each marker via `useLayoutEffect` — i.e. after React commits and before the browser paints. Combined with the head `<style>` cloak above, every marker stays invisible until its component is rendered, then reveals atomically with no flash.
+The bootstrap flips `data-rc-mounted="true"` on each marker via `useLayoutEffect` — i.e. after React commits and before the browser paints. The head block above paints a shimmer skeleton on every unmounted marker, then the attribute flip makes the skeleton selector miss and React's render takes over atomically.
 
 The bootstrap also adds **`html.rc-ready`** once every marker present at `DOMContentLoaded` has mounted. Use this only if you need a page-wide reveal hook — e.g. some hero element that should wait for the React stack:
 
@@ -115,9 +165,9 @@ The bootstrap also adds **`html.rc-ready`** once every marker present at `DOMCon
 html.rc-ready .hero-fade-in { opacity: 1; }
 ```
 
-**Don't use `html { visibility: hidden }` until ready.** If jsDelivr is slow or blocked, the page stays blank. Per-marker cloak fails open: nav, hero, and footer all paint immediately; only the React regions briefly reserve space.
+**Don't use `html { visibility: hidden }` until ready.** If jsDelivr is slow or blocked, the page stays blank. The per-marker skeleton fails open: nav, hero, and footer all paint immediately; only the React regions briefly show a shimmer placeholder.
 
-If you ship a placeholder (skeleton, spinner) inside the marker that should show *while* React loads, opt that marker out of the cloak by giving it `data-rc-mounted="true"` from the start, then it's React's job to show its own loading state.
+If you ship your own placeholder (skeleton, spinner) inside the marker that should show *while* React loads, opt that marker out of the head block by giving it `data-rc-mounted="true"` from the start — then it's your HTML's job to render whatever loading state you want, until React mounts and replaces it.
 
 ## Reference docs
 
