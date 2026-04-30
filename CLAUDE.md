@@ -91,13 +91,35 @@ Cache busting: tags and commit SHAs are immutable on jsDelivr. `@main` caches ~1
 
 ```html
 <style>
+  @property --rc-shimmer-angle {
+    syntax: "<angle>";
+    initial-value: 0deg;
+    inherits: false;
+  }
   [data-rc]:not([data-rc-mounted="true"]) {
+    --rc-bg: #ffffff;
+    --rc-border-dim: 0.22;
+    --rc-arc-a: 255, 150, 80;
+    --rc-arc-b: 255, 120, 50;
     position: relative;
     min-height: 240px;
-    border-radius: 16px;
-    background: #f5f5f3;
-    overflow: hidden;
+    padding: 20px;
+    border-radius: 22px;
+    border: 2px solid transparent;
     isolation: isolate;
+    background:
+      linear-gradient(var(--rc-bg), var(--rc-bg)) padding-box,
+      conic-gradient(
+        from var(--rc-shimmer-angle),
+        rgba(240, 101, 31, var(--rc-border-dim)) 0deg,
+        rgba(240, 101, 31, var(--rc-border-dim)) 150deg,
+        rgba(var(--rc-arc-a), 0.95) 172deg,
+        rgba(var(--rc-arc-b), 1) 180deg,
+        rgba(var(--rc-arc-a), 0.95) 188deg,
+        rgba(240, 101, 31, var(--rc-border-dim)) 210deg,
+        rgba(240, 101, 31, var(--rc-border-dim)) 360deg
+      ) border-box;
+    animation: rc-shimmer 5s cubic-bezier(0.45, 0.05, 0.55, 0.95) infinite;
   }
   [data-rc="presignup-agent"]:not([data-rc-mounted="true"]) {
     min-height: 720px;
@@ -112,38 +134,50 @@ Cache busting: tags and commit SHAs are immutable on jsDelivr. `@main` caches ~1
     justify-content: center;
     font-family: inherit;
     font-weight: 700;
-    font-size: 1.5rem;
+    font-size: 1.75rem;
     letter-spacing: -0.02em;
-    color: rgba(26, 26, 24, 0.18);
+    color: #f0651f;
     z-index: 1;
+    animation: rc-wordmark-pulse 1.6s ease-in-out infinite;
   }
   [data-rc]:not([data-rc-mounted="true"])::after {
     content: "";
     position: absolute;
-    inset: 0;
-    background: linear-gradient(110deg, transparent 35%, rgba(255,255,255,0.65) 50%, transparent 65%);
-    background-size: 220% 100%;
-    animation: rc-shimmer 1.6s linear infinite;
-    z-index: 2;
+    inset: -90px;
+    z-index: -1;
     pointer-events: none;
+    border-radius: inherit;
+    filter: blur(60px);
+    opacity: 0.55;
+    background: conic-gradient(
+      from var(--rc-shimmer-angle),
+      transparent 0deg,
+      transparent 140deg,
+      rgba(240, 101, 31, 0.32) 180deg,
+      transparent 220deg,
+      transparent 360deg
+    );
   }
   @keyframes rc-shimmer {
-    0%   { background-position: 220% 0; }
-    100% { background-position: -120% 0; }
+    to { --rc-shimmer-angle: 360deg; }
   }
-  html.dark [data-rc]:not([data-rc-mounted="true"]) { background: #1a1a18; }
-  html.dark [data-rc]:not([data-rc-mounted="true"])::before { color: rgba(255,255,255,0.12); }
+  @keyframes rc-wordmark-pulse {
+    0%, 100% { opacity: 0.55; }
+    50%      { opacity: 1; }
+  }
+  html.dark [data-rc]:not([data-rc-mounted="true"]) {
+    --rc-bg: #0f100e;
+    --rc-border-dim: 0.18;
+    --rc-arc-a: 255, 180, 120;
+    --rc-arc-b: 255, 215, 170;
+  }
   html.dark [data-rc]:not([data-rc-mounted="true"])::after {
-    background: linear-gradient(110deg, transparent 35%, rgba(255,255,255,0.07) 50%, transparent 65%);
-    background-size: 220% 100%;
-  }
-  @media (prefers-reduced-motion: reduce) {
-    [data-rc]:not([data-rc-mounted="true"])::after { animation: none; }
+    opacity: 0.75;
   }
 </style>
 ```
 
-The block does three things at once: cloaks any nested HTML the Webflow author left inside the marker, paints a soft skeleton card with a diagonal shimmer sweep so the page doesn't show a blank rectangle while jsDelivr is in flight, and centers a "Vaudit" wordmark (inherits Webflow's font; swap `content: "Vaudit"` for `background-image: url(...)` to use a logo asset). Per-component `min-height` overrides keep the skeleton close to the eventual component size so layout doesn't jump on mount.
+The block does three things at once: cloaks any nested HTML the Webflow author left inside the marker, paints a brand-orange shimmer card with a rotating conic-gradient border glow + outer blurred halo (mirrors the input card's `--sim-shimmer-angle` treatment so the loading state previews the eventual component), and centers a pulsing "Vaudit" wordmark in `#f0651f`. Per-component `min-height` overrides keep the skeleton close to the eventual component size so layout doesn't jump on mount. Animation runs unconditionally — this is a marketing surface, the motion is part of the brand identity.
 
 **Footer** — bundle and stylesheet from jsDelivr:
 
