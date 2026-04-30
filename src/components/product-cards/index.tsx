@@ -6,13 +6,18 @@ export type ProductCardOverride = {
   title?: string;
   description?: string;
   /**
-   * Per-card opt-in CTA shown at the bottom of the card. The card itself is
-   * already a link, so the CTA is a visual affordance — pass `true` to use
-   * the default "Learn More →" label, or `{ label }` to customize. Pass an
-   * `href` to override the card's own destination for both the card link
-   * and the CTA target.
+   * Override the card's link target. The whole card is a single anchor, so
+   * this also drives where the visible CTA (if enabled) sends visitors.
+   * Defaults to the card's built-in route (e.g. `/paymentid` for `pay`).
    */
-  cta?: boolean | { label?: string; href?: string };
+  href?: string;
+  /**
+   * Per-card opt-in CTA shown at the bottom of the card. Pass `true` to use
+   * the default "Learn More →" label, or `{ label }` to customize. The
+   * destination is always the card's link target — set `href` above to
+   * change it.
+   */
+  cta?: boolean | { label?: string };
 };
 
 export type ProductCardsProps = {
@@ -45,9 +50,9 @@ export const meta: ComponentMeta<ProductCardsProps> = {
       default: "all 6 in default order",
     },
     overrides: {
-      type: "Partial<Record<ProductKey, { title?: string; description?: string; cta?: boolean | { label?: string; href?: string } }>>",
+      type: "Partial<Record<ProductKey, { title?: string; description?: string; href?: string; cta?: boolean | { label?: string } }>>",
       description:
-        "Per-key overrides for title, description, and/or CTA. Pass `cta: true` to show a default \"Learn More →\" affordance on that card, or an object to customize the label / link target.",
+        "Per-key overrides for title, description, link target, and/or CTA. Pass `href` to retarget the whole card (e.g. point `pay` at a new `/vendor-id` page). Pass `cta: true` to show a \"Learn More →\" affordance, or `{ label }` to customize.",
       default: "none",
     },
   },
@@ -73,6 +78,7 @@ export const meta: ComponentMeta<ProductCardsProps> = {
           title: "Vendor ID",
           description:
             "Verifies vendor billing across SaaS, cloud, payments, shipping, and operational spend to uncover billing discrepancies, unclaimed adjustments, and contract leakage.",
+          href: "/vendor-id",
           cta: true,
         },
         ad: { cta: true },
@@ -110,7 +116,7 @@ export default function ProductCards({ order, overrides }: ProductCardsProps) {
         const ctaEnabled = Boolean(ctaConfig);
         const ctaObject = typeof ctaConfig === "object" ? ctaConfig : null;
         const ctaLabel = ctaObject?.label ?? "Learn More";
-        const href = ctaObject?.href ?? card.href;
+        const href = override?.href ?? card.href;
         return (
           <a
             key={key}
