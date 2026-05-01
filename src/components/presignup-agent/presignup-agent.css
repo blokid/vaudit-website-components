@@ -627,8 +627,8 @@ html.dark .rc-pa-card {
 }
 
 .rc-pa-vendor__logo {
-  width: 18px;
-  height: 18px;
+  width: 36px !important;
+  height: 36px !important;
   border-radius: 4px;
   background: rgba(0, 0, 0, 0.04);
   object-fit: contain;
