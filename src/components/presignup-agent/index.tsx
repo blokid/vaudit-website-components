@@ -22,7 +22,7 @@ import {
   AgentSection,
   UserBubble,
 } from "./chat-message";
-import Composer, { type AuditScope } from "./composer";
+import Composer from "./composer";
 import LiveAuditCard from "./live-audit-card";
 import ResultsGrid from "./results-grid";
 import EstimateCta from "./estimate-cta";
@@ -120,8 +120,8 @@ const SELECTION_LABEL: Record<AccurateSelection, string> = {
 export default function PresignupAgent({ agentBaseUrl }: PresignupAgentProps) {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [composerValue, setComposerValue] = useState("");
+  const [composerError, setComposerError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
-  const [scope, setScope] = useState<AuditScope>("all");
 
   const abortRef = useRef<AbortController | null>(null);
   const cancelledRef = useRef(false);
@@ -162,7 +162,7 @@ export default function PresignupAgent({ agentBaseUrl }: PresignupAgentProps) {
   // ------------------------------------------------------------------------
 
   const runEstimate = useCallback(
-    async (domain: string, scopeOverride: AuditScope = "all") => {
+    async (domain: string) => {
       cancelActive();
       cancelledRef.current = false;
       const controller = new AbortController();
@@ -202,7 +202,7 @@ export default function PresignupAgent({ agentBaseUrl }: PresignupAgentProps) {
 
         const stream = await streamAgent(
           baseUrl,
-          buildRunPayload(scopedMessage(domain, scopeOverride), sessionId),
+          buildRunPayload(domain, sessionId),
           token,
           controller.signal,
         );
@@ -439,27 +439,31 @@ export default function PresignupAgent({ agentBaseUrl }: PresignupAgentProps) {
   const handleComposerSubmit = useCallback(() => {
     const raw = composerValue.trim();
     if (!raw || busy) return;
-    setComposerValue("");
 
     if (isEmpty) {
       const domain = normalizeDomain(raw);
       if (!isValidDomain(domain)) {
-        append({
-          id: nextId("err"),
-          kind: "error",
-          text: "Enter a valid domain, like sportforlife.co.th.",
-          retry: false,
-        });
+        // Inline error below the textarea — keeps the empty-state card clean
+        // (don't shove a chat bubble above the composer for a typo).
+        setComposerError("Enter a valid domain, like sportforlife.co.th.");
         return;
       }
+      setComposerError(null);
+      setComposerValue("");
       domainRef.current = domain;
-      runEstimate(domain, scope);
+      runEstimate(domain);
       return;
     }
 
+    setComposerValue("");
     append({ id: nextId("user"), kind: "user_text", text: raw });
     runFollowUp(raw);
-  }, [busy, composerValue, isEmpty, append, runEstimate, scope]);
+  }, [busy, composerValue, isEmpty, append, runEstimate]);
+
+  const handleComposerChange = useCallback((next: string) => {
+    setComposerValue(next);
+    setComposerError(null);
+  }, []);
 
   const runFollowUp = useCallback(
     async (text: string) => {
@@ -579,6 +583,7 @@ export default function PresignupAgent({ agentBaseUrl }: PresignupAgentProps) {
     domainRef.current = "";
     setMessages([]);
     setComposerValue("");
+    setComposerError(null);
     setBusy(false);
     resetSession();
   }, [cancelActive]);
@@ -609,12 +614,11 @@ export default function PresignupAgent({ agentBaseUrl }: PresignupAgentProps) {
         <Composer
           empty={isEmpty}
           value={composerValue}
-          onChange={setComposerValue}
+          onChange={handleComposerChange}
           onSubmit={handleComposerSubmit}
           placeholder={placeholder}
           busy={busy}
-          scope={scope}
-          onScopeChange={setScope}
+          error={isEmpty ? composerError : null}
         />
       </div>
     </section>
@@ -701,21 +705,6 @@ function renderMessage(msg: ChatMessage, h: RenderHandlers) {
 // ---------------------------------------------------------------------------
 // Agent ack — interpret a small subset of bold markup
 // ---------------------------------------------------------------------------
-
-/**
- * Build the message we send to the agent for the first turn. When the
- * visitor has narrowed the scope via the dropdown, we append a hint so
- * the agent can omit the categories the visitor opted out of.
- */
-function scopedMessage(domain: string, scope: AuditScope): string {
-  if (scope === "all") return domain;
-  const labels: Record<Exclude<AuditScope, "all">, string> = {
-    ad_id: "Ad ID",
-    vendor_id: "Vendor ID",
-    token_id: "Token ID",
-  };
-  return `${domain}\n\n(Scope: only the ${labels[scope]} category — skip the others.)`;
-}
 
 function ackTextFor(domain: string): string {
   return `On it. Scanning **${domain}** against our vendor benchmarks now — this gives you an **estimate in ~10 seconds**. You can lock in exact numbers right after.`;

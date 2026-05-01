@@ -163,9 +163,8 @@ html.dark .rc-pa-card {
 }
 
 .rc-pa-thread.is-empty {
-  min-height: 220px;
-  justify-content: flex-end;
-  padding-bottom: 0;
+  min-height: 0;
+  padding: 0;
 }
 
 /* ---- agent message ------------------------------------------------------- */
@@ -207,11 +206,11 @@ html.dark .rc-pa-card {
 .rc-pa-msg-agent__bubble {
   background: var(--rc-pa-elevated-bg);
   border: 1px solid var(--rc-pa-border);
-  border-radius: 14px;
-  padding: 12px 16px;
+  border-radius: 4px 18px 18px 18px;
+  padding: 10px 14px;
   color: var(--rc-pa-fg);
-  line-height: 1.5;
-  font-size: 15px;
+  line-height: 1.6;
+  font-size: 14px;
   align-self: flex-start;
   max-width: 100%;
 }
@@ -230,12 +229,12 @@ html.dark .rc-pa-card {
 .rc-pa-msg-user__bubble {
   background: var(--rc-pa-orange);
   color: var(--rc-pa-on-orange);
-  border-radius: 14px;
-  padding: 10px 16px;
+  border-radius: 18px 18px 4px 18px;
+  padding: 10px 14px;
   font-size: 14px;
-  line-height: 1.45;
+  line-height: 1.6;
   font-weight: 500;
-  max-width: 78%;
+  max-width: 85%;
   white-space: pre-line;
 }
 
@@ -1081,6 +1080,34 @@ html.dark .rc-pa-btn__time {
   overflow: hidden;
 }
 
+/* Chevron caret in front of the textarea (empty state). */
+.rc-pa-composer__caret {
+  flex-shrink: 0;
+  color: var(--rc-pa-orange);
+  display: inline-flex;
+  align-items: flex-start;
+  padding-top: 3px;
+}
+
+.rc-pa-composer__caret svg {
+  width: 18px;
+  height: 18px;
+}
+
+/* Inline validation error rendered below the textarea (empty state). */
+.rc-pa-composer__error {
+  margin: 0;
+  font-size: 12.5px;
+  color: #c33;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+html.dark .rc-pa-composer__error {
+  color: #ff8c66;
+}
+
 .rc-pa-composer__input::placeholder {
   color: var(--rc-pa-fg-muted);
 }
@@ -1122,142 +1149,37 @@ html.dark .rc-pa-btn__time {
 }
 
 .rc-pa-composer.is-empty {
-  /* Two-row layout: textarea on top, then [scope] [spacer] [CTA] below. */
-  display: block;
-  padding-top: 0;
-  padding-bottom: clamp(18px, 3vw, 24px);
+  /* Vertical stack: caret + textarea row → optional error → bottom row.
+     Mirrors the prototype's `.sim-input-row` (gap 12px, padding 20px). */
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 12px;
+  padding: clamp(16px, 2.5vw, 20px) clamp(16px, 4vw, 20px);
+}
+
+.rc-pa-composer__top {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
 }
 
 .rc-pa-composer.is-empty .rc-pa-composer__input {
+  flex: 1;
   font-size: 16px;
-  padding: 8px 0 14px;
-  border-bottom: 1px solid var(--rc-pa-row-divider);
-  display: block;
-  width: 100%;
+  line-height: 1.5;
+  padding: 0;
+  margin: 0;
+  border-bottom: 0;
+  min-height: 24px;
 }
 
 .rc-pa-composer__row {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: flex-end;
   gap: 12px;
-  margin-top: 14px;
   flex-wrap: wrap;
-}
-
-/* ---- scope dropdown (empty state) --------------------------------------- */
-
-.rc-pa-scope {
-  position: relative;
-}
-
-.rc-pa-scope__trigger {
-  appearance: none;
-  background: var(--rc-pa-chip-bg);
-  border: 1px solid var(--rc-pa-border);
-  color: var(--rc-pa-fg);
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  padding: 6px 10px 6px 6px;
-  border-radius: 10px;
-  font: inherit;
-  font-size: 13px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: border-color 150ms ease, background 150ms ease;
-}
-
-.rc-pa-scope__trigger:hover,
-.rc-pa-scope.is-open .rc-pa-scope__trigger {
-  border-color: rgba(254, 96, 44, 0.5);
-  background: var(--rc-pa-chip-bg-hover);
-}
-
-.rc-pa-scope__icon {
-  width: 22px;
-  height: 22px;
-  border-radius: 6px;
-  background: rgba(254, 96, 44, 0.14);
-  color: var(--rc-pa-orange);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-}
-
-.rc-pa-scope__icon svg {
-  width: 13px;
-  height: 13px;
-}
-
-.rc-pa-scope__label {
-  white-space: nowrap;
-}
-
-.rc-pa-scope__chev {
-  width: 14px;
-  height: 14px;
-  color: var(--rc-pa-fg-soft);
-  transition: transform 150ms ease;
-}
-
-.rc-pa-scope__chev.is-open {
-  transform: rotate(180deg);
-}
-
-.rc-pa-scope__menu {
-  list-style: none;
-  margin: 0 0 6px;
-  padding: 6px;
-  position: absolute;
-  bottom: calc(100% + 6px);
-  left: 0;
-  min-width: 220px;
-  background: var(--rc-pa-card-bg);
-  border: 1px solid var(--rc-pa-border);
-  border-radius: 12px;
-  box-shadow: 0 -14px 36px -12px rgba(0, 0, 0, 0.5);
-  z-index: 12;
-}
-
-.rc-pa-scope__item {
-  appearance: none;
-  width: 100%;
-  background: transparent;
-  border: 0;
-  color: var(--rc-pa-fg);
-  display: grid;
-  grid-template-columns: 28px 1fr;
-  gap: 10px;
-  align-items: center;
-  padding: 8px 10px;
-  border-radius: 8px;
-  font: inherit;
-  font-size: 14px;
-  font-weight: 500;
-  text-align: left;
-  cursor: pointer;
-  transition: background 120ms ease;
-}
-
-.rc-pa-scope__item:hover {
-  background: var(--rc-pa-chip-bg-hover);
-}
-
-.rc-pa-scope__item.is-selected {
-  background: rgba(254, 96, 44, 0.12);
-}
-
-.rc-pa-scope__item .rc-pa-scope__icon {
-  width: 28px;
-  height: 28px;
-  border-radius: 8px;
-}
-
-.rc-pa-scope__item .rc-pa-scope__icon svg {
-  width: 15px;
-  height: 15px;
 }
 
 /* ---- big CTA (empty-state submit) -------------------------------------- */
@@ -1269,13 +1191,14 @@ html.dark .rc-pa-btn__time {
   color: var(--rc-pa-on-orange);
   display: inline-flex;
   align-items: center;
-  gap: 10px;
-  padding: 12px 18px;
+  gap: 8px;
+  height: 44px;
+  padding: 0 24px;
   border-radius: 999px;
   font: inherit;
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 700;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
   cursor: pointer;
   box-shadow: 0 12px 30px -10px var(--rc-pa-orange-glow);
@@ -1297,19 +1220,25 @@ html.dark .rc-pa-btn__time {
 }
 
 .rc-pa-cta-audit__kbd {
-  background: rgba(0, 0, 0, 0.22);
+  display: inline-flex;
+  align-items: center;
+  background: rgba(255, 255, 255, 0.18);
   color: var(--rc-pa-on-orange);
-  border-radius: 6px;
-  padding: 2px 8px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 5px;
+  padding: 3px 7px;
+  margin: 0 2px 0 -2px;
   font-family: inherit;
-  font-size: 11px;
-  font-weight: 700;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
   line-height: 1;
+  text-transform: none;
 }
 
 .rc-pa-cta-audit__send {
-  width: 16px;
-  height: 16px;
+  width: 15px;
+  height: 15px;
 }
 
 /* ---- shimmer (circling border on the empty-state card) ---------------- */

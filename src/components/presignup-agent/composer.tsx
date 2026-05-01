@@ -1,22 +1,6 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef } from "react";
 import clsx from "clsx";
-import {
-  IconAd,
-  IconChevronDown,
-  IconSend,
-  IconShieldCheck,
-  IconToken,
-  IconVendor,
-} from "./icons";
-
-export type AuditScope = "all" | "ad_id" | "vendor_id" | "token_id";
-
-const SCOPE_OPTIONS: { id: AuditScope; label: string; Icon: typeof IconAd }[] = [
-  { id: "all", label: "Audit all", Icon: IconShieldCheck },
-  { id: "ad_id", label: "Ad ID", Icon: IconAd },
-  { id: "vendor_id", label: "Vendor ID", Icon: IconVendor },
-  { id: "token_id", label: "Token ID", Icon: IconToken },
-];
+import { IconCaretRight, IconSend } from "./icons";
 
 type ComposerProps = {
   /** True when the composer is the only thing on screen (initial empty state). */
@@ -27,9 +11,8 @@ type ComposerProps = {
   placeholder: string;
   /** Disables the send button while a turn is in flight. */
   busy: boolean;
-  /** Selected audit scope (only meaningful in the empty state). */
-  scope?: AuditScope;
-  onScopeChange?: (next: AuditScope) => void;
+  /** Inline validation error rendered below the textarea (empty state only). */
+  error?: string | null;
 };
 
 export default function Composer({
@@ -39,12 +22,12 @@ export default function Composer({
   onSubmit,
   placeholder,
   busy,
-  scope = "all",
-  onScopeChange,
+  error,
 }: ComposerProps) {
   const ref = useRef<HTMLTextAreaElement>(null);
 
-  // Auto-grow the textarea up to a few rows so paste-of-stack lists doesn't clip.
+  // Auto-grow the textarea up to a few rows so a paste-of-stack list doesn't
+  // clip. Starts at one line height; grows only as the user types past it.
   useEffect(() => {
     const el = ref.current;
     if (!el) return;
@@ -61,8 +44,49 @@ export default function Composer({
 
   const canSend = value.trim().length > 0 && !busy;
 
+  if (empty) {
+    return (
+      <div className="rc-pa-composer is-empty">
+        <div className="rc-pa-composer__top">
+          <span className="rc-pa-composer__caret" aria-hidden="true">
+            <IconCaretRight />
+          </span>
+          <textarea
+            ref={ref}
+            className="rc-pa-composer__input"
+            value={value}
+            onChange={(e) => onChange(e.target.value)}
+            onKeyDown={handleKeyDown}
+            placeholder={placeholder}
+            rows={1}
+            spellCheck={false}
+            autoCapitalize="off"
+            autoCorrect="off"
+          />
+        </div>
+        {error && (
+          <p className="rc-pa-composer__error" role="alert">
+            {error}
+          </p>
+        )}
+        <div className="rc-pa-composer__row">
+          <button
+            type="button"
+            className="rc-pa-cta-audit"
+            onClick={() => canSend && onSubmit()}
+            disabled={!canSend}
+          >
+            <span className="rc-pa-cta-audit__label">Audit my vendors</span>
+            <kbd className="rc-pa-cta-audit__kbd" aria-hidden="true">↵</kbd>
+            <IconSend className="rc-pa-cta-audit__send" />
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className={clsx("rc-pa-composer", empty && "is-empty")}>
+    <div className={clsx("rc-pa-composer")}>
       <textarea
         ref={ref}
         className="rc-pa-composer__input"
@@ -75,108 +99,15 @@ export default function Composer({
         autoCapitalize="off"
         autoCorrect="off"
       />
-
-      {empty ? (
-        <div className="rc-pa-composer__row">
-          <ScopeDropdown scope={scope} onChange={onScopeChange ?? (() => {})} />
-          <button
-            type="button"
-            className="rc-pa-cta-audit"
-            onClick={() => canSend && onSubmit()}
-            disabled={!canSend}
-          >
-            <span className="rc-pa-cta-audit__label">Audit my vendors</span>
-            <kbd className="rc-pa-cta-audit__kbd" aria-hidden="true">↵</kbd>
-            <IconSend className="rc-pa-cta-audit__send" />
-          </button>
-        </div>
-      ) : (
-        <button
-          type="button"
-          className="rc-pa-composer__send"
-          aria-label="Send"
-          disabled={!canSend}
-          onClick={() => canSend && onSubmit()}
-        >
-          <IconSend />
-        </button>
-      )}
-    </div>
-  );
-}
-
-function ScopeDropdown({
-  scope,
-  onChange,
-}: {
-  scope: AuditScope;
-  onChange: (next: AuditScope) => void;
-}) {
-  const [open, setOpen] = useState(false);
-  const wrapRef = useRef<HTMLDivElement>(null);
-
-  // Close when the visitor clicks outside the dropdown.
-  useEffect(() => {
-    if (!open) return;
-    function handleClick(e: MouseEvent) {
-      if (!wrapRef.current?.contains(e.target as Node)) setOpen(false);
-    }
-    function handleKey(e: KeyboardEvent) {
-      if (e.key === "Escape") setOpen(false);
-    }
-    window.addEventListener("mousedown", handleClick);
-    window.addEventListener("keydown", handleKey);
-    return () => {
-      window.removeEventListener("mousedown", handleClick);
-      window.removeEventListener("keydown", handleKey);
-    };
-  }, [open]);
-
-  const selected = SCOPE_OPTIONS.find((o) => o.id === scope) ?? SCOPE_OPTIONS[0];
-  const SelectedIcon = selected.Icon;
-
-  return (
-    <div className={clsx("rc-pa-scope", open && "is-open")} ref={wrapRef}>
       <button
         type="button"
-        className="rc-pa-scope__trigger"
-        onClick={() => setOpen((v) => !v)}
-        aria-haspopup="listbox"
-        aria-expanded={open}
+        className="rc-pa-composer__send"
+        aria-label="Send"
+        disabled={!canSend}
+        onClick={() => canSend && onSubmit()}
       >
-        <span className="rc-pa-scope__icon">
-          <SelectedIcon />
-        </span>
-        <span className="rc-pa-scope__label">{selected.label}</span>
-        <IconChevronDown className={clsx("rc-pa-scope__chev", open && "is-open")} />
+        <IconSend />
       </button>
-      {open && (
-        <ul className="rc-pa-scope__menu" role="listbox">
-          {SCOPE_OPTIONS.map((opt) => {
-            const Icon = opt.Icon;
-            const active = opt.id === scope;
-            return (
-              <li key={opt.id}>
-                <button
-                  type="button"
-                  className={clsx("rc-pa-scope__item", active && "is-selected")}
-                  role="option"
-                  aria-selected={active}
-                  onClick={() => {
-                    onChange(opt.id);
-                    setOpen(false);
-                  }}
-                >
-                  <span className="rc-pa-scope__icon">
-                    <Icon />
-                  </span>
-                  <span className="rc-pa-scope__item-label">{opt.label}</span>
-                </button>
-              </li>
-            );
-          })}
-        </ul>
-      )}
     </div>
   );
 }
