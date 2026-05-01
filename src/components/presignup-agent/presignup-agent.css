@@ -629,14 +629,12 @@ html.dark .rc-pa-card {
 .rc-pa-vendor__logo {
   width: 36px !important;
   height: 36px !important;
-  border-radius: 4px;
-  background: rgba(0, 0, 0, 0.04);
+  border-radius: 6px;
+  background: #ffffff;
+  padding: 3px;
+  box-sizing: border-box;
   object-fit: contain;
   flex-shrink: 0;
-}
-
-html.dark .rc-pa-vendor__logo {
-  background: rgba(255, 255, 255, 0.04);
 }
 
 .rc-pa-vendor__fig {
