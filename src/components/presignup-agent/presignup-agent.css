@@ -30,6 +30,7 @@
   max-width: 960px;
   margin: 0 auto 20px;
   color: var(--text-primary);
+  white-space: pre-line;
 }
 
 .sim-sub {
@@ -41,6 +42,7 @@
   line-height: 1.55;
   max-width: 640px;
   margin: 0 auto 36px;
+  white-space: pre-line;
 }
 
 @media (max-width: 767px) {
@@ -720,6 +722,7 @@ html.dark .presignup-agent-platform-logo {
   font-family: inherit;
   font-size: 0.8125rem;
   color: var(--text-secondary);
+  white-space: pre-line;
 }
 
 html.dark .presignup-agent-platforms-note {
@@ -737,6 +740,7 @@ html.dark .presignup-agent-platforms-note {
   font-size: 0.9375rem;
   line-height: 1.5;
   color: var(--text-secondary, rgba(26, 26, 24, 0.6));
+  white-space: pre-line;
 }
 
 html.dark .presignup-agent-cta-note {
@@ -754,6 +758,7 @@ html.dark .presignup-agent-cta-note {
   letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--text-secondary, rgba(26, 26, 24, 0.6));
+  white-space: pre-line;
 }
 
 html.dark .presignup-agent-platforms-header {
