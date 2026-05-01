@@ -33,11 +33,19 @@ type VendorCoverageProps = {
 };
 
 const CDN = "https://cdn.prod.website-files.com/67e174863b0c93ae0a0cffee";
-// Brand-color SVGs for vendors that aren't (yet) hosted on the Webflow CDN.
+// Brand-color SVGs for vendors not (yet) hosted on the Webflow CDN.
 // Iconify's `logos` collection is stable and ships official brand-colored
 // SVGs — preferred over simpleicons which has been progressively pulling
 // logos due to trademark complaints (Microsoft, Slack, etc.).
 const ICONIFY = "https://api.iconify.design/logos";
+// Monochrome fallback for brands the `logos` set doesn't have but
+// simple-icons does (Databricks, USPS, Braintree, etc.).
+const ICONIFY_SIMPLE = "https://api.iconify.design/simple-icons";
+// Last-resort fallback for vendors with no maintained SVG anywhere — this
+// returns a 64×128px favicon and is reliable enough to never leave a card
+// blank (every vendor at least gets *some* recognisable mark).
+const FAVICON = (domain: string) =>
+  `https://www.google.com/s2/favicons?domain=${domain}&sz=128`;
 
 const DEFAULT_HEADING = "Covers your entire vendor ecosystem";
 
@@ -162,21 +170,16 @@ const DEFAULT_CATEGORIES: VendorCategory[] = [
     description:
       "Verify SaaS billing against actual usage, licenses, and contract terms to uncover unused seats, overcharges, and contract leakage.",
     vendors: [
-      {
-        id: "salesforce",
-        name: "Salesforce",
-        iconUrl: `${CDN}/69e8aa1be867fd9d7a66f538_salesforce.svg`,
-      },
-      {
-        id: "hubspot",
-        name: "HubSpot",
-        iconUrl: `${ICONIFY}/hubspot.svg`,
-      },
-      {
-        id: "slack",
-        name: "Slack",
-        iconUrl: `${ICONIFY}/slack-icon.svg`,
-      },
+      { id: "salesforce",       name: "Salesforce",       iconUrl: `${CDN}/69e8aa1be867fd9d7a66f538_salesforce.svg` },
+      { id: "hubspot",          name: "HubSpot",          iconUrl: `${ICONIFY}/hubspot.svg` },
+      { id: "slack",            name: "Slack",            iconUrl: `${ICONIFY}/slack-icon.svg` },
+      { id: "zoom",             name: "Zoom",             iconUrl: `${ICONIFY}/zoom-icon.svg` },
+      { id: "microsoft-365",    name: "Microsoft 365",    iconUrl: `${ICONIFY}/microsoft.svg` },
+      { id: "google-workspace", name: "Google Workspace", iconUrl: `${CDN}/69e8a997ae02448a9e62d5c0_google-workspace.svg` },
+      { id: "notion",           name: "Notion",           iconUrl: `${ICONIFY}/notion-icon.svg` },
+      { id: "asana",            name: "Asana",            iconUrl: `${ICONIFY}/asana-icon.svg` },
+      { id: "monday",           name: "Monday.com",       iconUrl: `${ICONIFY}/monday-icon.svg` },
+      { id: "okta",             name: "Okta",             iconUrl: `${ICONIFY}/okta-icon.svg` },
     ],
   },
   {
@@ -185,21 +188,16 @@ const DEFAULT_CATEGORIES: VendorCategory[] = [
     description:
       "Validate cloud billing against usage and pricing structures to detect overcharges, misconfigurations, and inefficient spend.",
     vendors: [
-      {
-        id: "aws",
-        name: "AWS",
-        iconUrl: `${CDN}/69e8a986401a04fdfb516c2f_aws.svg`,
-      },
-      {
-        id: "azure",
-        name: "Azure",
-        iconUrl: `${ICONIFY}/microsoft-azure.svg`,
-      },
-      {
-        id: "google-cloud",
-        name: "Google Cloud",
-        iconUrl: `${CDN}/69e8a98614c119b6d0b24519_gcp.svg`,
-      },
+      { id: "aws",            name: "AWS",            iconUrl: `${CDN}/69e8a986401a04fdfb516c2f_aws.svg` },
+      { id: "google-cloud",   name: "Google Cloud",   iconUrl: `${CDN}/69e8a98614c119b6d0b24519_gcp.svg` },
+      { id: "azure",          name: "Microsoft Azure", iconUrl: `${ICONIFY}/microsoft-azure.svg` },
+      { id: "snowflake",      name: "Snowflake",      iconUrl: `${ICONIFY}/snowflake-icon.svg` },
+      { id: "databricks",     name: "Databricks",     iconUrl: `${ICONIFY_SIMPLE}/databricks.svg` },
+      { id: "mongodb-atlas",  name: "MongoDB Atlas",  iconUrl: `${ICONIFY}/mongodb-icon.svg` },
+      { id: "cloudflare",     name: "Cloudflare",     iconUrl: `${ICONIFY}/cloudflare.svg` },
+      { id: "digitalocean",   name: "DigitalOcean",   iconUrl: `${ICONIFY}/digital-ocean-icon.svg` },
+      { id: "vercel",         name: "Vercel",         iconUrl: `${ICONIFY}/vercel-icon.svg` },
+      { id: "heroku",         name: "Heroku",         iconUrl: `${ICONIFY}/heroku-icon.svg` },
     ],
   },
   {
@@ -208,21 +206,15 @@ const DEFAULT_CATEGORIES: VendorCategory[] = [
     description:
       "Verify payment processing fees against contracted rates to identify incorrect charges, hidden fees, and reconciliation gaps.",
     vendors: [
-      {
-        id: "stripe",
-        name: "Stripe",
-        iconUrl: `${CDN}/69e8a98d555377a44d02f6f1_stripe.svg`,
-      },
-      {
-        id: "shopify-payments",
-        name: "Shopify Payments",
-        iconUrl: `${CDN}/69e8a98de0d6b803860417b8_shopify.svg`,
-      },
-      {
-        id: "paypal",
-        name: "PayPal",
-        iconUrl: `${ICONIFY}/paypal.svg`,
-      },
+      { id: "stripe",            name: "Stripe",            iconUrl: `${CDN}/69e8a98d555377a44d02f6f1_stripe.svg` },
+      { id: "paypal",            name: "PayPal",            iconUrl: `${ICONIFY}/paypal.svg` },
+      { id: "adyen",             name: "Adyen",             iconUrl: `${ICONIFY}/adyen.svg` },
+      { id: "square",            name: "Square",            iconUrl: `${ICONIFY_SIMPLE}/square.svg` },
+      { id: "braintree",         name: "Braintree",         iconUrl: `${ICONIFY_SIMPLE}/braintree.svg` },
+      { id: "worldpay",          name: "Worldpay",          iconUrl: FAVICON("worldpay.com") },
+      { id: "chase-paymentech",  name: "Chase Paymentech",  iconUrl: FAVICON("chase.com") },
+      { id: "fiserv",            name: "Fiserv",            iconUrl: FAVICON("fiserv.com") },
+      { id: "shopify-payments",  name: "Shopify Payments",  iconUrl: `${CDN}/69e8a98de0d6b803860417b8_shopify.svg` },
     ],
   },
   {
@@ -231,21 +223,16 @@ const DEFAULT_CATEGORIES: VendorCategory[] = [
     description:
       "Validate shipping and carrier billing against contracts, surcharges, and delivery terms to uncover overcharges and missed refunds.",
     vendors: [
-      {
-        id: "ups",
-        name: "UPS",
-        iconUrl: `${CDN}/69e8a9a3e807d12509c3513b_ups.svg`,
-      },
-      {
-        id: "fedex",
-        name: "FedEx",
-        iconUrl: `${CDN}/69e8a9a37f220d58951c852a_fedex.svg`,
-      },
-      {
-        id: "dhl",
-        name: "DHL",
-        iconUrl: `${CDN}/69e8a9a3d59d49c6bf3d32dd_dhl.svg`,
-      },
+      { id: "ups",          name: "UPS",          iconUrl: `${CDN}/69e8a9a3e807d12509c3513b_ups.svg` },
+      { id: "fedex",        name: "FedEx",        iconUrl: `${CDN}/69e8a9a37f220d58951c852a_fedex.svg` },
+      { id: "dhl",          name: "DHL",          iconUrl: `${CDN}/69e8a9a3d59d49c6bf3d32dd_dhl.svg` },
+      { id: "usps",         name: "USPS",         iconUrl: `${ICONIFY_SIMPLE}/usps.svg` },
+      { id: "ontrac",       name: "OnTrac",       iconUrl: FAVICON("ontrac.com") },
+      { id: "shipbob",      name: "ShipBob",      iconUrl: FAVICON("shipbob.com") },
+      { id: "shipstation",  name: "ShipStation",  iconUrl: FAVICON("shipstation.com") },
+      { id: "shippo",       name: "Shippo",       iconUrl: FAVICON("goshippo.com") },
+      { id: "easypost",     name: "EasyPost",     iconUrl: FAVICON("easypost.com") },
+      { id: "flexport",     name: "Flexport",     iconUrl: FAVICON("flexport.com") },
     ],
   },
 ];
@@ -268,7 +255,7 @@ export const meta: ComponentMeta<VendorCoverageProps> = {
       type: "VendorCategory[]",
       description:
         "Override the bundled vendor list. Each category renders a header + grid of cards; each card carries an `id` so chip clicks anywhere on the page can smooth-scroll to it.",
-      default: "bundled list of 6 categories / 18 vendors",
+      default: "bundled list of 6 categories / 58 vendors",
     },
   },
   variants: {

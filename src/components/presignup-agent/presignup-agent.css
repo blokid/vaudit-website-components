@@ -787,15 +787,15 @@ html.dark .presignup-agent-platforms-header {
 
 .presignup-agent-platform-group-label {
   font-family: inherit;
-  font-size: 0.6875rem;
+  font-size: 1rem;
   font-weight: 700;
   letter-spacing: 0.1em;
   text-transform: uppercase;
-  color: rgba(26, 26, 24, 0.55);
+  color: var(--text-primary, #1a1a18);
 }
 
 html.dark .presignup-agent-platform-group-label {
-  color: rgba(255, 255, 255, 0.45);
+  color: #ffffff;
 }
 
 /* Product overview — three-card preview shown above the results grid */
