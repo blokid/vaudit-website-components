@@ -179,7 +179,6 @@ const DEFAULT_CATEGORIES: VendorCategory[] = [
       { id: "notion",           name: "Notion",           iconUrl: `${ICONIFY}/notion-icon.svg` },
       { id: "asana",            name: "Asana",            iconUrl: `${ICONIFY}/asana-icon.svg` },
       { id: "monday",           name: "Monday.com",       iconUrl: `${ICONIFY}/monday-icon.svg` },
-      { id: "okta",             name: "Okta",             iconUrl: `${ICONIFY}/okta-icon.svg` },
     ],
   },
   {
@@ -206,15 +205,14 @@ const DEFAULT_CATEGORIES: VendorCategory[] = [
     description:
       "Verify payment processing fees against contracted rates to identify incorrect charges, hidden fees, and reconciliation gaps.",
     vendors: [
-      { id: "stripe",            name: "Stripe",            iconUrl: `${CDN}/69e8a98d555377a44d02f6f1_stripe.svg` },
-      { id: "paypal",            name: "PayPal",            iconUrl: `${ICONIFY}/paypal.svg` },
-      { id: "adyen",             name: "Adyen",             iconUrl: `${ICONIFY}/adyen.svg` },
-      { id: "square",            name: "Square",            iconUrl: `${ICONIFY_SIMPLE}/square.svg` },
-      { id: "braintree",         name: "Braintree",         iconUrl: `${ICONIFY_SIMPLE}/braintree.svg` },
-      { id: "worldpay",          name: "Worldpay",          iconUrl: FAVICON("worldpay.com") },
-      { id: "chase-paymentech",  name: "Chase Paymentech",  iconUrl: FAVICON("chase.com") },
-      { id: "fiserv",            name: "Fiserv",            iconUrl: FAVICON("fiserv.com") },
-      { id: "shopify-payments",  name: "Shopify Payments",  iconUrl: `${CDN}/69e8a98de0d6b803860417b8_shopify.svg` },
+      { id: "stripe",            name: "Stripe",              iconUrl: `${CDN}/69e8a98d555377a44d02f6f1_stripe.svg` },
+      { id: "paypal",            name: "PayPal",              iconUrl: `${ICONIFY}/paypal.svg` },
+      { id: "adyen",             name: "Adyen",               iconUrl: `${ICONIFY}/adyen.svg` },
+      { id: "square",            name: "Square",              iconUrl: `${ICONIFY_SIMPLE}/square.svg` },
+      { id: "braintree",         name: "Braintree",           iconUrl: `${ICONIFY_SIMPLE}/braintree.svg` },
+      { id: "worldpay",          name: "Worldpay",            iconUrl: FAVICON("worldpay.com") },
+      { id: "chase-paymentech",  name: "Chase Paymentech",    iconUrl: FAVICON("chase.com") },
+      { id: "fiserv",            name: "Fiserv (First Data)", iconUrl: FAVICON("fiserv.com") },
     ],
   },
   {
@@ -232,7 +230,6 @@ const DEFAULT_CATEGORIES: VendorCategory[] = [
       { id: "shipstation",  name: "ShipStation",  iconUrl: FAVICON("shipstation.com") },
       { id: "shippo",       name: "Shippo",       iconUrl: FAVICON("goshippo.com") },
       { id: "easypost",     name: "EasyPost",     iconUrl: FAVICON("easypost.com") },
-      { id: "flexport",     name: "Flexport",     iconUrl: FAVICON("flexport.com") },
     ],
   },
 ];
@@ -255,7 +252,7 @@ export const meta: ComponentMeta<VendorCoverageProps> = {
       type: "VendorCategory[]",
       description:
         "Override the bundled vendor list. Each category renders a header + grid of cards; each card carries an `id` so chip clicks anywhere on the page can smooth-scroll to it.",
-      default: "bundled list of 6 categories / 58 vendors",
+      default: "bundled list of 6 categories / 55 vendors",
     },
   },
   variants: {
