@@ -18,7 +18,7 @@ export function getAgentBaseUrl(override?: string): string {
   if (override) return override;
   try {
     const host = window.location.hostname;
-    if (window.location.href.startsWith("https://vaudit.com")) {
+    if (host === "vaudit.com" || host === "www.vaudit.com") {
       return PROD_BASE;
     }
     // Playground / local dev mounts at localhost:5180 — talk to a backend
