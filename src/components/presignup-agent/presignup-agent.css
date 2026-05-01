@@ -75,6 +75,14 @@ html.dark .rc-pa-section {
   --rc-pa-orange-glow-2: rgba(254, 96, 44, 0.22);
 }
 
+/* ---- shimmer angle (used by the empty-state border comet) -------------- */
+
+@property --rc-pa-shimmer-angle {
+  syntax: "<angle>";
+  initial-value: 0deg;
+  inherits: false;
+}
+
 /* ---- card chrome --------------------------------------------------------- */
 
 .rc-pa-card {
@@ -87,7 +95,9 @@ html.dark .rc-pa-section {
   box-shadow:
     0 0 0 1px var(--rc-pa-orange-glow-2) inset,
     0 30px 80px -20px rgba(0, 0, 0, 0.55);
-  overflow: hidden;
+  /* Don't clip: the shimmer overlay mask-clips itself to the border ring,
+     the bottom warm streak intentionally bleeds below the card, and the
+     scope dropdown menu opens upward out of the composer. */
   isolation: isolate;
 }
 
@@ -1111,10 +1121,227 @@ html.dark .rc-pa-btn__time {
   height: 16px;
 }
 
+.rc-pa-composer.is-empty {
+  /* Two-row layout: textarea on top, then [scope] [spacer] [CTA] below. */
+  display: block;
+  padding-top: 0;
+  padding-bottom: clamp(18px, 3vw, 24px);
+}
+
 .rc-pa-composer.is-empty .rc-pa-composer__input {
   font-size: 16px;
-  padding: 24px 0 18px;
+  padding: 8px 0 14px;
   border-bottom: 1px solid var(--rc-pa-row-divider);
+  display: block;
+  width: 100%;
+}
+
+.rc-pa-composer__row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 14px;
+  flex-wrap: wrap;
+}
+
+/* ---- scope dropdown (empty state) --------------------------------------- */
+
+.rc-pa-scope {
+  position: relative;
+}
+
+.rc-pa-scope__trigger {
+  appearance: none;
+  background: var(--rc-pa-chip-bg);
+  border: 1px solid var(--rc-pa-border);
+  color: var(--rc-pa-fg);
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px 6px 6px;
+  border-radius: 10px;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: border-color 150ms ease, background 150ms ease;
+}
+
+.rc-pa-scope__trigger:hover,
+.rc-pa-scope.is-open .rc-pa-scope__trigger {
+  border-color: rgba(254, 96, 44, 0.5);
+  background: var(--rc-pa-chip-bg-hover);
+}
+
+.rc-pa-scope__icon {
+  width: 22px;
+  height: 22px;
+  border-radius: 6px;
+  background: rgba(254, 96, 44, 0.14);
+  color: var(--rc-pa-orange);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.rc-pa-scope__icon svg {
+  width: 13px;
+  height: 13px;
+}
+
+.rc-pa-scope__label {
+  white-space: nowrap;
+}
+
+.rc-pa-scope__chev {
+  width: 14px;
+  height: 14px;
+  color: var(--rc-pa-fg-soft);
+  transition: transform 150ms ease;
+}
+
+.rc-pa-scope__chev.is-open {
+  transform: rotate(180deg);
+}
+
+.rc-pa-scope__menu {
+  list-style: none;
+  margin: 0 0 6px;
+  padding: 6px;
+  position: absolute;
+  bottom: calc(100% + 6px);
+  left: 0;
+  min-width: 220px;
+  background: var(--rc-pa-card-bg);
+  border: 1px solid var(--rc-pa-border);
+  border-radius: 12px;
+  box-shadow: 0 -14px 36px -12px rgba(0, 0, 0, 0.5);
+  z-index: 12;
+}
+
+.rc-pa-scope__item {
+  appearance: none;
+  width: 100%;
+  background: transparent;
+  border: 0;
+  color: var(--rc-pa-fg);
+  display: grid;
+  grid-template-columns: 28px 1fr;
+  gap: 10px;
+  align-items: center;
+  padding: 8px 10px;
+  border-radius: 8px;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 500;
+  text-align: left;
+  cursor: pointer;
+  transition: background 120ms ease;
+}
+
+.rc-pa-scope__item:hover {
+  background: var(--rc-pa-chip-bg-hover);
+}
+
+.rc-pa-scope__item.is-selected {
+  background: rgba(254, 96, 44, 0.12);
+}
+
+.rc-pa-scope__item .rc-pa-scope__icon {
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+}
+
+.rc-pa-scope__item .rc-pa-scope__icon svg {
+  width: 15px;
+  height: 15px;
+}
+
+/* ---- big CTA (empty-state submit) -------------------------------------- */
+
+.rc-pa-cta-audit {
+  appearance: none;
+  border: 0;
+  background: var(--rc-pa-orange);
+  color: var(--rc-pa-on-orange);
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 18px;
+  border-radius: 999px;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  cursor: pointer;
+  box-shadow: 0 12px 30px -10px var(--rc-pa-orange-glow);
+  transition: background 150ms ease, transform 100ms ease, box-shadow 200ms ease;
+}
+
+.rc-pa-cta-audit:hover:not(:disabled) {
+  background: #ed5520;
+}
+
+.rc-pa-cta-audit:active:not(:disabled) {
+  transform: translateY(1px);
+}
+
+.rc-pa-cta-audit:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+.rc-pa-cta-audit__kbd {
+  background: rgba(0, 0, 0, 0.22);
+  color: var(--rc-pa-on-orange);
+  border-radius: 6px;
+  padding: 2px 8px;
+  font-family: inherit;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.rc-pa-cta-audit__send {
+  width: 16px;
+  height: 16px;
+}
+
+/* ---- shimmer (circling border on the empty-state card) ---------------- */
+
+.rc-pa-card__shimmer {
+  position: absolute;
+  inset: -1px;
+  border-radius: var(--rc-pa-card-radius);
+  pointer-events: none;
+  z-index: 1;
+  padding: 1.5px;
+  background: conic-gradient(
+    from var(--rc-pa-shimmer-angle),
+    transparent 0deg,
+    rgba(255, 220, 130, 0.0) 30deg,
+    rgba(255, 220, 130, 0.95) 55deg,
+    rgba(255, 248, 200, 1) 70deg,
+    rgba(255, 200, 90, 0.95) 85deg,
+    rgba(255, 220, 130, 0.0) 110deg,
+    transparent 360deg
+  );
+  -webkit-mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+          mask-composite: exclude;
+  filter: blur(0.4px) drop-shadow(0 0 6px rgba(255, 220, 130, 0.55));
+  animation: rc-pa-shimmer 4.5s linear infinite;
+}
+
+@keyframes rc-pa-shimmer {
+  to { --rc-pa-shimmer-angle: 360deg; }
 }
 
 /* ---- email capture (inline) --------------------------------------------- */

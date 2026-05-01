@@ -140,6 +140,27 @@ export type SseEvent = {
   content?: { parts?: SsePart[]; role?: string };
 };
 
+/**
+ * Merge a streamed text chunk against the current buffer. Handles three
+ * server dialects in one helper:
+ *   - snapshot-style: server sends the full message each chunk (later
+ *     chunks supersede earlier ones). Detected when the incoming chunk
+ *     starts with the current buffer.
+ *   - delta-style: server sends only the new suffix. Default — append.
+ *   - stale repeat: server re-sends an earlier chunk we already have.
+ *     Ignore.
+ *
+ * Ported verbatim from `onboarding-agent/frontend/src/lib/sseStream.ts`,
+ * which has been battle-tested against the same backend.
+ */
+export function mergeStreamText(current: string, incoming: string): string {
+  if (!incoming) return current;
+  if (!current) return incoming;
+  if (incoming.startsWith(current)) return incoming;
+  if (current.startsWith(incoming)) return current;
+  return current + incoming;
+}
+
 export async function consumeSSE(
   stream: ReadableStream<Uint8Array>,
   onEvent: (event: SseEvent) => void,

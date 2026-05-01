@@ -144,6 +144,23 @@ export function IconSpinner(props: SVGProps<SVGSVGElement>) {
   );
 }
 
+export function IconShieldCheck(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg viewBox="0 0 24 24" {...stroke} {...props}>
+      <path d="M12 3 4 6v6c0 4.5 3.2 8.5 8 9 4.8-.5 8-4.5 8-9V6Z" />
+      <path d="m9 12 2 2 4-4" />
+    </svg>
+  );
+}
+
+export function IconChevronDown(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg viewBox="0 0 24 24" {...stroke} {...props}>
+      <path d="m6 9 6 6 6-6" />
+    </svg>
+  );
+}
+
 /** Backend category id → icon component. */
 export const CATEGORY_ICONS = {
   ad_id: IconAd,

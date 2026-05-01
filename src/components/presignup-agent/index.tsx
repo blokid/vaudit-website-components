@@ -11,6 +11,7 @@ import {
   getSessionId,
   getToken,
   isValidDomain,
+  mergeStreamText,
   normalizeDomain,
   postAccurateBreakdown,
   resetSession,
@@ -21,7 +22,7 @@ import {
   AgentSection,
   UserBubble,
 } from "./chat-message";
-import Composer from "./composer";
+import Composer, { type AuditScope } from "./composer";
 import LiveAuditCard from "./live-audit-card";
 import ResultsGrid from "./results-grid";
 import EstimateCta from "./estimate-cta";
@@ -120,6 +121,7 @@ export default function PresignupAgent({ agentBaseUrl }: PresignupAgentProps) {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [composerValue, setComposerValue] = useState("");
   const [busy, setBusy] = useState(false);
+  const [scope, setScope] = useState<AuditScope>("all");
 
   const abortRef = useRef<AbortController | null>(null);
   const cancelledRef = useRef(false);
@@ -160,7 +162,7 @@ export default function PresignupAgent({ agentBaseUrl }: PresignupAgentProps) {
   // ------------------------------------------------------------------------
 
   const runEstimate = useCallback(
-    async (domain: string) => {
+    async (domain: string, scopeOverride: AuditScope = "all") => {
       cancelActive();
       cancelledRef.current = false;
       const controller = new AbortController();
@@ -200,20 +202,32 @@ export default function PresignupAgent({ agentBaseUrl }: PresignupAgentProps) {
 
         const stream = await streamAgent(
           baseUrl,
-          buildRunPayload(domain, sessionId),
+          buildRunPayload(scopedMessage(domain, scopeOverride), sessionId),
           token,
           controller.signal,
         );
 
         const ticker = startTitleTicker(liveId, update);
 
-        let accumulated = "";
+        let pending = "";
+        let committed = "";
         await consumeSSE(stream, (event) => {
           if (!event?.content?.parts) return;
+          let chunk = "";
           for (const part of event.content.parts) {
-            if (typeof part?.text === "string") accumulated += part.text;
+            if (typeof part?.text === "string") chunk += part.text;
+          }
+          if (!chunk) return;
+          if (event.partial === true) {
+            pending = mergeStreamText(pending, chunk);
+          } else if (!pending) {
+            committed += chunk;
+          } else {
+            committed += pending;
+            pending = "";
           }
         });
+        const accumulated = committed + pending;
         ticker.stop();
 
         if (cancelledRef.current) return;
@@ -439,13 +453,13 @@ export default function PresignupAgent({ agentBaseUrl }: PresignupAgentProps) {
         return;
       }
       domainRef.current = domain;
-      runEstimate(domain);
+      runEstimate(domain, scope);
       return;
     }
 
     append({ id: nextId("user"), kind: "user_text", text: raw });
     runFollowUp(raw);
-  }, [busy, composerValue, isEmpty, append, runEstimate]);
+  }, [busy, composerValue, isEmpty, append, runEstimate, scope]);
 
   const runFollowUp = useCallback(
     async (text: string) => {
@@ -476,18 +490,34 @@ export default function PresignupAgent({ agentBaseUrl }: PresignupAgentProps) {
           controller.signal,
         );
 
-        let acc = "";
+        // Mirror onboarding-agent/frontend ChatPanel.tsx: split into a
+        // committed buffer (finalised turns) + a pending buffer (in-flight
+        // partials). `mergeStreamText` handles snapshot-style chunks
+        // (each partial may already contain the full prior text).
+        let pending = "";
+        let committed = "";
         await consumeSSE(stream, (event) => {
           if (!event?.content?.parts) return;
+          let chunk = "";
           for (const part of event.content.parts) {
-            if (typeof part?.text === "string") {
-              acc += part.text;
-              const visible = acc.replace(/:::[\s\S]*?:::/g, "").trim();
-              update(replyId, (m) =>
-                m.kind === "agent_text" ? { ...m, text: visible } : m,
-              );
-            }
+            if (typeof part?.text === "string") chunk += part.text;
           }
+          if (!chunk) return;
+          if (event.partial === true) {
+            pending = mergeStreamText(pending, chunk);
+          } else if (!pending) {
+            // Non-partial with no prior partials — non-streaming reply.
+            committed += chunk;
+          } else {
+            // Non-partial after partials = turn-complete signal; commit + reset.
+            committed += pending;
+            pending = "";
+          }
+          const acc = committed + pending;
+          const visible = acc.replace(/:::[\s\S]*?:::/g, "").trim();
+          update(replyId, (m) =>
+            m.kind === "agent_text" ? { ...m, text: visible } : m,
+          );
         });
       } catch (err) {
         if ((err as Error)?.name === "AbortError" || cancelledRef.current) return;
@@ -562,7 +592,8 @@ export default function PresignupAgent({ agentBaseUrl }: PresignupAgentProps) {
 
   return (
     <section className="rc-pa-section">
-      <div className="rc-pa-card">
+      <div className={`rc-pa-card${isEmpty ? " is-empty" : ""}`}>
+        {isEmpty && <span className="rc-pa-card__shimmer" aria-hidden="true" />}
         <div className={`rc-pa-thread${isEmpty ? " is-empty" : ""}`}>
           {messages.map((msg) =>
             renderMessage(msg, {
@@ -582,6 +613,8 @@ export default function PresignupAgent({ agentBaseUrl }: PresignupAgentProps) {
           onSubmit={handleComposerSubmit}
           placeholder={placeholder}
           busy={busy}
+          scope={scope}
+          onScopeChange={setScope}
         />
       </div>
     </section>
@@ -668,6 +701,21 @@ function renderMessage(msg: ChatMessage, h: RenderHandlers) {
 // ---------------------------------------------------------------------------
 // Agent ack — interpret a small subset of bold markup
 // ---------------------------------------------------------------------------
+
+/**
+ * Build the message we send to the agent for the first turn. When the
+ * visitor has narrowed the scope via the dropdown, we append a hint so
+ * the agent can omit the categories the visitor opted out of.
+ */
+function scopedMessage(domain: string, scope: AuditScope): string {
+  if (scope === "all") return domain;
+  const labels: Record<Exclude<AuditScope, "all">, string> = {
+    ad_id: "Ad ID",
+    vendor_id: "Vendor ID",
+    token_id: "Token ID",
+  };
+  return `${domain}\n\n(Scope: only the ${labels[scope]} category — skip the others.)`;
+}
 
 function ackTextFor(domain: string): string {
   return `On it. Scanning **${domain}** against our vendor benchmarks now — this gives you an **estimate in ~10 seconds**. You can lock in exact numbers right after.`;
