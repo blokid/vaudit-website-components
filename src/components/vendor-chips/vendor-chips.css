@@ -67,13 +67,14 @@ html.dark .rc-chips__chip:hover {
 }
 
 .rc-chips__logo {
-  width: 18px;
-  height: 18px;
+  width: 38px;
+  height: 38px;
   object-fit: contain;
   flex-shrink: 0;
   background: #ffffff;
-  border-radius: 4px;
-  padding: 1px;
+  border-radius: 9px;
+  padding: 5px;
+  box-sizing: border-box;
 }
 
 html.dark .rc-chips__logo {
