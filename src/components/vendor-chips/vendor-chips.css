@@ -1,0 +1,155 @@
+/* Vendor / integration chip strip — extracted from the legacy presignup-agent
+   so it can be embedded as a standalone Webflow marker. Two layout modes:
+
+   - Flat row of chips        → pass `platforms`
+   - Categorized rows         → pass `platformGroups`
+
+   Class prefix `rc-chips__` — matches the repo BEM convention. */
+
+.rc-chips {
+  margin: 1.25rem auto 0;
+  max-width: 960px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  font-family: inherit;
+}
+
+.rc-chips__row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.rc-chips__chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+  border-radius: 999px;
+  border: 1px solid rgba(26, 26, 24, 0.12);
+  background: #ffffff;
+  color: var(--text-primary, #1a1a18);
+  font-family: inherit;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  letter-spacing: normal;
+  text-decoration: none;
+  cursor: pointer;
+  transition:
+    border-color 0.15s ease,
+    color 0.15s ease,
+    background 0.15s ease,
+    transform 0.15s ease,
+    box-shadow 0.15s ease;
+}
+
+.rc-chips__chip:hover {
+  border-color: rgba(240, 101, 31, 0.5);
+  color: #f0651f;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 14px rgba(240, 101, 31, 0.18);
+}
+
+html.dark .rc-chips__chip {
+  background: rgba(255, 255, 255, 0.03);
+  border-color: rgba(255, 255, 255, 0.1);
+  color: #ffffff;
+}
+
+html.dark .rc-chips__chip:hover {
+  background: rgba(240, 101, 31, 0.08);
+  border-color: rgba(240, 101, 31, 0.5);
+  color: #ff8c42;
+}
+
+.rc-chips__logo {
+  width: 18px;
+  height: 18px;
+  object-fit: contain;
+  flex-shrink: 0;
+  background: #ffffff;
+  border-radius: 4px;
+  padding: 1px;
+}
+
+html.dark .rc-chips__logo {
+  background: #ffffff;
+}
+
+.rc-chips__icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+  color: currentColor;
+}
+
+.rc-chips__icon svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.rc-chips__header {
+  margin: 0 0 4px;
+  text-align: center;
+  font-family: inherit;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-secondary, rgba(26, 26, 24, 0.6));
+  white-space: pre-line;
+}
+
+html.dark .rc-chips__header {
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.rc-chips__note {
+  margin: 0;
+  text-align: center;
+  font-family: inherit;
+  font-size: 0.8125rem;
+  color: var(--text-secondary, rgba(26, 26, 24, 0.6));
+  white-space: pre-line;
+}
+
+html.dark .rc-chips__note {
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.rc-chips__groups {
+  display: flex;
+  flex-flow: row wrap;
+  justify-content: center;
+  align-items: flex-start;
+  gap: 18px 28px;
+  width: 100%;
+}
+
+.rc-chips__group {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+
+.rc-chips__group-label {
+  font-family: inherit;
+  font-size: 1rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-primary, #1a1a18);
+}
+
+html.dark .rc-chips__group-label {
+  color: #ffffff;
+}
