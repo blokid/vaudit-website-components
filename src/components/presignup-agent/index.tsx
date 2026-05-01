@@ -19,10 +19,13 @@ import {
 } from "./agent-api";
 import ResultCard from "./result-card";
 import TotalBanner from "./total-banner";
-import ProductCards from "../product-cards";
+import ProductCards, { type ProductCardOverride } from "../product-cards";
+import type { ProductKey } from "../product-cards/data";
 import "./presignup-agent.css";
 
-const PRODUCT_OVERVIEW_OVERRIDES = {
+const DEFAULT_PRODUCT_ORDER: ProductKey[] = ["ad", "pay", "token"];
+
+const DEFAULT_PRODUCT_OVERRIDES: Partial<Record<ProductKey, ProductCardOverride>> = {
   ad: {
     description:
       "Verifies ad platform billing to identify invalid charges, billing discrepancies, and recoverable spend across Google, Meta, DSPs, and programmatic platforms.",
@@ -36,7 +39,7 @@ const PRODUCT_OVERVIEW_OVERRIDES = {
     description:
       "Verifies AI usage billing across LLM platforms to identify duplicate charges, pricing mismatches, unused spend, and inefficient token costs.",
   },
-} as const;
+};
 
 type Platform = {
   /** Visible chip label (e.g. "Google Ads"). */
@@ -158,6 +161,19 @@ type PresignupAgentProps = {
    * flat `platforms` prop and renders each group with its own category label.
    */
   platformGroups?: PlatformGroup[];
+  /**
+   * Order of the product cards rendered below the input. Defaults to
+   * `["ad", "pay", "token"]`. Pass any subset/order of valid keys
+   * (`ship | kloud | seat | token | ad | pay`).
+   */
+  productOrder?: ProductKey[] | string[];
+  /**
+   * Per-key overrides for the product cards below the input. Replaces the
+   * built-in defaults entirely (i.e. shallow replace, not merge). Use this
+   * to retitle, rewrite descriptions, retarget links, or enable per-card
+   * CTAs without forking the component.
+   */
+  productOverrides?: Partial<Record<ProductKey, ProductCardOverride>>;
 };
 
 const DEFAULT_TITLE = "Connect. Audit. Get Money Back";
@@ -415,6 +431,18 @@ export const meta: ComponentMeta<PresignupAgentProps> = {
         "Categorized integration chips. When set, overrides `platforms` and renders one labelled row per category.",
       default: "none",
     },
+    productOrder: {
+      type: '("ship" | "kloud" | "seat" | "token" | "ad" | "pay")[]',
+      description:
+        "Order of the product cards rendered below the input. Filters and sorts the grid; unknown keys are ignored.",
+      default: '["ad", "pay", "token"]',
+    },
+    productOverrides: {
+      type: "Partial<Record<ProductKey, { title?: string; description?: string; href?: string; cta?: boolean | { label?: string } }>>",
+      description:
+        "Per-key overrides for the product cards (title, description, href, cta). Replaces the built-in defaults; pass `{}` to clear them.",
+      default: "built-in ad/pay/token copy",
+    },
   },
   variants: {
     "default (auto-detect prod/staging)": {},
@@ -430,6 +458,24 @@ export const meta: ComponentMeta<PresignupAgentProps> = {
       ctaLabel: "Audit My Ad Spend",
       platformsLabel: "Start with ads. Expand to every bill.",
       platforms: AD_PLATFORMS,
+    },
+    "custom product-card copy (short blurbs)": {
+      productOverrides: {
+        ad: {
+          title: "AdID",
+          description:
+            "Verifies ad platform billing to identify invalid charges, discrepancies, and recoverable spend.",
+        },
+        pay: {
+          title: "VendorID",
+          description:
+            "Verifies vendor billing across SaaS, cloud, payments, and operations to uncover discrepancies and contract leakage.",
+        },
+        token: {
+          description:
+            "Verifies AI usage and billing to detect duplicates, pricing mismatches, and unused spend.",
+        },
+      },
     },
     "vendor ID page (categorized vendors)": {
       title: "Connect. Verify. Uncover Recoverable Value.",
@@ -560,6 +606,8 @@ export default function PresignupAgent({
   ctaNote,
   platformsHeader,
   platformGroups,
+  productOrder = DEFAULT_PRODUCT_ORDER,
+  productOverrides = DEFAULT_PRODUCT_OVERRIDES,
 }: PresignupAgentProps) {
   const [phase, setPhase] = useState<AgentPhase>({ kind: "idle" });
   const [statusText, setStatusText] = useState<{
@@ -1083,10 +1131,7 @@ export default function PresignupAgent({
         </div>
 
         <div className="presignup-agent-product-overview">
-          <ProductCards
-            order={["ad", "pay", "token"]}
-            overrides={PRODUCT_OVERVIEW_OVERRIDES}
-          />
+          <ProductCards order={productOrder} overrides={productOverrides} />
         </div>
 
         <div className="presignup-agent-results" aria-live="polite">
