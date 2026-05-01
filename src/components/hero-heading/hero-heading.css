@@ -1,0 +1,45 @@
+/* Page-hero title + subtitle pair. Mirrors the typography of the legacy
+   presignup-agent's `.sim-title` / `.sim-sub`, surfaced as its own marker
+   so authors can drop hero copy on any page without owning the agent. */
+
+.rc-hero {
+  width: 100%;
+  text-align: center;
+  margin: 0 auto;
+  font-family: inherit;
+}
+
+.rc-hero__title {
+  margin: 0 auto 20px;
+  max-width: 960px;
+  font-family: inherit;
+  font-size: 2.5rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  text-transform: uppercase;
+  line-height: 1.05;
+  color: var(--text-primary, #1a1a18);
+  white-space: pre-line;
+}
+
+.rc-hero__sub {
+  margin: 0 auto 36px;
+  max-width: 640px;
+  font-family: inherit;
+  font-size: 1rem;
+  letter-spacing: normal;
+  line-height: 1.55;
+  color: var(--text-secondary, rgba(26, 26, 24, 0.65));
+  white-space: pre-line;
+}
+
+html.dark .rc-hero__title { color: #ffffff; }
+html.dark .rc-hero__sub   { color: rgba(255, 255, 255, 0.6); }
+
+@media (max-width: 767px) {
+  .rc-hero__title { font-size: 2rem; }
+}
+
+@media (max-width: 479px) {
+  .rc-hero__title { font-size: 1.625rem; }
+}

@@ -1,0 +1,117 @@
+/* Category navigator — vertical card tiles (icon + name) that smooth-scroll
+   to the matching `vendor-coverage` band. Card chrome mirrors the
+   `.product-card-grid .pa-card` aesthetic so they read as a sibling
+   pattern, but content is pared down to icon + title only. */
+
+.rc-cattiles {
+  width: 100%;
+  max-width: 1088px;
+  margin: 0 auto;
+  padding: 0 16px;
+  font-family: inherit;
+  box-sizing: border-box;
+}
+
+.rc-cattiles__grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 20px;
+}
+
+.rc-cattiles__tile {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  gap: 14px;
+  padding: 32px 20px;
+  border-radius: 24px;
+  background: #ffffff;
+  border: 1px solid rgba(254, 96, 44, 0.25);
+  box-shadow:
+    0 2px 12px rgba(26, 26, 24, 0.08),
+    0 1px 3px rgba(26, 26, 24, 0.06);
+  color: var(--text-primary, #1a1a18);
+  text-decoration: none;
+  cursor: pointer;
+  transition:
+    transform 0.18s ease,
+    box-shadow 0.18s ease,
+    border-color 0.18s ease,
+    color 0.18s ease;
+}
+
+.rc-cattiles__tile:hover {
+  transform: translateY(-3px);
+  border-color: rgba(254, 96, 44, 0.55);
+  color: #f0651f;
+  box-shadow:
+    0 10px 26px rgba(26, 26, 24, 0.1),
+    0 2px 8px rgba(254, 96, 44, 0.18);
+}
+
+html.dark .rc-cattiles__tile {
+  background: rgba(255, 255, 255, 0.02);
+  border-color: rgba(254, 96, 44, 0.5);
+  color: #ffffff;
+  box-shadow:
+    0 0 20px rgba(254, 96, 44, 0.12),
+    0 0 60px rgba(254, 96, 44, 0.06);
+}
+
+html.dark .rc-cattiles__tile:hover {
+  border-color: rgba(254, 96, 44, 0.85);
+  color: #ff8c42;
+  box-shadow:
+    0 0 28px rgba(254, 96, 44, 0.22),
+    0 0 80px rgba(254, 96, 44, 0.12);
+}
+
+.rc-cattiles__icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  flex-shrink: 0;
+  color: #f0651f;
+}
+
+.rc-cattiles__icon svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+html.dark .rc-cattiles__icon {
+  color: #ff8c42;
+}
+
+.rc-cattiles__title {
+  font-family: inherit;
+  font-size: 1.25rem;
+  font-weight: 700;
+  letter-spacing: -0.005em;
+  line-height: 1.2;
+}
+
+@media (max-width: 991px) {
+  .rc-cattiles__grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 479px) {
+  .rc-cattiles__grid {
+    grid-template-columns: 1fr;
+    gap: 14px;
+  }
+  .rc-cattiles__tile {
+    padding: 24px 16px;
+    border-radius: 20px;
+  }
+  .rc-cattiles__title {
+    font-size: 1.125rem;
+  }
+}
