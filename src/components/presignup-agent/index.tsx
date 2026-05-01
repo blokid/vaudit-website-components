@@ -164,7 +164,8 @@ type PresignupAgentProps = {
   /**
    * Order of the product cards rendered below the input. Defaults to
    * `["ad", "pay", "token"]`. Pass any subset/order of valid keys
-   * (`ship | kloud | seat | token | ad | pay`).
+   * (`ship | kloud | seat | token | ad | pay`). Pass `[]` to hide the
+   * cards entirely.
    */
   productOrder?: ProductKey[] | string[];
   /**
@@ -434,7 +435,7 @@ export const meta: ComponentMeta<PresignupAgentProps> = {
     productOrder: {
       type: '("ship" | "kloud" | "seat" | "token" | "ad" | "pay")[]',
       description:
-        "Order of the product cards rendered below the input. Filters and sorts the grid; unknown keys are ignored.",
+        "Order of the product cards rendered below the input. Filters and sorts the grid; unknown keys are ignored. Pass `[]` to hide the cards entirely.",
       default: '["ad", "pay", "token"]',
     },
     productOverrides: {
@@ -1130,9 +1131,11 @@ export default function PresignupAgent({
           )}
         </div>
 
-        <div className="presignup-agent-product-overview">
-          <ProductCards order={productOrder} overrides={productOverrides} />
-        </div>
+        {Array.isArray(productOrder) && productOrder.length === 0 ? null : (
+          <div className="presignup-agent-product-overview">
+            <ProductCards order={productOrder} overrides={productOverrides} />
+          </div>
+        )}
 
         <div className="presignup-agent-results" aria-live="polite">
           {revealedProducts.map((p) => (
