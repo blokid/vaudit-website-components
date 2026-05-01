@@ -2,11 +2,13 @@ import type { Product, Vendor } from "./types";
 
 const STAGING_BASE = "https://onboarding-agent.staging.vaudit.com";
 const PROD_BASE = "https://onboarding-agent.vaudit.com";
+const LOCAL_BASE = "http://localhost:3000";
 
 const TOKEN_ENDPOINT = "/presignup/token";
 const SESSION_ENDPOINT = "/apps/presignup_agent/users/anonymous/sessions/";
 const RUN_SSE_ENDPOINT = "/run_sse";
 const AUDIT_REPORT_ENDPOINT = "/presignup/audit-report/";
+const ACCURATE_BREAKDOWN_ENDPOINT = "/presignup/accurate-breakdown/";
 
 const APP_NAME = "presignup_agent";
 const USER_ID = "anonymous";
@@ -15,8 +17,14 @@ const SESSION_KEY = "vaudit-presignup-session";
 export function getAgentBaseUrl(override?: string): string {
   if (override) return override;
   try {
+    const host = window.location.hostname;
     if (window.location.href.startsWith("https://vaudit.com")) {
       return PROD_BASE;
+    }
+    // Playground / local dev mounts at localhost:5180 — talk to a backend
+    // running locally on :3000 instead of the deployed staging env.
+    if (host === "localhost" || host === "127.0.0.1" || host === "0.0.0.0") {
+      return LOCAL_BASE;
     }
   } catch (_) {
     /* SSR / non-browser — use staging */
@@ -28,15 +36,29 @@ export function getSessionId(): string {
   try {
     const cached = localStorage.getItem(SESSION_KEY);
     if (cached) return cached;
-    const next =
-      typeof crypto !== "undefined" && crypto.randomUUID
-        ? crypto.randomUUID()
-        : "sess-" + Math.random().toString(36).slice(2) + Date.now();
+    const next = newSessionId();
     localStorage.setItem(SESSION_KEY, next);
     return next;
   } catch (_) {
-    return "sess-" + Math.random().toString(36).slice(2) + Date.now();
+    return newSessionId();
   }
+}
+
+/** Drop the cached session id so the next call starts fresh. Used by "Audit again". */
+export function resetSession(): string {
+  try {
+    localStorage.removeItem(SESSION_KEY);
+  } catch (_) {
+    /* ignore */
+  }
+  return getSessionId();
+}
+
+function newSessionId(): string {
+  if (typeof crypto !== "undefined" && crypto.randomUUID) {
+    return crypto.randomUUID();
+  }
+  return "sess-" + Math.random().toString(36).slice(2) + Date.now();
 }
 
 export function normalizeDomain(raw: string): string {
@@ -148,17 +170,29 @@ export async function consumeSSE(
   }
 }
 
-/** Parse the `:::audit_products{...}\n:::` widget block from accumulated text. */
-export function extractAuditProducts(text: string): Product[] | null {
+/** Parse a single `:::name{...json}\n:::` widget block from accumulated text. */
+export function extractWidgetBlock(text: string, name: string): unknown | null {
   if (!text) return null;
-  const m = text.match(/:::audit_products(\{[\s\S]*?\})\s*\n:::/);
+  const re = new RegExp(`:::${escapeRe(name)}(\\{[\\s\\S]*?\\})\\s*\\n:::`);
+  const m = text.match(re);
   if (!m) return null;
-  let parsed: { products?: unknown };
   try {
-    parsed = JSON.parse(m[1]);
+    return JSON.parse(m[1]);
   } catch (_) {
     return null;
   }
+}
+
+function escapeRe(s: string): string {
+  return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+/** Parse the `:::audit_products{...}\n:::` widget block from accumulated text. */
+export function extractAuditProducts(text: string): Product[] | null {
+  const parsed = extractWidgetBlock(text, "audit_products") as
+    | { products?: unknown }
+    | null;
+  if (!parsed) return null;
   const raw = Array.isArray(parsed.products) ? parsed.products : [];
   const out: Product[] = [];
   for (const item of raw as Array<Record<string, unknown>>) {
@@ -180,6 +214,62 @@ export function extractAuditProducts(text: string): Product[] | null {
     });
   }
   return out.length ? out : null;
+}
+
+/**
+ * POST the recalculated breakdown so the backend can persist it for the PDF
+ * route. Endpoint is owned by the onboarding-agent backend; payload mirrors
+ * the existing audit_breakdown JSON shape so the PDF template doesn't need
+ * to branch on phase.
+ */
+export type AccurateBreakdownRange = { min: number; max: number; label: string };
+
+export async function postAccurateBreakdown(
+  baseUrl: string,
+  sessionId: string,
+  payload: {
+    products: Product[];
+    total: number;
+    /** Only the ranges the visitor actually answered, keyed by row. */
+    ranges: Partial<{
+      ad: AccurateBreakdownRange;
+      ai: AccurateBreakdownRange;
+      vendor: AccurateBreakdownRange;
+    }>;
+    selection: "ad_id" | "token_id" | "vendor_id" | "all";
+  },
+  signal?: AbortSignal,
+): Promise<void> {
+  // Convert internal camelCase to the backend's snake_case persisted shape
+  // (mirrors `audit_breakdown._normalize` so the PDF template branches the
+  // same way it does for phase-1).
+  const wireProducts = payload.products.map((p) => ({
+    id: p.id,
+    waste_total: Math.round(p.wasteTotal || 0),
+    vendors: p.vendors.map((v) => ({
+      name: v.name,
+      est_spend: Math.round(v.estSpend || 0),
+      waste: Math.round(v.waste || 0),
+    })),
+  }));
+  const body = {
+    products: wireProducts,
+    total: Math.round(payload.total || 0),
+    ranges: payload.ranges,
+    selection: payload.selection,
+  };
+  const res = await fetch(
+    baseUrl + ACCURATE_BREAKDOWN_ENDPOINT + encodeURIComponent(sessionId),
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+      signal,
+    },
+  );
+  if (!res.ok) {
+    throw new Error(`Accurate breakdown persist failed: ${res.status}`);
+  }
 }
 
 export async function downloadAuditReport(
@@ -218,12 +308,12 @@ export async function downloadAuditReport(
   return { blob, filename };
 }
 
-export function buildRunPayload(domain: string, sessionId: string) {
+export function buildRunPayload(text: string, sessionId: string) {
   return {
     appName: APP_NAME,
     userId: USER_ID,
     sessionId,
-    newMessage: { role: "user", parts: [{ text: domain }] },
+    newMessage: { role: "user", parts: [{ text }] },
     streaming: true,
   };
 }
@@ -239,6 +329,8 @@ export const VENDOR_ICONS: Record<string, string> = {
   "applovin ads":     "https://cdn.prod.website-files.com/67e174863b0c93ae0a0cffee/69e8a9651ab5a69f0c7e99c1_applovin-ads.svg",
   "applovin":         "https://cdn.prod.website-files.com/67e174863b0c93ae0a0cffee/69e8a9651ab5a69f0c7e99c1_applovin-ads.svg",
   "aws":              "https://cdn.prod.website-files.com/67e174863b0c93ae0a0cffee/69e8a986401a04fdfb516c2f_aws.svg",
+  "aws ec2":          "https://cdn.prod.website-files.com/67e174863b0c93ae0a0cffee/69e8a986401a04fdfb516c2f_aws.svg",
+  "aws s3":           "https://cdn.prod.website-files.com/67e174863b0c93ae0a0cffee/69e8a986401a04fdfb516c2f_aws.svg",
   "google cloud":     "https://cdn.prod.website-files.com/67e174863b0c93ae0a0cffee/69e8a98614c119b6d0b24519_gcp.svg",
   "gcp":              "https://cdn.prod.website-files.com/67e174863b0c93ae0a0cffee/69e8a98614c119b6d0b24519_gcp.svg",
   "fedex":            "https://cdn.prod.website-files.com/67e174863b0c93ae0a0cffee/69e8a9a37f220d58951c852a_fedex.svg",
@@ -265,3 +357,17 @@ export const USD = new Intl.NumberFormat("en-US", {
   currency: "USD",
   maximumFractionDigits: 0,
 });
+
+/** Compact USD for vendor sub-rows: $103k, $7.9M, $1.3M, etc. */
+export function compactUsd(value: number): string {
+  const n = Math.round(Number(value) || 0);
+  if (n >= 1_000_000) {
+    const m = n / 1_000_000;
+    const trimmed = m >= 100 ? m.toFixed(0) : m.toFixed(1).replace(/\.0$/, "");
+    return `$${trimmed}M`;
+  }
+  if (n >= 1_000) {
+    return `$${Math.round(n / 1_000)}k`;
+  }
+  return `$${n}`;
+}

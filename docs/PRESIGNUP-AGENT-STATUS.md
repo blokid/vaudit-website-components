@@ -1,311 +1,338 @@
 # Pre-signup agent — work-in-progress status
 
-Handoff doc for the pre-signup audit agent feature on the **Home Copy** page of
-the Vaudit Webflow site. Sibling to
-[PRESIGNUP-AGENT-WEBFLOW-DEPLOY.md](PRESIGNUP-AGENT-WEBFLOW-DEPLOY.md), which
-covers the deployment playbook. This file is the "where are we right now"
-snapshot — read first when picking the work back up.
+Sibling to [PRESIGNUP-AGENT-WEBFLOW-DEPLOY.md](PRESIGNUP-AGENT-WEBFLOW-DEPLOY.md)
+(deployment playbook). This file is the "where are we right now" snapshot —
+read first when picking the work back up.
 
 ## What the feature does
 
-A "sim" section (ported 1-to-1 from the `#sim` block in
-[../hero.html](../hero.html)) that sits **above the existing hero** on Home
-Copy. Visitors enter a domain, the client calls the pre-signup agent over SSE,
-and a live scan panel narrates the audit as product cards reveal below.
+A single bordered chat-card on the Vaudit Webflow homepage. Visitors enter a
+domain, the card narrates a two-phase audit (Estimate → Accurate) end-to-end
+inside the same thread.
 
-### User flow
+### Phase 1 — Estimate (~10s)
 
-1. Page load → all 6 **known** preview cards render in the results grid
-   (Ship / Kloud / Seat / Token / Ad / Pay). Each shows a unique SVG+CSS
-   animated VIZ plus a long description.
-2. User types a domain (or clicks a template chip — B2B SaaS / D2C / Fintech
-   — to prefill) and submits via **Run Audit** (Enter submits,
-   Shift+Enter inserts a newline).
-3. The shimmer card "simulator" enters `scanning` state: chip row hides,
-   textarea dims, scan panel appears inside the card.
-4. Title ticker cycles: `Finding your vendors… → Sizing your business… →
-   Running the audit… → Totaling your recoverable… → Audit complete`.
-5. Scan list shows SSE-returned products first, then known-not-returned
-   keys as `n/a`. Each returned row animates
-   `pending → active ("checking Vendor…") → done (✓ + vendors + $ amount)`.
-   Progress bar fills.
-6. As each scan row lands `done`, the matching preview card in the grid
-   below runs the `revealing` animation and swaps to completed state
-   (head + animated `card-amount` + vendor rows). Unknown product ids get a
-   new card appended with a generic spec.
-7. After all returned products complete, a total banner lands below the
-   grid: `TOTAL SIMULATED MONTHLY WASTE $X,XXX` plus a pill CTA
-   `Connect Accounts to Recover Waste →`.
-8. CTA click expands inline into `<input type=email>` + `Continue →` which
-   opens `https://app.vaudit.com/v2/sign-up?email=…` in a new tab.
+1. Empty composer (no chips, no template, no headline). Single placeholder.
+2. Visitor submits a domain. The card immediately renders an agent ack
+   bubble — *"On it. Scanning **{domain}** against our vendor benchmarks
+   now — this gives you an **estimate in ~10 seconds**. You can lock in
+   exact numbers right after."* — and a **live audit card** below it.
+3. The live audit card shows three category rows (Ad ID / Vendor ID / Token
+   ID), a `Scanning {domain} · 3 categories` pill, a thin top progress bar,
+   and a `RECOVERABLE SO FAR $X` running total. Rows progress
+   `pending → active ("checking Stripe…") → done (✓ + vendor list + $)` as
+   the SSE stream from the backend `presignup_agent` lands.
+4. When done, the pill flips to `Audited`, rows freeze, and a **2×2 results
+   grid** appears (Ad ID + Token ID side-by-side on the top row, Vendor ID
+   full-width below). Each card lists vendors with `$Xk spend / $Y wasted`
+   (annual figures).
+5. An **estimate CTA bubble** lands at the bottom: eyebrow `● ESTIMATED ·
+   READY IN SECONDS`, big total, sub-copy with a `±5%` promise, two buttons
+   (`Lock in exact numbers ~30s` / `Download report`), trust row (`Free`,
+   `No login`, `No integrations`).
+
+### Phase 2 — Accurate (~30s)
+
+6. Visitor clicks **Lock in exact numbers**. An auto-injected user bubble
+   echoes — *"Yes — let's run the accurate audit."* — and a **product
+   picker widget** drops in: 2×2 chip grid (`Ad ID` / `Token ID` /
+   `Vendor ID` / `All three` with a `MOST ACCURATE` ribbon, pre-selected).
+   Single-click confirm; a second user bubble echoes the choice.
+7. A **spend-range form widget** appears. Three stacked rows
+   (`Ad spend / yr`, `AI / API spend / yr`, `Vendor spend / yr`), each with
+   six chips (`< $X`, mid-bands, `$X+`, `Custom`). `Custom` opens an inline
+   input that accepts `$2.5M`, `750k`, `1500000`, etc. Footer: `Back` (drops
+   the form, re-opens the picker) and `Run accurate audit` (gated until all
+   three rows have a selection).
+8. On submit, a multi-line user bubble summarises the chosen ranges, the
+   ranges form's primary button flips to `Calculating…`, and a second live
+   audit card runs in `accurate` mode (rows go `Queued → Scanning… → ✓`)
+   driven by **client-side recalc** of the phase-1 breakdown using the
+   visitor's annual ranges. Title cycles to `Cross-checking vendor billing
+   → Accurate audit complete`.
+9. The accurate breakdown is POSTed to the backend (see API contract below)
+   so the PDF route can re-render with the locked-in numbers.
+10. A second results grid expands (`Accurate` chips instead of `COMPLETED`).
+11. **Final CTA bubble**: eyebrow `● ✓ FULL ACCURATE AUDIT COMPLETE`, big
+    total, three buttons:
+    - `Go to dashboard` → `https://app.vaudit.com/v2/sign-up` (new tab)
+    - `Audit again` → reset to empty composer, fresh session
+    - `Download report` → existing PDF route, hits the persisted accurate
+      breakdown
+12. Throughout phase 2 the persistent **`Ask a follow-up…` composer** at the
+    card bottom routes plain-text turns through the agent's existing
+    `/run_sse` (`explain_methodology`, etc.).
 
 ## Architecture
 
-### Files
+### Files (all in `src/components/presignup-agent/`)
 
 | Path | Role |
 |---|---|
-| [../webflow/presignup-agent.css](../webflow/presignup-agent.css) | All styles — sim card + shimmer animation, scan panel, 12-col results grid, 6 VIZ animations, preview/complete card states, total banner + email capture. Light default + `html.dark .class` overrides throughout. |
-| [../webflow/presignup-agent.js](../webflow/presignup-agent.js) | Single IIFE — builds the entire UI into `#presignup-agent-root`, handles the three-step API flow, fixture replay, SSE parsing, scan sequencing, card reveal, email capture. |
-| [../test/presignup-agent.test.html](../test/presignup-agent.test.html) | Local harness. Minimal shell (`<div id="presignup-agent-root"></div>`) plus a fetch interceptor that replays `../pre_signup_response.txt` as SSE when fixture mode is on. Includes a fixed-position toolbar (theme toggle, fixture on/off, domain prefill). |
-| [../.claude/launch.json](../.claude/launch.json) | `presignup-harness` preview-server config — `python3 -m http.server 8765`. |
-| [PRESIGNUP-AGENT-WEBFLOW-DEPLOY.md](PRESIGNUP-AGENT-WEBFLOW-DEPLOY.md) | Deployment playbook (paste steps, rollback). |
+| `index.tsx` | Chat shell. Owns the message-list state, the phase-1 SSE wire-up, the phase-2 client-driven flow, the persistent follow-up composer, and the CTA actions. |
+| `agent-api.ts` | Token / session / SSE / PDF download / accurate-breakdown POST + `audit_products` widget parser + vendor icon map. |
+| `recalc.ts` | Client-side recalc engine. Mirrors backend `langfuse_config` waste-rate bands (`ad_id 5–12`, `token_id 20–40`, `vendor_id 5–15` whole percent). Pure functions, no React. |
+| `types.ts` | Discriminated `ChatMessage` union, accurate-phase data shapes, agent-driven widget marker contract (forward-looking). |
+| `icons.tsx` | Shared SVG glyphs (Ad / Vendor / Token / lock / send / etc.) — stroke-only, inherit `currentColor`. |
+| `chat-message.tsx` | `AgentMessage` (avatar + label + bubble), `AgentSection` (agent text + widget child), `UserBubble` (orange pill, right-aligned). |
+| `composer.tsx` | Auto-growing textarea + send button. Two visual modes via `is-empty`. |
+| `live-audit-card.tsx` | Estimate / accurate live audit card with the running total, three category rows, and progress bar. |
+| `results-grid.tsx` | 2×2 category card grid with per-vendor `$spend / $wasted` rows. |
+| `estimate-cta.tsx` / `final-cta.tsx` | The two CTA bubbles. |
+| `accurate-picker.tsx` / `accurate-ranges.tsx` | Phase-2 widgets. |
+| `presignup-agent.css` | All styling. Light defaults, `html.dark .rc-pa-*` overrides per repo convention. Class prefix `rc-pa-` (BEM-ish) to avoid collisions with Webflow-authored classes. |
 
-### Entry point
+Bundle: `dist/vaudit.css` ~6 KB gzip · `dist/vaudit.js` ~81 KB gzip.
 
-The script is a single IIFE that runs on `window.addEventListener('load', boot)`
-(or synchronously if `document.readyState` is already `complete`). On boot it
-queries `document.getElementById('presignup-agent-root')` and calls
-`new Controller(root).init()`. The Controller:
+### Data flow
 
-- Runs `buildShell(root)` which wipes the root and constructs the entire DOM:
-  `.sim-title`, `.sim-sub`, `.sim-input-row` (form with caret + textarea +
-  template chips + Run button + scan panel), `#presignup-agent-status`,
-  `#presignup-agent-results`.
-- Calls `renderPreviewGrid(results)` which renders every entry of
-  `KNOWN_KEYS` as a preview card into the results grid.
-- Wires events: form submit, textarea Enter (Shift+Enter for newline),
-  template chip click, template refresh shuffle, `beforeunload` cancel.
+The chat thread is a `ChatMessage[]` discriminated union; every entry has an
+`id` and a `kind`. Render dispatch lives in `renderMessage()` in
+`index.tsx`. Imperative animation (live-audit row progression) patches
+specific message fields by id via `update(id, patch)`.
 
-Exposes `window.__presignupAgent = controller` for debug inspection.
-
-### Three-step API
+Phase 1 hits the existing backend:
 
 ```
-GET  ${AGENT_BASE_URL}/presignup/token
-  → { token: "..." }   // or { access_token: "..." }
-POST ${AGENT_BASE_URL}/apps/presignup_agent/users/anonymous/sessions/<sessionId>
-  → 200/201 or 409 (already-exists, accepted)
-  // Headers: Content-Type: application/json, Authorization: Bearer <token>
-POST ${AGENT_BASE_URL}/run_sse
-  // Headers: same as above
-  // Body: { appName, userId, sessionId, newMessage:{role,parts:[{text:domain}]}, streaming:true }
-  → SSE stream with `:::audit_products{ … }:::` block inside the text parts
+GET  ${baseUrl}/presignup/token
+POST ${baseUrl}/apps/presignup_agent/users/anonymous/sessions/<sessionId>
+POST ${baseUrl}/run_sse  →  SSE with `:::audit_products{...}\n:::` block
 ```
 
-Config constants at the top of the JS:
+Phase 2 is **client-driven** in this cut — no agent round-trip for the
+picker / ranges widgets. The visitor's range selections are scaled against
+the phase-1 breakdown using the same waste-rate bands the backend uses, so
+the numbers stay consistent with the PDF that gets generated downstream.
 
-```js
-var AGENT_BASE_URL = "";     // "" for same-origin; absolute URL if cross-origin
-var TOKEN_ENDPOINT = "/presignup/token";
-var SESSION_ENDPOINT = "/apps/presignup_agent/users/anonymous/sessions/";
-var RUN_SSE_ENDPOINT = "/run_sse";
-var USE_FIXTURE = true;      // flip to false when backend is live
-var APP_NAME = "presignup_agent";
-var USER_ID = "anonymous";
-var SESSION_KEY = "vaudit-presignup-session";   // localStorage key for UUID
-var SIGNUP_URL = "https://app.vaudit.com/v2/sign-up";
-```
+### Unit semantics
 
-The SSE reader/parser is a port of `runSSE` + `parseSSEEvent` from the
-reference React project
-(`/Users/phantomfaux/Projects/vaudit-refund-agent/frontend/src/api/client.ts`
-and `lib/parseWidgets.ts`).
+Backend returns **monthly USD** for `est_spend`, `waste`, and `waste_total`.
+The chat UI multiplies by 12 at every display site so the visitor sees
+**annual** figures (matching the design's `/yr` ranges and big annual
+totals). `recalc.ts` keeps its internal model in monthly USD too — only
+the display layer annualises.
 
-### Fixture mode
+### Agent base URL
 
-`USE_FIXTURE = true` short-circuits the three-step API. `streamAgent()`
-returns a synthetic `ReadableStream` that enqueues a baked-in SSE event
-(`sportforlife.co.th` fixture returning Ad ID / Pay ID / Seat ID,
-$5,320 total). Chunked over ~1.5 s to exercise the same streaming code
-path as the real backend. The local test harness also has its own fetch
-interceptor for when `USE_FIXTURE` is `false` but you still want to dev
-against the fixture.
+`agent-api.getAgentBaseUrl()` auto-detects:
 
-### Data model — arbitrary product ids
+- `vaudit.com` → `https://onboarding-agent.vaudit.com` (prod).
+- `localhost` / `127.0.0.1` / `0.0.0.0` → `http://localhost:3000` so the
+  playground (`npm run hub` at `:5180`) talks to a backend running
+  locally on `:3000`. Make sure CORS on the local backend allows
+  `http://localhost:5180`.
+- Anywhere else (Webflow `.webflow.io`, design subdomains, etc.) →
+  `https://onboarding-agent.staging.vaudit.com` (staging).
 
-The backend can return any number of product ids; only the **known** ones
-have rich specs. The client handles both:
-
-```js
-PRODUCT_SPECS = {
-  ship:  { key, id: "ship_id",  name, emoji: ICON_TRUCK,  desc, longDesc },
-  kloud: { key, id: "kloud_id", name, emoji: ICON_CLOUD,  desc, longDesc },
-  seat:  { … emoji: ICON_WINDOW … },
-  token: { … emoji: ICON_CHIP   … },
-  ad:    { … emoji: ICON_CLICK  … },
-  pay:   { … emoji: ICON_CARD   … },
-};
-
-KNOWN_KEYS = ["ship", "kloud", "seat", "token", "ad", "pay"];
-
-VIZ = { ship: "<div class='viz viz-ship'>…</div>", kloud: …, seat: …, token: …, ad: …, pay: … };
-
-VENDOR_ICONS = {};   // empty default — populate with { "Stripe": "/icons/stripe.svg" } once hosted
-```
-
-Key resolution:
-
-- `idToKey("ad_id") → "ad"` (strips `_id` suffix, lowercase).
-- `specForKey(key)` returns the known spec, else a generic fallback:
-  `{ key, id: key + "_id", name: prettify(key + "_id"), emoji: ICON_GENERIC,
-  desc, longDesc }`.
-- On page load, only keys in `KNOWN_KEYS` render preview cards. Unknown
-  ids returned by SSE get a new card **appended** in completed state.
-- Vendors with an entry in `VENDOR_ICONS` render a logo (`<img
-  class="card-vendor-logo" …>`); otherwise text-only.
+Override via the `agentBaseUrl` prop / `data-prop`. The playground exposes
+`force local` and `force staging` variants.
 
 ### Theme convention
 
-Light default with `html.dark .class { … }` overrides. Matches the current
-[body-dark-cascade.css](../webflow/body-dark-cascade.css) convention. The old
-`DARK_MODE_TARGETS` array pattern is deprecated — see the "Non-obvious
-architecture" section in [../CLAUDE.md](../CLAUDE.md) and
-[../WEBFLOW-THEME-CONVENTION.md](../WEBFLOW-THEME-CONVENTION.md).
+Light defaults written on the base classes; dark variants written as
+`html.dark .rc-pa-*` overrides in the same `.css` file. Matches
+[`WEBFLOW-THEME-CONVENTION.md`](WEBFLOW-THEME-CONVENTION.md). The
+`html.dark` toggle is set synchronously by the existing HEAD bootstrap on
+the Webflow side (see [`webflow/theme-custom-code.html.md`](webflow/theme-custom-code.html.md)) — no JS-side theme handling here.
 
-The shimmer border uses `@property --sim-shimmer-angle` + a `conic-gradient`
-on `border-box` and is tuned per theme via CSS custom properties declared on
-`.sim-input-row`:
+Component-local CSS custom properties (declared on `.rc-pa-section`):
 
 ```css
-.sim-input-row {
-  --sim-card-bg: #ffffff;
-  --sim-card-shimmer-dim: 0.35;
-  --sim-card-shimmer-arc-a: 255, 150, 80;
-  --sim-card-shimmer-arc-b: 255, 120, 50;
-  …
+.rc-pa-section {
+  --rc-pa-bg: #ffffff;          /* page bg */
+  --rc-pa-fg: #1a1a18;          /* page fg */
+  --rc-pa-card-bg: #ffffff;
+  --rc-pa-elevated-bg: #faf9f7; /* live-audit / cta panels */
+  --rc-pa-orange: #fe602c;      /* shared brand orange */
+  --rc-pa-orange-glow: rgba(254, 96, 44, 0.45);
+  /* … */
 }
-html.dark .sim-input-row {
-  --sim-card-bg: #0f100e;
-  --sim-card-shimmer-dim: 0.18;
-  --sim-card-shimmer-arc-a: 255, 180, 120;
-  --sim-card-shimmer-arc-b: 255, 215, 170;
+html.dark .rc-pa-section {
+  --rc-pa-bg: #0f100e;
+  --rc-pa-fg: #ffffff;
+  --rc-pa-card-bg: #131311;
+  --rc-pa-elevated-bg: #181815;
+  /* … */
 }
 ```
 
-## Repo docs updated this cycle
+The card chrome's orange edge-glow + bottom warm streak are pure CSS
+(`::before` / `::after` on `.rc-pa-card`). No `@property` / shimmer
+animation in this revision (the legacy `--sim-shimmer-angle` conic gradient
+is gone with the old hero card).
 
-- [../CLAUDE.md](../CLAUDE.md) — "Non-obvious architecture" rewritten: single
-  `html.dark` toggle, no combo classes, no `DARK_MODE_TARGETS` loop. Marks
-  the old mechanism as deprecated.
-- [../WEBFLOW-THEME-CONVENTION.md](../WEBFLOW-THEME-CONVENTION.md) — full
-  rewrite. Drops the `DARK_MODE_TARGETS` list and the paste-it-in-both-files
-  workflow. Documents the light-first + `html.dark .class` recipe.
-- [PARTNER-PAGE-NOTES.md](PARTNER-PAGE-NOTES.md) — theme-script section
-  updated to point at the new convention.
-- [COLOR-SYSTEM.md](COLOR-SYSTEM.md) — theme-pattern section updated.
-- User memory: `feedback_webflow_mcp_embeds.md` — "when wiring CSS/JS for a
-  Webflow feature, drive everything via MCP; don't default to manual paste."
+## Backend coupling
+
+Phase 1 hits the existing backend; phase 2 round-trips cleanly via
+**`POST /presignup/accurate-breakdown/{session_id}`** (added in
+onboarding-agent at `backend/core/routes/presignup_accurate_breakdown.py`).
+
+Payload shape (sent by `postAccurateBreakdown` in `agent-api.ts`):
+
+```json
+{
+  "products": [
+    {
+      "id": "ad_id",
+      "waste_total": 12345,
+      "vendors": [{"name": "Google Ads", "est_spend": 50000, "waste": 4250}]
+    }
+  ],
+  "total": 67890,
+  "ranges": {
+    "ad":     {"min": 5000000, "max": 25000000, "label": "$5M – $25M"},
+    "ai":     {"min": 250000,  "max": 1000000,  "label": "$250K – $1M"},
+    "vendor": {"min": 500000,  "max": 2000000,  "label": "$500K – $2M"}
+  },
+  "selection": "all"
+}
+```
+
+Auth: capability check via `presignup_token.is_session_trusted` (the
+session was already trusted during the run flow). No fresh single-use
+token needed for the lock-in POST. The endpoint:
+
+- 401s if the session was never trusted (or trust window expired).
+- 404s if the session row doesn't exist.
+- 409s if the breakdown is already locked (idempotency — phase-2 only
+  fires once; subsequent locks would silently rewrite the visitor's
+  numbers).
+- Merges `products`, `totals`, and an `accurate` metadata block onto the
+  existing breakdown row, then flips `locked = true` so the PDF route
+  renders the locked-in figures next time it's hit.
+
+### Future: agent-driven phase-2 widgets
+
+`types.ts` defines a widget marker contract
+(`AccuratePickerWidgetParams`, `AccurateRangesWidgetParams`) that the
+agent could emit via existing `:::name{json}\n:::` blocks. The frontend
+already has `extractWidgetBlock` in `agent-api.ts` for parsing them.
+Wiring this would replace the client-driven phase-2 flow with the same
+SSE-based pattern as `audit_products`.
 
 ## Current state
 
-### Local (test harness)
+### Local
 
-Working end-to-end. Verified:
+`npm run hub` opens the playground at <http://localhost:5180/>; pick
+`presignup-agent` in the sidebar. The `default` variant auto-detects prod
+vs. staging; `force staging` pins the staging onboarding-agent. Light/dark
+toggle in the toolbar drives the `html.dark` class.
 
-- 6 preview cards render on page load in both themes with VIZ animations.
-- Submit → scan panel appears, title ticker cycles through all 5 phases.
-- Scan list animates SSE products `pending → active → done` with per-vendor
-  `checking …` narration. Non-returned known keys stay pending with `n/a`.
-- Progress bar fills at `((i+1)/N)*100%` per completed row.
-- Cards reveal in place as their scan row completes. `revealing` keyframe
-  + `card-amount` tick-up (`animateNumber`) + brief `.pulse` glow on settle.
-- Total banner renders with correct `$5,320` sum. CTA expands inline to
-  email capture form that submits to the signup URL.
-- Template chips prefill the domain and highlight as active.
-- Shimmer border animates visibly in both light and dark modes.
-
-Serve with:
-
-```bash
-cd /Users/phantomfaux/Projects/vaudit-website-pages
-python3 -m http.server 8765
-# → http://localhost:8765/test/presignup-agent.test.html
-```
-
-Or via `.claude/launch.json`'s `presignup-harness` server.
+`npm run build` produces `dist/vaudit.{js,css}`. `dist/` is committed —
+jsDelivr serves directly from the tagged ref.
 
 ### Webflow (site `67e174863b0c93ae0a0cffee`, Home Copy page `69e701d3ab01c0394d226247`)
 
-**Not yet updated for the current code.** The page still has scaffold + CSS
-+ JS from an earlier iteration that needs to be replaced. Specifically:
+The new build supersedes the previous **paste-into-custom-code** workflow.
+Production now loads a single jsDelivr `<script>` + `<link>` and mounts the
+React component into a `data-rc="presignup-agent"` marker.
 
-**Stale Designer scaffold inside `#presignup-agent-root`** (delete before
-publishing):
+**Stale state to clean up before rolling the new bundle**, all via
+the Webflow Designer MCP (only one repo wires that — see
+[Tooling notes](../CLAUDE.md#tooling-notes)):
 
-- Section id `996519b8-5ca0-f4f9-d31b-fbd8b81ff1a3` class
-  `presignup-agent-section` → **keep**.
-- Container id `996519b8-5ca0-f4f9-d31b-fbd8b81ff1a2` (id attribute
-  `presignup-agent-root`, class `presignup-agent-container`) → **keep**.
-- Heading id `996519b8-5ca0-f4f9-d31b-fbd8b81ff192` → **delete**.
-- Paragraph id `996519b8-5ca0-f4f9-d31b-fbd8b81ff194` → **delete**.
-- FormWrapper id `996519b8-5ca0-f4f9-d31b-fbd8b81ff198` (+ all children —
-  FormForm, FormTextInput, FormButton, FormSuccessMessage,
-  FormErrorMessage) → **delete**.
-- Status Block id `996519b8-5ca0-f4f9-d31b-fbd8b81ff1a0` → **delete**.
-- Results Block id `996519b8-5ca0-f4f9-d31b-fbd8b81ff1a1` → **delete**.
+1. **Stale page-scoped scripts** applied to Home Copy. Originally pasted as
+   one-off CSS overrides; the new bundle's stylesheet supersedes them all:
+   - `presignupagentalignfix` v0.1.0 — early input alignment override.
+   - `psagentform3a` v0.1.0 — form shimmer override (container half).
+   - `psagentform3b` v0.1.0 — form shimmer override (input + submit half).
+   - `presignupagentoverridesv2` v0.1.0 — card layout + banner pill overrides.
 
-The new JS does `clear(root)` on boot, so leaving the elements in place
-causes a brief flash of old UI before JS mounts + clutters the Designer
-canvas. Remove them via `mcp__webflow__element_tool.remove_element`.
+   Clear via:
+   ```js
+   mcp__webflow__data_scripts_tool.upsert_page_script({
+     page_id: "69e701d3ab01c0394d226247",
+     scripts: []
+   })
+   ```
 
-**Stale page scripts applied to Home Copy** (clear before new paste):
+2. **Stale Designer scaffold inside `#presignup-agent-root`** (still in the
+   Designer tree from the original hand-authored form). The mounted React
+   component takes over the marker root, but leaving these in place causes
+   a brief flash of old DOM before mount + clutters the Designer canvas.
+   Delete via `mcp__webflow__element_tool.remove_element`:
 
-- `presignupagentalignfix` v0.1.0 — early input alignment override
-- `psagentform3a` v0.1.0 — form shimmer override (container half)
-- `psagentform3b` v0.1.0 — form shimmer override (input + submit half)
-- `presignupagentoverridesv2` v0.1.0 — card layout + banner pill overrides
+   - **Keep** — Section `presignup-agent-section`
+     id `996519b8-5ca0-f4f9-d31b-fbd8b81ff1a3`.
+   - **Keep** — Container `presignup-agent-container`
+     id `996519b8-5ca0-f4f9-d31b-fbd8b81ff1a2`
+     (id attribute `presignup-agent-root`).
+   - **Delete** — Heading id `996519b8-5ca0-f4f9-d31b-fbd8b81ff192`.
+   - **Delete** — Paragraph id `996519b8-5ca0-f4f9-d31b-fbd8b81ff194`.
+   - **Delete** — FormWrapper id `996519b8-5ca0-f4f9-d31b-fbd8b81ff198`
+     (and all children — FormForm, FormTextInput, FormButton,
+     FormSuccessMessage, FormErrorMessage).
+   - **Delete** — Status Block id `996519b8-5ca0-f4f9-d31b-fbd8b81ff1a0`.
+   - **Delete** — Results Block id `996519b8-5ca0-f4f9-d31b-fbd8b81ff1a1`.
 
-All four are obsolete; the new stylesheet supersedes them. Clear via:
+3. **Stale Custom Code pastes** from the previous (no-build) iteration:
+   - Project Settings → Custom Code → **Head Code** → old presignup-agent
+     `<style>` block → **delete** (all styling now ships in `dist/vaudit.css`).
+   - Home Copy → Page Settings → Custom Code → **Before `</body>`** → old
+     presignup-agent `<script>` block → **delete** (all behaviour now ships
+     in `dist/vaudit.js`).
 
-```js
-mcp__webflow__data_scripts_tool.upsert_page_script({
-  page_id: "69e701d3ab01c0394d226247",
-  scripts: []
-})
+4. **Webflow-compiled styles** that may still exist in the site stylesheet
+   (harmless to leave — the new DOM doesn't touch most of them):
+   `presignup-agent-section`, `presignup-agent-container`,
+   `presignup-agent-headline`, `presignup-agent-sub`, `presignup-agent-form`,
+   `presignup-agent-input`, `presignup-agent-submit`, `presignup-agent-status`,
+   `presignup-agent-results`. Only `…-section` and `…-container` are still
+   applied (as the marker wrapper).
+
+#### Mount marker
+
+The mounted node is the existing `presignup-agent-root` div. In Webflow's
+Designer, set `data-rc="presignup-agent"` on it (and remove
+`id="presignup-agent-root"` if present — the new bundle doesn't read it).
+Optionally add `data-prop='{"agentBaseUrl": "…"}'` to override the
+auto-detect (e.g. for staging previews).
+
+#### Footer custom code
+
+The Vaudit theme already loads the bundle once per page. Update the script /
+stylesheet `@vX.Y.Z` ref to the new release tag from this repo:
+
+```html
+<link rel="stylesheet"
+      href="https://cdn.jsdelivr.net/gh/blokid/vaudit-website-components@vX.Y.Z/dist/vaudit.css">
+<script src="https://cdn.jsdelivr.net/gh/blokid/vaudit-website-components@vX.Y.Z/dist/vaudit.js"
+        defer></script>
 ```
 
-**Stale Custom Code pastes** (user replaces as a one-time paste):
-
-- Project Settings → Custom Code → **Head Code** → old `<style>` block →
-  replace with contents of `webflow/presignup-agent.css`.
-- Home Copy → Page Settings → Custom Code → **Before `</body>`** → old
-  `<script>` block → replace with contents of `webflow/presignup-agent.js`.
-
-**Webflow-compiled styles that still exist** (harmless to leave; most are
-unused by the new DOM): `presignup-agent-section`,
-`presignup-agent-container`, `presignup-agent-headline`,
-`presignup-agent-sub`, `presignup-agent-form`, `presignup-agent-input`,
-`presignup-agent-submit`, `presignup-agent-status`, `presignup-agent-results`.
-Only the `…-section` and `…-container` classes are still applied.
+For dev iteration without bumping the tag, point at `@<commit-sha>` (immutable,
+no jsDelivr cache) or hit
+`https://purge.jsdelivr.net/gh/blokid/vaudit-website-components@<ref>/<path>`
+to flush a specific URL.
 
 ## Deploy plan
 
-1. **MCP cleanup** (no user action):
+1. **MCP cleanup** (no user action — driven from the other repo's MCP):
    - Switch Designer to Home Copy
      (`mcp__webflow__de_page_tool.switch_page`).
    - Delete the 6 scaffold elements listed above
      (`mcp__webflow__element_tool.remove_element` per id).
    - Clear applied page scripts
-     (`mcp__webflow__data_scripts_tool.upsert_page_script` with
-     `scripts: []`).
-2. **User paste** (one-time):
-   - Head Code ← full contents of `webflow/presignup-agent.css`.
-   - Home Copy Before `</body>` ← full contents of
-     `webflow/presignup-agent.js`.
-3. **Verify** — Designer Preview (⌘/Ctrl+⇧+P) or publish to the
-   `.webflow.io` staging subdomain. Preview grid should render immediately;
-   submit should trigger scan panel + reveal + banner.
-4. **Future small tweaks** — push via MCP-registered inline scripts that
-   runtime-inject a `<style>` block (see the earlier
-   `presignupagentoverridesv2` pattern — inline site script with
-   `location: "footer"`). Don't ask the user to paste again unless the
-   script's internal structure changes meaningfully.
+     (`mcp__webflow__data_scripts_tool.upsert_page_script` with `scripts: []`).
+   - Confirm `data-rc="presignup-agent"` is present on the
+     `presignup-agent-root` div (the React mount point).
+2. **One-time Custom Code deletion** (user action):
+   - Project Settings → Custom Code → **Head Code** → remove the old
+     presignup-agent `<style>` block.
+   - Home Copy → Page Settings → Custom Code → **Before `</body>`** →
+     remove the old presignup-agent `<script>` block.
+3. **Cut a new release** (this repo):
+   - Bump `package.json` (semver). `npm run build`. Commit `dist/` + the
+     version bump. `git tag vX.Y.Z && git push --follow-tags`.
+4. **Update Webflow Footer custom code** to the new tag URL (snippet above).
+5. **Verify** — Designer Preview (⌘/Ctrl+⇧+P) or publish to the staging
+   `.webflow.io` subdomain. Empty composer should render → submit a domain
+   → live audit card animates → CTA appears. Toggle theme to confirm
+   light + dark.
 
-## Open items (non-blocking)
-
-- User will provide final `desc` + `longDesc` copy per product id
-  (`ship_id`, `kloud_id`, `seat_id`, `token_id`, `ad_id`, `pay_id`). Current
-  values are placeholders lifted from the reference React project.
-- Vendor icons will be hosted locally later. Populate `VENDOR_ICONS` map in
-  JS — e.g. `{ "Stripe": "/icons/stripe.svg" }`. Missing entries render as
-  text-only vendor rows.
-- When the three backend endpoints go live:
-  - Flip `USE_FIXTURE = false` in the Webflow JS paste.
-  - Set `AGENT_BASE_URL = ""` (same-origin) or the full origin if
-    cross-origin (requires CORS).
-  - Confirm POST body shape matches (`appName`, `userId`, `sessionId`,
-    `newMessage`, `streaming`).
+For small follow-up tweaks that don't change the bundle's API, skip step 4
+by re-tagging or by pointing Webflow at `@<commit-sha>` while iterating.
 
 ## Useful MCP commands
 
@@ -317,7 +344,7 @@ mcp__webflow__data_sites_tool.list_sites()
 mcp__webflow__data_pages_tool.get_page_metadata({
   page_id: "69e701d3ab01c0394d226247"
 })
-// → slug: "home-copy", draft: true
+// → slug: "home-copy"
 
 // Switch Designer active page
 mcp__webflow__de_page_tool.switch_page({
@@ -339,25 +366,32 @@ mcp__webflow__element_tool.remove_element({
 mcp__webflow__element_snapshot_tool({
   action: { id: { component: "...", element: "..." } }
 })
-
-// Register a new inline override script (site-wide) then apply to a page
-mcp__webflow__data_scripts_tool.add_inline_site_script({
-  site_id: "67e174863b0c93ae0a0cffee",
-  request: { displayName, version, location: "footer", sourceCode }
-})
-mcp__webflow__data_scripts_tool.upsert_page_script({
-  page_id: "69e701d3ab01c0394d226247",
-  scripts: [{ id: "<displayName>", location: "footer", version }]
-})
 ```
 
-Inline site scripts are capped at **2000 chars**. For large patches, split
-into multiple scripts and apply them in order. The Webflow Designer MCP app
-must be **running and foregrounded** at
-https://vaudit-a29acf.design.webflow.com for any Designer tool to work.
+The Webflow Designer MCP app must be **running and foregrounded** at
+<https://vaudit-a29acf.design.webflow.com> for any Designer tool to work.
+The MCP server lives in the **other** repo's `.claude/` config — this repo
+doesn't need it. If a task involves changing what's live in Webflow Custom
+Code (e.g. swapping the script tag URL), do that work from
+`vaudit-website-pages` where the Webflow MCP is wired up.
 
-## Reference links
+## Open items (non-blocking)
 
-- Target UI source: [../hero.html](../hero.html) — `<section class="sim" id="sim">` starts around line 1398; all sim/card CSS starts around line 240.
-- React prototype: `/Users/phantomfaux/Projects/vaudit-refund-agent/frontend/src/components/presignup/` — logic ported verbatim (`runSSE`, `parseSSEEvent`, `parseWidgets`, `AuditProductGrid`, `auditProducts.ts`).
-- Deploy playbook (paste steps, rollback): [PRESIGNUP-AGENT-WEBFLOW-DEPLOY.md](PRESIGNUP-AGENT-WEBFLOW-DEPLOY.md).
+- **Agent-driven phase-2 widgets.** Marker contract is in `types.ts`; the
+  agent prompt + a new tool would replace the client-driven flow.
+- **`Audit again` rate-limit interaction.** `PresignupGuardMiddleware`
+  rate-limits per IP × domain. Repeat audits of the same domain from the
+  same browser may hit the limit; behaviour acceptable for now.
+
+## Reference
+
+- Mock-up source: design hand-off (see project Slack — phase-1 + phase-2
+  flows, all dark-mode shots).
+- Backend tools / persistence: `backend/presignup_agent/tools.py` and
+  `backend/presignup_agent/audit_breakdown.py` in the onboarding-agent repo.
+- PDF route: `backend/core/routes/presignup_audit_report.py`.
+- Waste-rate config: `backend/presignup_agent/langfuse_config.py`. Mirror in
+  `recalc.ts:WASTE_RATES` whenever the Langfuse Config bands change.
+- Theme convention: [`WEBFLOW-THEME-CONVENTION.md`](WEBFLOW-THEME-CONVENTION.md).
+- Color tokens: [`COLOR-SYSTEM.md`](COLOR-SYSTEM.md).
+- Deploy playbook (paste steps, rollback): [`PRESIGNUP-AGENT-WEBFLOW-DEPLOY.md`](PRESIGNUP-AGENT-WEBFLOW-DEPLOY.md).
