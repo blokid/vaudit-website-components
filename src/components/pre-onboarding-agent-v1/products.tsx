@@ -78,86 +78,7 @@ export type ProductSpec = {
   emoji: ReactNode;
   desc: string;
   longDesc: string;
-  viz: ReactNode;
 };
-
-const VIZ_SHIP = (
-  <div className="rc-poav1-viz rc-poav1-viz-ship">
-    <div className="rc-poav1-ship-path" aria-hidden="true" />
-    <div className="rc-poav1-ship-box" aria-hidden="true" />
-    <div className="rc-poav1-ship-credit" aria-hidden="true">+$</div>
-  </div>
-);
-
-const VIZ_KLOUD = (
-  <div className="rc-poav1-viz rc-poav1-viz-kloud">
-    <div className="rc-poav1-k-ceiling" aria-hidden="true" />
-    <div className="rc-poav1-k-bars" aria-hidden="true">
-      <span className="rc-poav1-kb" />
-      <span className="rc-poav1-kb" />
-      <span className="rc-poav1-kb" />
-      <span className="rc-poav1-kb" />
-      <span className="rc-poav1-kb" />
-      <span className="rc-poav1-kb" />
-      <span className="rc-poav1-kb" />
-    </div>
-  </div>
-);
-
-const VIZ_SEAT = (
-  <div className="rc-poav1-viz rc-poav1-viz-seat">
-    <div className="rc-poav1-seat-grid" aria-hidden="true">
-      <span className="rc-poav1-ss" />
-      <span className="rc-poav1-ss" />
-      <span className="rc-poav1-ss is-empty" />
-      <span className="rc-poav1-ss" />
-      <span className="rc-poav1-ss" />
-      <span className="rc-poav1-ss" />
-      <span className="rc-poav1-ss is-empty" />
-      <span className="rc-poav1-ss" />
-      <span className="rc-poav1-ss" />
-      <span className="rc-poav1-ss" />
-    </div>
-    <div className="rc-poav1-seat-scan" aria-hidden="true" />
-  </div>
-);
-
-const VIZ_TOKEN = (
-  <div className="rc-poav1-viz rc-poav1-viz-token">
-    <div className="rc-poav1-token-chip" aria-hidden="true">
-      <span className="rc-poav1-token-node" />
-      <span className="rc-poav1-token-node" />
-      <span className="rc-poav1-token-node" />
-      <span className="rc-poav1-token-node" />
-    </div>
-    <span className="rc-poav1-t-flow rc-poav1-tf1" aria-hidden="true" />
-    <span className="rc-poav1-t-flow rc-poav1-tf2" aria-hidden="true" />
-    <span className="rc-poav1-t-flow rc-poav1-tf3" aria-hidden="true" />
-  </div>
-);
-
-const VIZ_AD = (
-  <div className="rc-poav1-viz rc-poav1-viz-ad">
-    <div className="rc-poav1-ad-target" aria-hidden="true" />
-    <div className="rc-poav1-ad-ring" aria-hidden="true" />
-    <div className="rc-poav1-ad-ring rc-poav1-r2" aria-hidden="true" />
-    <span className="rc-poav1-ad-click rc-poav1-ac1" aria-hidden="true">×</span>
-    <span className="rc-poav1-ad-click rc-poav1-ac2" aria-hidden="true">×</span>
-    <span className="rc-poav1-ad-click rc-poav1-ac3" aria-hidden="true">×</span>
-  </div>
-);
-
-const VIZ_PAY = (
-  <div className="rc-poav1-viz rc-poav1-viz-pay">
-    <div className="rc-poav1-pay-rows" aria-hidden="true">
-      <div className="rc-poav1-pr" />
-      <div className="rc-poav1-pr rc-poav1-pr-flag" />
-      <div className="rc-poav1-pr" />
-      <div className="rc-poav1-pr" />
-    </div>
-    <div className="rc-poav1-pay-scan" aria-hidden="true" />
-  </div>
-);
 
 export const PRODUCT_SPECS: Record<string, ProductSpec> = {
   ship: {
@@ -168,7 +89,6 @@ export const PRODUCT_SPECS: Record<string, ProductSpec> = {
     desc: "Shipping & logistics overcharges.",
     longDesc:
       "Verifies shipping charges against carrier terms to identify overcharges and missed refunds.",
-    viz: VIZ_SHIP,
   },
   kloud: {
     key: "kloud",
@@ -178,7 +98,6 @@ export const PRODUCT_SPECS: Record<string, ProductSpec> = {
     desc: "Idle cloud spend and overprovisioned resources.",
     longDesc:
       "Verifies cloud usage against billing to identify overcharges and unused spend.",
-    viz: VIZ_KLOUD,
   },
   seat: {
     key: "seat",
@@ -188,7 +107,6 @@ export const PRODUCT_SPECS: Record<string, ProductSpec> = {
     desc: "Unused SaaS seats and tool overlap.",
     longDesc:
       "Verifies SaaS usage against billing to identify unused licenses and overcharges.",
-    viz: VIZ_SEAT,
   },
   token: {
     key: "token",
@@ -198,7 +116,6 @@ export const PRODUCT_SPECS: Record<string, ProductSpec> = {
     desc: "AI and LLM usage waste.",
     longDesc:
       "Verifies AI usage against billing to identify overcharges and inefficient spend.",
-    viz: VIZ_TOKEN,
   },
   ad: {
     key: "ad",
@@ -208,7 +125,6 @@ export const PRODUCT_SPECS: Record<string, ProductSpec> = {
     desc: "Ad spend waste and audience overlap.",
     longDesc:
       "Verifies ad traffic against billing to identify invalid charges and discrepancies.",
-    viz: VIZ_AD,
   },
   pay: {
     key: "pay",
@@ -218,7 +134,6 @@ export const PRODUCT_SPECS: Record<string, ProductSpec> = {
     desc: "Payment processor fee leakage.",
     longDesc:
       "Verifies payment fees against contracted rates to identify overcharges and hidden markups.",
-    viz: VIZ_PAY,
   },
 };
 
@@ -238,6 +153,5 @@ export function specForKey(key: string): ProductSpec {
     desc: "Vendor spend and estimated waste.",
     longDesc:
       "Vendor spend and estimated waste detected by the Vaudit audit agent.",
-    viz: <div className="rc-poav1-viz" />,
   };
 }

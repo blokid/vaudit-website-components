@@ -56,15 +56,6 @@ export default function ResultCard({ product }: ResultCardProps) {
       className={clsx("rc-poav1-card", revealing && "is-revealing")}
       data-key={key}
     >
-      <div className="rc-poav1-card-preview-viz">{spec.viz}</div>
-      <div className="rc-poav1-preview-head">
-        <div className="rc-poav1-preview-title">
-          <span className="rc-poav1-emoji">{spec.emoji}</span>
-          {spec.name}
-        </div>
-      </div>
-      <p className="rc-poav1-preview-desc">{spec.longDesc || spec.desc}</p>
-
       <div className="rc-poav1-card-head">
         <div className="rc-poav1-card-name">
           <span className="rc-poav1-emoji">{spec.emoji}</span>
