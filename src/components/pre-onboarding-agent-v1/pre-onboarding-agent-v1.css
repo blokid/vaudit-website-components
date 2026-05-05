@@ -1,0 +1,1769 @@
+/* pre-onboarding-agent-v1 ----------------------------------------------------
+ *
+ * Fallback v1 of the pre-onboarding agent — chat input UI + result cards only.
+ * Headers, subtitles, vendor chips, template chips, the steps stepper, and
+ * the static product-card overview have all been stripped relative to the
+ * v1 in `presignup-agent/`. Class prefix `rc-poav1-` to avoid collisions
+ * with the live `rc-pa-` chat-shell component and Webflow-authored classes.
+ * -------------------------------------------------------------------------- */
+
+/* Section wrapper */
+
+.rc-poav1-section {
+  position: relative;
+  width: 100%;
+  padding: 4rem 1.5rem 3rem;
+  background: var(--bg);
+  color: var(--text-primary);
+  overflow: hidden;
+}
+
+.rc-poav1-shell {
+  margin: 0 auto;
+  padding: 0 2rem 1.5rem;
+  color: #ffffff;
+}
+
+/* Shimmer card form */
+
+@property --rc-poav1-shimmer-angle {
+  syntax: "<angle>";
+  initial-value: 0deg;
+  inherits: false;
+}
+
+.rc-poav1-input-row {
+  --rc-poav1-card-bg: #ffffff;
+  --rc-poav1-card-shimmer-dim: 0.35;
+  --rc-poav1-card-shimmer-arc-a: 255, 150, 80;
+  --rc-poav1-card-shimmer-arc-b: 255, 120, 50;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 20px;
+  border-radius: 22px;
+  border: 2px solid transparent;
+  isolation: isolate;
+  background:
+    linear-gradient(var(--rc-poav1-card-bg), var(--rc-poav1-card-bg)) padding-box,
+    conic-gradient(
+      from var(--rc-poav1-shimmer-angle),
+      rgba(240, 101, 31, var(--rc-poav1-card-shimmer-dim)) 0deg,
+      rgba(240, 101, 31, var(--rc-poav1-card-shimmer-dim)) 150deg,
+      rgba(var(--rc-poav1-card-shimmer-arc-a), 0.95) 172deg,
+      rgba(var(--rc-poav1-card-shimmer-arc-b), 1) 180deg,
+      rgba(var(--rc-poav1-card-shimmer-arc-a), 0.95) 188deg,
+      rgba(240, 101, 31, var(--rc-poav1-card-shimmer-dim)) 210deg,
+      rgba(240, 101, 31, var(--rc-poav1-card-shimmer-dim)) 360deg
+    )
+      border-box;
+  animation: rc-poav1-card-shimmer 7s cubic-bezier(0.45, 0.05, 0.55, 0.95) infinite;
+}
+
+html.dark .rc-poav1-input-row {
+  --rc-poav1-card-bg: #0f100e;
+  --rc-poav1-card-shimmer-dim: 0.18;
+  --rc-poav1-card-shimmer-arc-a: 255, 180, 120;
+  --rc-poav1-card-shimmer-arc-b: 255, 215, 170;
+}
+
+.rc-poav1-input-row::after {
+  content: "";
+  position: absolute;
+  inset: -90px;
+  z-index: -1;
+  pointer-events: none;
+  border-radius: inherit;
+  filter: blur(60px);
+  opacity: 0.55;
+  background: conic-gradient(
+    from var(--rc-poav1-shimmer-angle),
+    transparent 0deg,
+    transparent 140deg,
+    rgba(240, 101, 31, 0.25) 180deg,
+    transparent 220deg,
+    transparent 360deg
+  );
+}
+
+@keyframes rc-poav1-card-shimmer {
+  to {
+    --rc-poav1-shimmer-angle: 360deg;
+  }
+}
+
+.rc-poav1-shell.is-scanning .rc-poav1-input-row {
+  animation-duration: 3s;
+}
+
+.rc-poav1-shell.is-scanning .rc-poav1-input-row::after {
+  opacity: 0.8;
+}
+
+/* While scanning, hide the run button row + lock the textarea from edits. */
+.rc-poav1-shell.is-scanning .rc-poav1-run {
+  pointer-events: none;
+}
+
+.rc-poav1-shell.is-scanning .rc-poav1-input-bottom {
+  display: none;
+}
+
+.rc-poav1-shell.is-scanning .rc-poav1-input-top {
+  opacity: 0.55;
+  pointer-events: none;
+}
+
+/* Scan panel — rendered inside .rc-poav1-input-row when shell is scanning. */
+
+.rc-poav1-scan-panel {
+  display: none;
+  padding: 2px 4px 4px;
+}
+
+.rc-poav1-shell.is-scanning .rc-poav1-scan-panel {
+  display: block;
+  animation: rc-poav1-scan-panel-in 0.4s ease both;
+}
+
+@keyframes rc-poav1-scan-panel-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.rc-poav1-scan-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.rc-poav1-scan-title-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.rc-poav1-scan-eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: #f0651f;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+
+.rc-poav1-scan-eyebrow::before {
+  content: "";
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #f0651f;
+  box-shadow: 0 0 0 0 rgba(240, 101, 31, 0.55);
+  animation: rc-poav1-scan-pulse-dot 1.4s ease-in-out infinite;
+}
+
+@keyframes rc-poav1-scan-pulse-dot {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgba(240, 101, 31, 0.55);
+  }
+  50% {
+    box-shadow: 0 0 0 8px rgba(240, 101, 31, 0);
+  }
+}
+
+.rc-poav1-scan-title {
+  color: var(--text-primary);
+  font-size: 1.25rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+html.dark .rc-poav1-scan-title {
+  color: #ffffff;
+}
+
+.rc-poav1-scan-title .rc-poav1-scan-caret {
+  display: inline-block;
+  width: 2px;
+  height: 18px;
+  background: #f0651f;
+  margin-left: 4px;
+  vertical-align: -3px;
+  animation: rc-poav1-scan-caret-blink 1s steps(1) infinite;
+}
+
+@keyframes rc-poav1-scan-caret-blink {
+  50% {
+    opacity: 0;
+  }
+}
+
+.rc-poav1-scan-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin: 8px 0 14px;
+}
+
+.rc-poav1-scan-item {
+  display: grid;
+  grid-template-columns: 16px 1fr auto auto;
+  column-gap: 12px;
+  align-items: center;
+  padding: 9px 2px;
+  border-bottom: 1px solid rgba(26, 26, 24, 0.08);
+  color: var(--text-primary);
+  transition: opacity 0.3s ease;
+  opacity: 0.3;
+}
+
+html.dark .rc-poav1-scan-item {
+  border-bottom-color: #1f1f20;
+  color: #ffffff;
+}
+
+.rc-poav1-scan-item:last-child {
+  border-bottom: 0;
+}
+
+.rc-poav1-scan-item.is-active,
+.rc-poav1-scan-item.is-done {
+  opacity: 1;
+}
+
+.rc-poav1-scan-status {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  position: relative;
+}
+
+.rc-poav1-scan-item.is-pending .rc-poav1-scan-status {
+  border: 1.5px dashed rgba(26, 26, 24, 0.3);
+}
+
+html.dark .rc-poav1-scan-item.is-pending .rc-poav1-scan-status {
+  border-color: #3a3a3f;
+}
+
+.rc-poav1-scan-item.is-active .rc-poav1-scan-status {
+  background: #f0651f;
+  box-shadow: 0 0 0 0 rgba(240, 101, 31, 0.55);
+  animation: rc-poav1-scan-pulse-dot 1s ease-in-out infinite;
+}
+
+.rc-poav1-scan-item.is-done .rc-poav1-scan-status {
+  background: #f0651f;
+}
+
+.rc-poav1-scan-item.is-done .rc-poav1-scan-status::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 14 14' fill='none' stroke='%23fff' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'><path d='M3 7.5 6 10.5l5-7'/></svg>")
+    center / 10px no-repeat;
+}
+
+.rc-poav1-scan-item-name {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+html.dark .rc-poav1-scan-item-name {
+  color: #ffffff;
+}
+
+.rc-poav1-scan-item-name .rc-poav1-emoji {
+  font-size: 0.875rem;
+  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1em;
+  height: 1em;
+  color: #f0651f;
+  flex-shrink: 0;
+}
+
+.rc-poav1-scan-item-name .rc-poav1-emoji svg {
+  width: 1em;
+  height: 1em;
+  display: block;
+}
+
+.rc-poav1-scan-item-vendor {
+  color: var(--text-secondary);
+  font-size: 0.71875rem;
+  min-width: 100px;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  transition:
+    opacity 0.3s ease,
+    color 0.3s ease;
+}
+
+html.dark .rc-poav1-scan-item-vendor {
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.rc-poav1-scan-item.is-active .rc-poav1-scan-item-vendor {
+  color: #f0651f;
+  opacity: 1;
+}
+
+.rc-poav1-scan-item-amount {
+  color: var(--text-primary);
+  font-weight: 600;
+  font-size: 0.8125rem;
+  min-width: 80px;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  opacity: 0;
+  transition: opacity 0.4s ease;
+}
+
+html.dark .rc-poav1-scan-item-amount {
+  color: #ffffff;
+}
+
+.rc-poav1-scan-item.is-done .rc-poav1-scan-item-amount {
+  opacity: 1;
+}
+
+.rc-poav1-scan-progress {
+  height: 2px;
+  border-radius: 2px;
+  overflow: hidden;
+  background: rgba(26, 26, 24, 0.1);
+}
+
+html.dark .rc-poav1-scan-progress {
+  background: #1f1f20;
+}
+
+.rc-poav1-scan-progress-fill {
+  height: 100%;
+  width: 0;
+  background: linear-gradient(90deg, #f0651f, #ffb080);
+  box-shadow: 0 0 8px rgba(240, 101, 31, 0.6);
+  transition: width 0.5s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* Input top: caret + textarea */
+
+.rc-poav1-input-top {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+}
+
+.rc-poav1-input-row .rc-poav1-caret {
+  color: #f0651f;
+  flex-shrink: 0;
+  padding-top: 3px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.rc-poav1-input-row .rc-poav1-caret svg {
+  width: 18px;
+  height: 18px;
+}
+
+.rc-poav1-input-row textarea {
+  flex: 1;
+  background: transparent;
+  border: 0;
+  outline: 0;
+  color: var(--text-primary);
+  font-size: 1rem;
+  font-family: inherit;
+  line-height: 1.5;
+  resize: none;
+  padding: 0;
+  margin: 0;
+  min-height: 66px;
+  width: 100%;
+}
+
+.rc-poav1-input-row textarea::placeholder {
+  color: var(--text-secondary);
+}
+
+html.dark .rc-poav1-input-row textarea {
+  color: #ffffff;
+}
+
+html.dark .rc-poav1-input-row textarea::placeholder {
+  color: #6a6a70;
+}
+
+/* Input bottom: run button row */
+
+.rc-poav1-input-bottom {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.rc-poav1-run {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 44px;
+  padding: 0 22px;
+  border-radius: 999px;
+  border: 0;
+  cursor: pointer;
+  background: #f0651f;
+  color: #ffffff;
+  font-family: inherit;
+  font-weight: 700;
+  font-size: 0.8125rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  transition: background 0.15s ease;
+}
+
+.rc-poav1-run:hover {
+  background: #ff7a2a;
+}
+
+.rc-poav1-run[disabled] {
+  opacity: 0.6;
+  cursor: wait;
+}
+
+.rc-poav1-run svg {
+  width: 15px;
+  height: 15px;
+}
+
+.rc-poav1-kbd {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 7px;
+  border-radius: 5px;
+  background: rgba(255, 255, 255, 0.22);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  color: #ffffff;
+  font-family: inherit;
+  font-size: 0.625rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  line-height: 1;
+  margin: 0 6px 0 2px;
+  text-transform: none;
+}
+
+/* Loading state */
+.rc-poav1-input-row[data-state="loading"] .rc-poav1-run {
+  opacity: 0.6;
+  cursor: wait;
+  pointer-events: none;
+}
+
+.rc-poav1-input-row[data-state="loading"] textarea {
+  opacity: 0.7;
+}
+
+/* Mobile */
+
+@media (max-width: 720px) {
+  .rc-poav1-input-row {
+    flex-wrap: wrap;
+  }
+  .rc-poav1-run {
+    width: 100%;
+    justify-content: center;
+  }
+}
+
+/* Status line + error (under the shimmer card) */
+
+.rc-poav1-status {
+  min-height: 1.5rem;
+  margin-top: 1.25rem;
+  text-align: center;
+  font-size: 0.9375rem;
+  color: var(--text-secondary);
+  animation: rc-poav1-fade-in 240ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.rc-poav1-status:empty {
+  display: none;
+}
+
+.rc-poav1-error {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  max-width: 34rem;
+  margin: 0 auto;
+  padding: 0.75rem 1rem;
+  border-left: 3px solid var(--primary);
+  border-radius: 0.5rem;
+  background: rgba(254, 96, 44, 0.06);
+  color: var(--text-primary);
+  font-size: 0.9375rem;
+  text-align: left;
+  animation: rc-poav1-fade-in 240ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.rc-poav1-error-retry {
+  margin-left: auto;
+  color: var(--primary);
+  font-weight: 600;
+  text-decoration: underline;
+  cursor: pointer;
+  background: none;
+  border: 0;
+  padding: 0;
+  font: inherit;
+}
+
+.rc-poav1-error-retry:hover {
+  color: var(--primary-hover);
+}
+
+html.dark .rc-poav1-error {
+  background: rgba(254, 96, 44, 0.1);
+  color: #fafafa;
+}
+
+html.dark .rc-poav1-status {
+  color: var(--charcoal-100, #d4d4cc);
+}
+
+/* Card grid */
+
+.rc-poav1-results {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 18px;
+  margin: 1.5rem auto 0;
+  padding: 0;
+}
+
+.rc-poav1-results:empty {
+  display: none;
+}
+
+.rc-poav1-results .rc-poav1-card {
+  flex: 0 1 calc(33.333% - 12px);
+  max-width: 360px;
+  min-width: 0;
+}
+
+/* Tablet + mobile: edge-to-edge */
+@media screen and (max-width: 991px) {
+  .rc-poav1-section {
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
+  .rc-poav1-shell {
+    padding-left: 0;
+    padding-right: 0;
+  }
+  .rc-poav1-input-row,
+  .rc-poav1-total {
+    max-width: none;
+  }
+  .rc-poav1-results {
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
+  .rc-poav1-results .rc-poav1-card {
+    flex: 0 1 100%;
+    max-width: none;
+  }
+}
+
+/* Card — monochrome */
+
+.rc-poav1-results .rc-poav1-card {
+  position: relative;
+  border-radius: 12px;
+  border: 1px solid rgba(26, 26, 24, 0.12);
+  background: #ffffff;
+  padding: 18px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-height: 220px;
+  overflow: hidden;
+  box-shadow:
+    0 2px 12px rgba(26, 26, 24, 0.06),
+    0 1px 3px rgba(26, 26, 24, 0.04);
+  transition:
+    border-color 0.25s ease,
+    box-shadow 0.35s ease,
+    transform 0.25s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+html.dark .rc-poav1-results .rc-poav1-card {
+  border-color: #232324;
+  background: #121311;
+  box-shadow: none;
+}
+
+.rc-poav1-preview-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+}
+
+.rc-poav1-preview-title {
+  color: var(--text-primary);
+  font-size: 1rem !important;
+  font-weight: 500;
+  letter-spacing: -0.01em !important;
+  margin: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+html.dark .rc-poav1-preview-title {
+  color: #ffffff;
+}
+
+.rc-poav1-preview-title .rc-poav1-emoji {
+  font-size: 0.875rem;
+  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1em;
+  height: 1em;
+  color: #f0651f;
+  flex-shrink: 0;
+}
+
+.rc-poav1-emoji svg {
+  width: 1em;
+  height: 1em;
+  display: block;
+}
+
+.rc-poav1-preview-desc {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: 0.875rem !important;
+  letter-spacing: normal !important;
+  line-height: 1.5;
+}
+
+html.dark .rc-poav1-preview-desc {
+  color: rgba(255, 255, 255, 0.45);
+}
+
+.rc-poav1-card-preview-viz {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-height: 110px;
+  padding: 18px 12px 14px;
+  justify-content: center;
+  align-items: center;
+}
+
+.rc-poav1-viz {
+  color: #f0651f;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+}
+
+/* Hover glow */
+.rc-poav1-results .rc-poav1-card::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background:
+    radial-gradient(120% 70% at 50% 0%, rgba(240, 101, 31, 0.22), transparent 60%),
+    radial-gradient(100% 80% at 50% 100%, rgba(240, 101, 31, 0.08), transparent 70%);
+  opacity: 0;
+  transition: opacity 0.35s ease;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.rc-poav1-results .rc-poav1-card > * {
+  position: relative;
+  z-index: 1;
+}
+
+.rc-poav1-results .rc-poav1-card:hover,
+html.dark .rc-poav1-results .rc-poav1-card:hover {
+  border-color: #f0651f;
+  box-shadow:
+    0 10px 30px rgba(240, 101, 31, 0.18),
+    0 0 60px rgba(240, 101, 31, 0.12);
+  transform: translateY(-3px);
+}
+
+.rc-poav1-results .rc-poav1-card:hover::before {
+  opacity: 1;
+}
+
+/* Reveal animation */
+@keyframes rc-poav1-card-reveal {
+  0% {
+    transform: scale(0.98);
+    filter: blur(4px);
+  }
+  55% {
+    transform: scale(1.01);
+    filter: blur(0);
+  }
+  100% {
+    transform: scale(1);
+    filter: blur(0);
+  }
+}
+
+.rc-poav1-results .rc-poav1-card.is-revealing {
+  animation: rc-poav1-card-reveal 0.7s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+/* Completed: head + hero + vendor rows */
+.rc-poav1-card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid rgba(26, 26, 24, 0.08);
+}
+
+html.dark .rc-poav1-card-head {
+  border-bottom-color: rgba(255, 255, 255, 0.06);
+}
+
+.rc-poav1-card-name {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  color: var(--text-primary);
+  font-weight: 500;
+  font-size: 0.875rem !important;
+  letter-spacing: normal !important;
+}
+
+html.dark .rc-poav1-card-name {
+  color: #ffffff;
+}
+
+.rc-poav1-card-name .rc-poav1-emoji {
+  font-size: 0.875rem;
+  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1em;
+  height: 1em;
+  color: #f0651f;
+  flex-shrink: 0;
+}
+
+.rc-poav1-card-badge {
+  font-size: 0.53125rem !important;
+  font-weight: 500;
+  letter-spacing: 0.14em !important;
+  text-transform: uppercase;
+  padding: 2px 8px;
+  border-radius: 999px;
+  border: 1px solid rgba(26, 26, 24, 0.18);
+  color: var(--text-primary);
+  background: transparent;
+  opacity: 0.6;
+}
+
+html.dark .rc-poav1-card-badge {
+  border-color: #2b2b2c;
+  color: #ffffff;
+  opacity: 0.5;
+}
+
+.rc-poav1-card-hero {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 14px 0 14px;
+  border-bottom: 1px solid rgba(26, 26, 24, 0.08);
+  text-align: center;
+}
+
+html.dark .rc-poav1-card-hero {
+  border-bottom-color: rgba(255, 255, 255, 0.06);
+}
+
+.rc-poav1-card-desc {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: 0.75rem !important;
+  letter-spacing: normal !important;
+  font-weight: 400;
+  line-height: 1.4;
+  max-width: 260px;
+}
+
+html.dark .rc-poav1-card-desc {
+  color: rgba(255, 255, 255, 0.55);
+}
+
+.rc-poav1-card-amount {
+  font-size: 1.375rem !important;
+  font-weight: 700;
+  color: #f0651f;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em !important;
+  line-height: 1;
+  transition:
+    text-shadow 0.4s ease,
+    transform 0.4s ease;
+}
+
+.rc-poav1-card-amount.is-pulse {
+  text-shadow: 0 0 22px rgba(240, 101, 31, 0.35);
+  transform: scale(1.02);
+}
+
+.rc-poav1-card-vendors {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding-top: 4px;
+}
+
+.rc-poav1-card-vendor {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  font-size: 0.71875rem;
+}
+
+.rc-poav1-card-vendor-name {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--text-primary);
+  font-weight: 500;
+  font-size: 0.875rem !important;
+  letter-spacing: normal !important;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+html.dark .rc-poav1-card-vendor-name {
+  color: #ffffff;
+}
+
+.rc-poav1-card-vendor-logo {
+  width: 20px;
+  height: 20px;
+  padding: 3px;
+  background: #ffffff;
+  border-radius: 4px;
+  box-sizing: border-box;
+  flex-shrink: 0;
+  object-fit: contain;
+}
+
+.rc-poav1-card-vendor-fig {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: flex-end;
+  flex-shrink: 0;
+  gap: 2px;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.2;
+}
+
+.rc-poav1-card-vendor-spend {
+  color: var(--text-secondary);
+  font-size: 0.6875rem !important;
+  letter-spacing: normal !important;
+  font-weight: 400;
+}
+
+html.dark .rc-poav1-card-vendor-spend {
+  color: rgba(255, 255, 255, 0.45);
+}
+
+.rc-poav1-card-vendor-waste {
+  color: #f0651f;
+  font-size: 0.75rem !important;
+  font-weight: 600;
+  letter-spacing: -0.01em !important;
+}
+
+/* Per-product VIZ animations */
+
+/* ── ShipID ── */
+.rc-poav1-viz-ship {
+  position: relative;
+  width: 110px;
+  height: 36px;
+  justify-content: flex-start;
+}
+
+.rc-poav1-viz-ship .rc-poav1-ship-path {
+  position: absolute;
+  left: 2px;
+  right: 2px;
+  top: 70%;
+  border-top: 1px dashed #f0651f;
+  opacity: 0.35;
+}
+
+.rc-poav1-viz-ship .rc-poav1-ship-box {
+  position: absolute;
+  top: 70%;
+  width: 14px;
+  height: 10px;
+  background: #f0651f;
+  border-radius: 2px;
+  transform: translateY(-50%);
+  box-shadow: 0 0 8px rgba(240, 101, 31, 0.5);
+  animation: rc-poav1-ship-move 3.2s linear infinite;
+}
+
+@keyframes rc-poav1-ship-move {
+  0% {
+    left: -18px;
+  }
+  100% {
+    left: calc(100% + 2px);
+  }
+}
+
+.rc-poav1-viz-ship .rc-poav1-ship-credit {
+  position: absolute;
+  top: 20%;
+  left: 55%;
+  color: #f0651f;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  text-shadow: 0 0 6px rgba(240, 101, 31, 0.55);
+  opacity: 0;
+  animation: rc-poav1-ship-credit 3.2s ease-in-out infinite;
+}
+
+@keyframes rc-poav1-ship-credit {
+  0%,
+  50% {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  65% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  90% {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+/* ── SeatID ── */
+.rc-poav1-viz-seat {
+  position: relative;
+  width: 70px;
+  height: 32px;
+  padding: 3px;
+}
+
+.rc-poav1-viz-seat .rc-poav1-seat-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 9px);
+  grid-auto-rows: 9px;
+  gap: 3px;
+  width: 100%;
+  justify-content: center;
+  align-content: center;
+  position: relative;
+}
+
+.rc-poav1-viz-seat .rc-poav1-ss {
+  width: 9px;
+  height: 9px;
+  border-radius: 2px;
+  background: #f0651f;
+  animation: rc-poav1-seat-active 2.2s ease-in-out infinite;
+}
+
+.rc-poav1-viz-seat .rc-poav1-ss:nth-child(2n) {
+  animation-delay: 0.2s;
+}
+
+.rc-poav1-viz-seat .rc-poav1-ss:nth-child(3n) {
+  animation-delay: 0.45s;
+}
+
+.rc-poav1-viz-seat .rc-poav1-ss:nth-child(5n) {
+  animation-delay: 0.7s;
+}
+
+.rc-poav1-viz-seat .rc-poav1-ss.is-empty {
+  background: transparent;
+  border: 1px dashed #f0651f;
+  opacity: 0.35;
+  animation: none;
+}
+
+@keyframes rc-poav1-seat-active {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.45;
+  }
+}
+
+.rc-poav1-viz-seat .rc-poav1-seat-scan {
+  position: absolute;
+  left: 2px;
+  right: 2px;
+  height: 1.5px;
+  background: #f0651f;
+  box-shadow: 0 0 4px currentColor;
+  opacity: 0;
+  animation: rc-poav1-seat-scan 2.8s ease-in-out infinite;
+}
+
+@keyframes rc-poav1-seat-scan {
+  0% {
+    top: 0;
+    opacity: 0;
+  }
+  10% {
+    opacity: 0.9;
+  }
+  90% {
+    opacity: 0.9;
+  }
+  100% {
+    top: 100%;
+    opacity: 0;
+  }
+}
+
+/* ── KloudID ── */
+.rc-poav1-viz-kloud {
+  position: relative;
+  width: 92px;
+  height: 36px;
+  padding: 4px;
+  align-items: flex-end;
+}
+
+.rc-poav1-viz-kloud .rc-poav1-k-ceiling {
+  position: absolute;
+  left: 4px;
+  right: 4px;
+  top: 5px;
+  border-top: 1.5px dashed #f0651f;
+  opacity: 0.5;
+}
+
+.rc-poav1-viz-kloud .rc-poav1-k-ceiling::after {
+  content: "";
+  position: absolute;
+  right: 0;
+  top: -4px;
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: #f0651f;
+  box-shadow: 0 0 4px currentColor;
+}
+
+.rc-poav1-viz-kloud .rc-poav1-k-bars {
+  display: flex;
+  gap: 3px;
+  width: 100%;
+  height: 100%;
+  align-items: flex-end;
+}
+
+.rc-poav1-viz-kloud .rc-poav1-kb {
+  flex: 1;
+  background: #f0651f;
+  border-radius: 1.5px 1.5px 0 0;
+  transform-origin: bottom;
+  animation: rc-poav1-k-bar 2.4s ease-in-out infinite;
+}
+
+.rc-poav1-viz-kloud .rc-poav1-kb:nth-child(1) {
+  animation-delay: 0s;
+  height: 48%;
+}
+.rc-poav1-viz-kloud .rc-poav1-kb:nth-child(2) {
+  animation-delay: 0.15s;
+  height: 70%;
+}
+.rc-poav1-viz-kloud .rc-poav1-kb:nth-child(3) {
+  animation-delay: 0.3s;
+  height: 32%;
+}
+.rc-poav1-viz-kloud .rc-poav1-kb:nth-child(4) {
+  animation-delay: 0.45s;
+  height: 58%;
+}
+.rc-poav1-viz-kloud .rc-poav1-kb:nth-child(5) {
+  animation-delay: 0.6s;
+  height: 40%;
+}
+.rc-poav1-viz-kloud .rc-poav1-kb:nth-child(6) {
+  animation-delay: 0.75s;
+  height: 65%;
+}
+.rc-poav1-viz-kloud .rc-poav1-kb:nth-child(7) {
+  animation-delay: 0.9s;
+  height: 36%;
+}
+
+@keyframes rc-poav1-k-bar {
+  0%,
+  100% {
+    transform: scaleY(1);
+    opacity: 0.9;
+  }
+  50% {
+    transform: scaleY(0.55);
+    opacity: 0.6;
+  }
+}
+
+/* ── TokenID ── */
+.rc-poav1-viz-token {
+  position: relative;
+  width: 110px;
+  height: 36px;
+}
+
+.rc-poav1-viz-token .rc-poav1-token-chip {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: 42px;
+  height: 18px;
+  border: 1.5px solid #f0651f;
+  border-radius: 3px;
+  opacity: 0.8;
+  display: flex;
+  align-items: center;
+  justify-content: space-around;
+  padding: 0 3px;
+}
+
+.rc-poav1-viz-token .rc-poav1-token-chip::before,
+.rc-poav1-viz-token .rc-poav1-token-chip::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  width: 28px;
+  height: 1px;
+  background: #f0651f;
+  opacity: 0.45;
+}
+
+.rc-poav1-viz-token .rc-poav1-token-chip::before {
+  left: -30px;
+}
+
+.rc-poav1-viz-token .rc-poav1-token-chip::after {
+  right: -30px;
+}
+
+.rc-poav1-viz-token .rc-poav1-token-node {
+  width: 3px;
+  height: 3px;
+  border-radius: 50%;
+  background: #f0651f;
+  animation: rc-poav1-token-blink 1.4s ease-in-out infinite;
+}
+
+.rc-poav1-viz-token .rc-poav1-token-node:nth-child(2) {
+  animation-delay: 0.2s;
+}
+.rc-poav1-viz-token .rc-poav1-token-node:nth-child(3) {
+  animation-delay: 0.4s;
+}
+.rc-poav1-viz-token .rc-poav1-token-node:nth-child(4) {
+  animation-delay: 0.6s;
+}
+
+@keyframes rc-poav1-token-blink {
+  0%,
+  100% {
+    opacity: 0.35;
+    transform: scale(0.8);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.3);
+  }
+}
+
+.rc-poav1-viz-token .rc-poav1-t-flow {
+  position: absolute;
+  top: 50%;
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: #f0651f;
+  box-shadow: 0 0 4px currentColor;
+  transform: translateY(-50%);
+  opacity: 0;
+  animation: rc-poav1-token-flow 2.6s linear infinite;
+}
+
+.rc-poav1-viz-token .rc-poav1-tf1 {
+  animation-delay: 0s;
+}
+.rc-poav1-viz-token .rc-poav1-tf2 {
+  animation-delay: 0.87s;
+}
+.rc-poav1-viz-token .rc-poav1-tf3 {
+  animation-delay: 1.73s;
+}
+
+@keyframes rc-poav1-token-flow {
+  0% {
+    left: 0;
+    opacity: 0;
+  }
+  15% {
+    opacity: 1;
+  }
+  85% {
+    opacity: 1;
+  }
+  100% {
+    left: calc(100% - 4px);
+    opacity: 0;
+  }
+}
+
+/* ── AdID ── */
+.rc-poav1-viz-ad {
+  position: relative;
+  width: 80px;
+  height: 36px;
+}
+
+.rc-poav1-viz-ad .rc-poav1-ad-ring {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 6px;
+  height: 6px;
+  margin: -3px 0 0 -3px;
+  border-radius: 50%;
+  border: 1px solid #f0651f;
+  opacity: 0;
+  animation: rc-poav1-ad-ring 2s ease-out infinite;
+}
+
+.rc-poav1-viz-ad .rc-poav1-ad-ring.rc-poav1-r2 {
+  animation-delay: 1s;
+}
+
+.rc-poav1-viz-ad .rc-poav1-ad-target {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 5px;
+  height: 5px;
+  margin: -2.5px 0 0 -2.5px;
+  border-radius: 50%;
+  background: #f0651f;
+  box-shadow: 0 0 5px currentColor;
+}
+
+@keyframes rc-poav1-ad-ring {
+  0% {
+    opacity: 1;
+    transform: scale(0.4);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(5);
+  }
+}
+
+.rc-poav1-viz-ad .rc-poav1-ad-click {
+  position: absolute;
+  color: #f0651f;
+  font-family: inherit;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  line-height: 1;
+  opacity: 0;
+  animation: rc-poav1-ad-click 3.2s ease-in-out infinite;
+}
+
+.rc-poav1-viz-ad .rc-poav1-ad-click.rc-poav1-ac1 {
+  top: 10%;
+  left: 14%;
+  animation-delay: 0.3s;
+}
+
+.rc-poav1-viz-ad .rc-poav1-ad-click.rc-poav1-ac2 {
+  top: 68%;
+  left: 82%;
+  animation-delay: 1.5s;
+}
+
+.rc-poav1-viz-ad .rc-poav1-ad-click.rc-poav1-ac3 {
+  top: 72%;
+  left: 10%;
+  animation-delay: 2.4s;
+}
+
+@keyframes rc-poav1-ad-click {
+  0%,
+  8% {
+    opacity: 0;
+    transform: scale(0.5);
+  }
+  18% {
+    opacity: 1;
+    transform: scale(1.2);
+  }
+  38% {
+    opacity: 0.6;
+    transform: scale(1);
+  }
+  55% {
+    opacity: 0;
+    transform: scale(1.4);
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+/* ── PaymentID ── */
+.rc-poav1-viz-pay {
+  position: relative;
+  width: 72px;
+  height: 36px;
+  padding: 4px 3px;
+}
+
+.rc-poav1-viz-pay .rc-poav1-pay-rows {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-around;
+}
+
+.rc-poav1-viz-pay .rc-poav1-pr {
+  height: 2.5px;
+  background: #f0651f;
+  opacity: 0.35;
+  border-radius: 1.5px;
+}
+
+.rc-poav1-viz-pay .rc-poav1-pr:nth-child(1) {
+  width: 90%;
+}
+.rc-poav1-viz-pay .rc-poav1-pr:nth-child(2) {
+  width: 70%;
+}
+.rc-poav1-viz-pay .rc-poav1-pr:nth-child(3) {
+  width: 85%;
+}
+.rc-poav1-viz-pay .rc-poav1-pr:nth-child(4) {
+  width: 60%;
+}
+
+.rc-poav1-viz-pay .rc-poav1-pr-flag {
+  animation: rc-poav1-pay-flag 3s ease-in-out infinite;
+}
+
+@keyframes rc-poav1-pay-flag {
+  0%,
+  55%,
+  100% {
+    opacity: 0.35;
+    box-shadow: none;
+  }
+  65%,
+  85% {
+    opacity: 1;
+    box-shadow: 0 0 8px rgba(240, 101, 31, 0.7);
+  }
+}
+
+.rc-poav1-viz-pay .rc-poav1-pay-scan {
+  position: absolute;
+  left: 3px;
+  right: 3px;
+  height: 1.5px;
+  background: #f0651f;
+  box-shadow: 0 0 6px currentColor;
+  opacity: 0;
+  animation: rc-poav1-pay-scan 3s ease-in-out infinite;
+}
+
+@keyframes rc-poav1-pay-scan {
+  0% {
+    top: 4px;
+    opacity: 0;
+  }
+  10% {
+    opacity: 0.9;
+  }
+  50% {
+    opacity: 0.9;
+    top: calc(100% - 5px);
+  }
+  60% {
+    opacity: 0;
+  }
+  100% {
+    top: 4px;
+    opacity: 0;
+  }
+}
+
+/* Total banner */
+
+.rc-poav1-total {
+  position: relative;
+  flex: 1 1 100%;
+  width: 100%;
+  /* Match the rendered width of .rc-poav1-input-row (960 max + 20*2 padding + 2*2 border). */
+  max-width: 1004px;
+  box-sizing: border-box;
+  margin: 0.5rem auto 0;
+  padding: 1rem 1.25rem;
+  background: #ffffff;
+  border: 1px solid rgba(26, 26, 24, 0.1);
+  border-radius: 0.875rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+  opacity: 0;
+  animation: rc-poav1-total-enter 360ms cubic-bezier(0.22, 1, 0.36, 1) 80ms forwards;
+}
+
+.rc-poav1-total-stack {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.75rem;
+  min-width: 0;
+  flex-wrap: wrap;
+}
+
+.rc-poav1-total-label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--text-secondary);
+}
+
+.rc-poav1-total-value {
+  font-size: 1.5rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  color: #f0651f;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Email-capture pill */
+
+.rc-poav1-total .rc-poav1-total-form,
+.rc-poav1-total .rc-poav1-total-form * {
+  box-sizing: border-box !important;
+}
+
+.rc-poav1-total .rc-poav1-total-form {
+  display: inline-flex !important;
+  align-items: stretch !important;
+  gap: 8px !important;
+  flex: 1 1 auto !important;
+  min-width: 360px !important;
+  max-width: 640px !important;
+  height: 44px !important;
+  margin: 0 !important;
+  padding: 4px 4px 4px 14px !important;
+  background: rgba(26, 26, 24, 0.04) !important;
+  border: 1px solid rgba(26, 26, 24, 0.12) !important;
+  border-radius: 999px !important;
+  box-shadow: none !important;
+  transition:
+    border-color 180ms cubic-bezier(0.4, 0, 0.2, 1),
+    box-shadow 180ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.rc-poav1-total .rc-poav1-total-form:focus-within {
+  border-color: rgba(240, 101, 31, 0.55) !important;
+  box-shadow: 0 0 0 3px rgba(240, 101, 31, 0.15) !important;
+}
+
+.rc-poav1-total .rc-poav1-total-form-icon {
+  flex: 0 0 auto !important;
+  width: 16px !important;
+  height: 16px !important;
+  align-self: center !important;
+  color: var(--text-secondary);
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+.rc-poav1-total .rc-poav1-total-email {
+  flex: 1 1 auto !important;
+  min-width: 0 !important;
+  width: auto !important;
+  height: auto !important;
+  align-self: center !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: 0 !important;
+  background: transparent !important;
+  color: var(--text-primary);
+  font: inherit;
+  font-size: 0.875rem !important;
+  line-height: 1.2 !important;
+  letter-spacing: normal !important;
+  outline: none !important;
+  box-shadow: none !important;
+  border-radius: 0 !important;
+  appearance: none !important;
+  -webkit-appearance: none !important;
+}
+
+.rc-poav1-total .rc-poav1-total-email::placeholder {
+  color: var(--text-secondary);
+  opacity: 0.8;
+}
+
+.rc-poav1-total .rc-poav1-total-cta {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 6px !important;
+  flex: 0 0 auto !important;
+  width: auto !important;
+  height: auto !important;
+  min-height: 0 !important;
+  position: relative !important;
+  cursor: pointer !important;
+  white-space: nowrap !important;
+  margin: 0 !important;
+  padding: 0 1.125rem !important;
+  border: 0 !important;
+  border-radius: 999px !important;
+  background: #f0651f !important;
+  color: #ffffff !important;
+  font: inherit;
+  font-size: 0.8125rem !important;
+  font-weight: 600 !important;
+  line-height: 1 !important;
+  letter-spacing: 0.01em !important;
+  text-decoration: none !important;
+  text-transform: none !important;
+  box-shadow: none !important;
+  appearance: none !important;
+  -webkit-appearance: none !important;
+  transition:
+    background-color 180ms cubic-bezier(0.4, 0, 0.2, 1),
+    transform 120ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.rc-poav1-total .rc-poav1-total-cta svg {
+  width: 14px !important;
+  height: 14px !important;
+  flex: 0 0 auto !important;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+.rc-poav1-total .rc-poav1-total-cta.is-loading {
+  cursor: wait !important;
+}
+
+.rc-poav1-total .rc-poav1-total-cta.is-loading svg {
+  display: none !important;
+}
+
+.rc-poav1-total .rc-poav1-total-cta.is-loading::before {
+  content: "" !important;
+  width: 14px !important;
+  height: 14px !important;
+  border-radius: 999px !important;
+  border: 2px solid rgba(255, 255, 255, 0.45) !important;
+  border-top-color: rgba(255, 255, 255, 1) !important;
+  box-sizing: border-box !important;
+  animation: rc-poav1-spin 0.85s linear infinite;
+}
+
+@keyframes rc-poav1-spin {
+  to { transform: rotate(360deg); }
+}
+
+.rc-poav1-total .rc-poav1-total-cta:hover:not(:disabled) {
+  background: #d75717 !important;
+}
+
+.rc-poav1-total .rc-poav1-total-cta:active:not(:disabled) {
+  transform: scale(0.97);
+}
+
+.rc-poav1-total .rc-poav1-total-cta:disabled,
+.rc-poav1-total .rc-poav1-total-cta[disabled] {
+  background: rgba(240, 101, 31, 0.8) !important;
+  color: #ffffff !important;
+  cursor: not-allowed !important;
+}
+
+html.dark .rc-poav1-total .rc-poav1-total-form {
+  background: rgba(255, 255, 255, 0.04) !important;
+  border-color: rgba(255, 255, 255, 0.1) !important;
+}
+
+html.dark .rc-poav1-total .rc-poav1-total-form:focus-within {
+  border-color: rgba(240, 101, 31, 0.6) !important;
+  box-shadow: 0 0 0 3px rgba(240, 101, 31, 0.18) !important;
+}
+
+html.dark .rc-poav1-total .rc-poav1-total-email {
+  color: #fafafa !important;
+}
+
+html.dark .rc-poav1-total .rc-poav1-total-email::placeholder {
+  color: rgba(255, 255, 255, 0.4);
+}
+
+@media (max-width: 560px) {
+  .rc-poav1-total .rc-poav1-total-form {
+    flex: 1 1 100% !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: none !important;
+    flex-direction: column !important;
+    align-items: stretch !important;
+    height: auto !important;
+    padding: 8px !important;
+    gap: 8px !important;
+    border-radius: 14px !important;
+    box-sizing: border-box !important;
+  }
+  .rc-poav1-total .rc-poav1-total-form-icon {
+    display: none !important;
+  }
+  .rc-poav1-total .rc-poav1-total-email {
+    padding: 10px 12px !important;
+    width: 100% !important;
+    line-height: 1.3 !important;
+  }
+  .rc-poav1-total .rc-poav1-total-cta {
+    width: 100% !important;
+    padding: 10px 16px !important;
+    min-height: 40px !important;
+  }
+}
+
+.rc-poav1-total-error {
+  flex: 1 1 100%;
+  color: #c33;
+  font-size: 0.875rem;
+}
+
+/* Dark-mode total banner */
+
+html.dark .rc-poav1-section {
+  background: var(--charcoal-900, #1a1a18);
+  color: #fafafa;
+}
+
+html.dark .rc-poav1-total {
+  background: #121311;
+  border-color: #232324;
+  box-shadow: none;
+}
+
+html.dark .rc-poav1-total-label {
+  color: rgba(255, 255, 255, 0.55);
+}
+
+html.dark .rc-poav1-total-value {
+  color: #f0651f;
+}
+
+/* Motion keyframes */
+
+@keyframes rc-poav1-total-enter {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+    filter: blur(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+    filter: blur(0);
+  }
+}
+
+@keyframes rc-poav1-fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(2px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
