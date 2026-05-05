@@ -15,7 +15,8 @@ const SESSION_KEY = "vaudit-presignup-session";
 export function getAgentBaseUrl(override?: string): string {
   if (override) return override;
   try {
-    if (window.location.href.startsWith("https://vaudit.com")) {
+    const host = window.location.hostname;
+    if (host === "vaudit.com" || host === "www.vaudit.com") {
       return PROD_BASE;
     }
   } catch (_) {
