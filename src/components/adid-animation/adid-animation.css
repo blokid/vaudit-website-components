@@ -1,7 +1,7 @@
 .rc-adid {
   position: relative;
-  width: 100%;
-  max-width: min(90vw, calc(88vh * 1280 / 1024));
+  width: min(90vw, calc(88vh * 1280 / 1024));
+  max-width: 100%;
   aspect-ratio: 1280 / 1024;
   margin: 0 auto;
   font-family: inherit;
