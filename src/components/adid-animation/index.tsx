@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import clsx from "clsx";
 import type { ComponentMeta } from "../../registry";
 import { assetUrl } from "../../asset-base";
@@ -28,13 +28,6 @@ type AdidAnimationProps = {
   notifications?: string[];
   /** Cycle interval in milliseconds. Defaults to 3000. */
   intervalMs?: number;
-  /**
-   * Cap the rendered width. Accepts any CSS length/percentage (e.g.
-   * `"60%"`, `"600px"`, `"40rem"`). Composes with the existing viewport
-   * clamp — final width is `min(<maxWidth>, 90vw, aspect-clamped-height)`.
-   * Defaults to no extra cap.
-   */
-  maxWidth?: string;
 };
 
 export const meta: ComponentMeta<AdidAnimationProps> = {
@@ -58,17 +51,9 @@ export const meta: ComponentMeta<AdidAnimationProps> = {
       description: "Cycle interval in milliseconds.",
       default: "3000",
     },
-    maxWidth: {
-      type: "string",
-      description:
-        'CSS length or percentage capping rendered width (e.g. "60%", "600px"). Composes with the viewport clamp.',
-      default: "none",
-    },
   },
   variants: {
     "default": {},
-    "capped 60%": { maxWidth: "60%" },
-    "capped 600px": { maxWidth: "600px" },
   },
 };
 
@@ -76,7 +61,6 @@ export default function AdidAnimation({
   frames = DEFAULT_FRAMES,
   notifications = DEFAULT_NOTIF_TEXTS,
   intervalMs = DEFAULT_INTERVAL_MS,
-  maxWidth,
 }: AdidAnimationProps) {
   const [notifIdx, setNotifIdx] = useState(0);
   const [fading, setFading] = useState(false);
@@ -98,12 +82,8 @@ export default function AdidAnimation({
   const orange = words.slice(0, 3).join(" ");
   const white = words.slice(3).join(" ");
 
-  const style = maxWidth
-    ? ({ "--rc-adid-max-width": maxWidth } as React.CSSProperties)
-    : undefined;
-
   return (
-    <div className="rc-adid" style={style}>
+    <div className="rc-adid">
       {frames.map((src, i) => (
         <div
           key={`${src}-${i}`}
