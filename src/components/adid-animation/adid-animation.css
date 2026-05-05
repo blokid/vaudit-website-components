@@ -162,7 +162,7 @@
 }
 .rc-adid__notif-text {
   display: block;
-  font-size: clamp(10px, 1.7cqw, 22px);
+  font-size: clamp(12px, 2.1cqw, 22px);
   font-weight: 800;
   letter-spacing: 0.02em;
   white-space: nowrap;
