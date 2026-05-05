@@ -1,10 +1,11 @@
 .rc-adid {
   position: relative;
-  width: min(90vw, calc(88vh * 1280 / 1024));
+  width: 100%;
   max-width: min(90vw, calc(88vh * 1280 / 1024));
   aspect-ratio: 1280 / 1024;
   margin: 0 auto;
   font-family: inherit;
+  container-type: inline-size;
   animation: rc-adid-stage-in 0.8s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
@@ -152,7 +153,7 @@
   justify-content: center;
   background: #1e1e22;
   border: none;
-  border-radius: clamp(12px, 1.875vw, 36px);
+  border-radius: clamp(8px, 2.8cqw, 36px);
   overflow: hidden;
   text-align: center;
   pointer-events: none;
@@ -161,7 +162,7 @@
 }
 .rc-adid__notif-text {
   display: block;
-  font-size: clamp(15px, 2vw, 22px);
+  font-size: clamp(10px, 1.7cqw, 22px);
   font-weight: 800;
   letter-spacing: 0.02em;
   white-space: nowrap;
