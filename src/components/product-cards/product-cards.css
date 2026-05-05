@@ -104,46 +104,20 @@ html.dark .product-card-grid .pa-card:hover {
   }
 }
 
-/* ── Preview head (icon + title) ─────────────────────── */
-.preview-head {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 10px;
-}
-
-.preview-logos {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  flex-shrink: 0;
-}
-
-.p-logo {
-  width: 22px;
-  height: 22px;
-  padding: 3px;
-  background: #ffffff;
-  border-radius: 5px;
-  box-sizing: border-box;
-  display: block;
-  object-fit: contain;
-  flex-shrink: 0;
-}
-
+/* ── Title (top of card, centered) ───────────────────── */
 .preview-title {
-  color: var(--text-primary);
-  font-size: 1rem !important;
-  font-weight: 500;
+  color: #ffffff;
+  font-size: 1.375rem !important;
+  font-weight: 600;
   letter-spacing: -0.01em !important;
-  margin: 0;
-  display: inline-flex;
+  margin: 0 0 8px;
+  padding: 4px 0 6px;
+  display: flex;
   align-items: center;
-  gap: 6px;
+  justify-content: center;
+  gap: 10px;
   min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  text-align: center;
 }
 
 html.dark .preview-title {
@@ -151,7 +125,7 @@ html.dark .preview-title {
 }
 
 .preview-title .emoji {
-  font-size: 0.875rem;
+  font-size: 1.125rem;
   line-height: 1;
   display: inline-flex;
   align-items: center;
@@ -168,16 +142,47 @@ html.dark .preview-title {
   display: block;
 }
 
+.preview-title .title-icon {
+  width: 1.5em;
+  height: 1.5em;
+  object-fit: contain;
+  display: block;
+  flex-shrink: 0;
+}
+
+/* ── Logos (below viz, centered, larger) ─────────────── */
+.preview-logos {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  flex-shrink: 0;
+  margin-top: 4px;
+  margin-bottom: 14px;
+}
+
+.p-logo {
+  width: 36px;
+  height: 36px;
+  padding: 4px;
+  background: #ffffff;
+  border-radius: 7px;
+  box-sizing: border-box;
+  display: block;
+  object-fit: contain;
+  flex-shrink: 0;
+}
+
 .preview-desc {
   margin: 0;
-  color: var(--text-secondary);
+  color: #ffffff;
   font-size: 0.875rem !important;
   letter-spacing: normal !important;
   line-height: 1.5;
 }
 
 html.dark .preview-desc {
-  color: rgba(255, 255, 255, 0.45);
+  color: #ffffff;
 }
 
 /* ── Learn-more CTA (per-card opt-in via override.cta) ─ */

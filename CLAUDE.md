@@ -87,97 +87,59 @@ Cache busting: tags and commit SHAs are immutable on jsDelivr. `@main` caches ~1
 
 ## Webflow custom-code
 
-**Head** — paste this once. Must be synchronous-inline (not from the CDN) so it applies before the body parses. The selector stops matching the moment React commits and sets `data-rc-mounted="true"`, so the skeleton disappears automatically.
+**Head** — paste this once. Must be synchronous-inline (not from the CDN) so it applies before the body parses. Combines a per-marker anti-flicker cloak with a full-page loading overlay; both clear automatically once the bundle has loaded and the bootstrap has set `html.rc-ready`.
 
 ```html
 <style>
-  @property --rc-shimmer-angle {
-    syntax: "<angle>";
-    initial-value: 0deg;
-    inherits: false;
+  /* Anti-flicker cloak: hide any [data-rc] markers as a safety net while
+     the bundle hasn't mounted them yet. */
+  [data-rc]:not([data-rc-mounted="true"]) { visibility: hidden; }
+
+  /* Full-page loader — covers the page until the bundle has loaded AND
+     the bootstrap has mounted every initial [data-rc] marker (it sets
+     html.rc-ready once that's done). Pure CSS, no extra HTML or JS. */
+  body::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    background: #ffffff;
+    z-index: 99998;
+    transition: opacity 380ms ease-out, visibility 0s 380ms;
+    pointer-events: none;
   }
-  [data-rc]:not([data-rc-mounted="true"]) {
-    --rc-bg: #ffffff;
-    --rc-border-dim: 0.22;
-    --rc-arc-a: 255, 150, 80;
-    --rc-arc-b: 255, 120, 50;
-    position: relative;
-    min-height: 240px;
-    padding: 20px;
-    border-radius: 22px;
-    border: 2px solid transparent;
-    isolation: isolate;
-    background:
-      linear-gradient(var(--rc-bg), var(--rc-bg)) padding-box,
-      conic-gradient(
-        from var(--rc-shimmer-angle),
-        rgba(240, 101, 31, var(--rc-border-dim)) 0deg,
-        rgba(240, 101, 31, var(--rc-border-dim)) 150deg,
-        rgba(var(--rc-arc-a), 0.95) 172deg,
-        rgba(var(--rc-arc-b), 1) 180deg,
-        rgba(var(--rc-arc-a), 0.95) 188deg,
-        rgba(240, 101, 31, var(--rc-border-dim)) 210deg,
-        rgba(240, 101, 31, var(--rc-border-dim)) 360deg
-      ) border-box;
-    animation: rc-shimmer 5s cubic-bezier(0.45, 0.05, 0.55, 0.95) infinite;
-  }
-  [data-rc="presignup-agent"]:not([data-rc-mounted="true"]) {
-    min-height: 720px;
-  }
-  [data-rc]:not([data-rc-mounted="true"]) > * { visibility: hidden; }
-  [data-rc]:not([data-rc-mounted="true"])::before {
+  body::after {
     content: "Vaudit";
-    position: absolute;
+    position: fixed;
     inset: 0;
     display: flex;
     align-items: center;
     justify-content: center;
     font-family: inherit;
     font-weight: 700;
-    font-size: 1.75rem;
+    font-size: 2.25rem;
     letter-spacing: -0.02em;
     color: #f0651f;
-    z-index: 1;
-    animation: rc-wordmark-pulse 1.6s ease-in-out infinite;
-  }
-  [data-rc]:not([data-rc-mounted="true"])::after {
-    content: "";
-    position: absolute;
-    inset: -90px;
-    z-index: -1;
+    z-index: 99999;
+    animation: vaudit-loader-pulse 1.4s ease-in-out infinite;
+    transition: opacity 380ms ease-out;
     pointer-events: none;
-    border-radius: inherit;
-    filter: blur(60px);
-    opacity: 0.55;
-    background: conic-gradient(
-      from var(--rc-shimmer-angle),
-      transparent 0deg,
-      transparent 140deg,
-      rgba(240, 101, 31, 0.32) 180deg,
-      transparent 220deg,
-      transparent 360deg
-    );
   }
-  @keyframes rc-shimmer {
-    to { --rc-shimmer-angle: 360deg; }
+  @keyframes vaudit-loader-pulse {
+    0%, 100% { transform: scale(1);    opacity: 0.7; }
+    50%      { transform: scale(1.04); opacity: 1;   }
   }
-  @keyframes rc-wordmark-pulse {
-    0%, 100% { opacity: 0.55; }
-    50%      { opacity: 1; }
+  html.rc-ready body::before,
+  html.rc-ready body::after {
+    opacity: 0;
+    visibility: hidden;
   }
-  html.dark [data-rc]:not([data-rc-mounted="true"]) {
-    --rc-bg: #0f100e;
-    --rc-border-dim: 0.18;
-    --rc-arc-a: 255, 180, 120;
-    --rc-arc-b: 255, 215, 170;
-  }
-  html.dark [data-rc]:not([data-rc-mounted="true"])::after {
-    opacity: 0.75;
-  }
+  html.dark body::before { background: #0a0a09; }
 </style>
 ```
 
-The block does three things at once: cloaks any nested HTML the Webflow author left inside the marker, paints a brand-orange shimmer card with a rotating conic-gradient border glow + outer blurred halo (mirrors the input card's `--sim-shimmer-angle` treatment so the loading state previews the eventual component), and centers a pulsing "Vaudit" wordmark in `#f0651f`. Per-component `min-height` overrides keep the skeleton close to the eventual component size so layout doesn't jump on mount. Animation runs unconditionally — this is a marketing surface, the motion is part of the brand identity.
+How it works: while the bundle is in flight from jsDelivr, `body::before` paints a full-viewport solid cover and `body::after` pulses the brand-orange "Vaudit" wordmark on top. Once `src/main.tsx` finishes mounting every initial `[data-rc]` marker on the page, it sets `html.rc-ready`; the selector flip kicks the 380 ms opacity transition and both pseudo-elements fade out, revealing the page. No extra HTML or JS to install — purely CSS reacting to a class the bundle already toggles.
+
+If the bundle never loads (network failure, ad-blocker), the loader stays visible — fine for staging; if you want a max-duration fallback for production, set `html.rc-ready` from a `setTimeout` after a few seconds of grace.
 
 **Footer** — bundle and stylesheet from jsDelivr:
 

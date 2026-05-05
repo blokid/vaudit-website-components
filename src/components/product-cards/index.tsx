@@ -18,6 +18,17 @@ export type ProductCardOverride = {
    * change it.
    */
   cta?: boolean | { label?: string };
+  /**
+   * Replace the built-in title SVG icon with a custom image. Pass an
+   * absolute URL (e.g. a Webflow asset). Decorative — the title text is
+   * the accessible label.
+   */
+  titleIcon?: string;
+  /**
+   * Replace the card's default vendor logo row. Pass `[]` to hide the row
+   * entirely; pass an array of `{ src, alt }` to swap in a different set.
+   */
+  vendorIcons?: { src: string; alt: string }[];
 };
 
 export type ProductCardsProps = {
@@ -50,9 +61,9 @@ export const meta: ComponentMeta<ProductCardsProps> = {
       default: "all 6 in default order",
     },
     overrides: {
-      type: "Partial<Record<ProductKey, { title?: string; description?: string; href?: string; cta?: boolean | { label?: string } }>>",
+      type: "Partial<Record<ProductKey, { title?: string; description?: string; href?: string; cta?: boolean | { label?: string }; titleIcon?: string; vendorIcons?: { src: string; alt: string }[] }>>",
       description:
-        'Per-key overrides for title, description, link target, and/or CTA. Pass `href` to retarget the whole card (e.g. point `pay` at a new `/vendor-id` page). Pass `cta: true` to show a "Learn More →" affordance, or `{ label }` to customize.',
+        'Per-key overrides for title, description, link target, CTA, title icon, and/or vendor icon row. Pass `href` to retarget the whole card. Pass `cta: true` to show a "Learn More →" affordance, or `{ label }` to customize. Pass `titleIcon` (URL) to swap the built-in SVG icon for a custom image. Pass `vendorIcons` to swap the default logo row (use `[]` to hide it).',
       default: "none",
     },
   },
@@ -119,16 +130,27 @@ export default function ProductCards({ order, overrides }: ProductCardsProps) {
         const ctaObject = typeof ctaConfig === "object" ? ctaConfig : null;
         const ctaLabel = ctaObject?.label ?? "Learn More";
         const href = override?.href ?? card.href;
+        const titleIcon = override?.titleIcon;
+        const logos = override?.vendorIcons ?? card.logos;
         return (
           <a key={key} className="pa-card preview" data-key={key} href={href}>
-            <div className="card-preview-viz">{card.viz}</div>
-            <div className="preview-head">
-              <div className="preview-title">
+            <div className="preview-title">
+              {titleIcon ? (
+                <img
+                  className="title-icon"
+                  src={titleIcon}
+                  alt=""
+                  loading="lazy"
+                />
+              ) : (
                 <span className="emoji">{card.emoji}</span>
-                {title}
-              </div>
+              )}
+              {title}
+            </div>
+            <div className="card-preview-viz">{card.viz}</div>
+            {logos.length > 0 && (
               <div className="preview-logos">
-                {card.logos.map((logo) => (
+                {logos.map((logo) => (
                   <img
                     key={logo.src}
                     className="p-logo"
@@ -138,7 +160,7 @@ export default function ProductCards({ order, overrides }: ProductCardsProps) {
                   />
                 ))}
               </div>
-            </div>
+            )}
             <p className="preview-desc">{description}</p>
             {ctaEnabled && (
               <span className="product-card-cta" aria-hidden="true">

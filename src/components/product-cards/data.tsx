@@ -73,7 +73,7 @@ const emojis: Record<ProductKey, ReactNode> = {
   ),
 };
 
-const vizes: Record<ProductKey, ReactNode> = {
+export const ANIMATIONS: Record<ProductKey, ReactNode> = {
   ship: (
     <div className="viz viz-ship">
       <div className="ship-path" aria-hidden="true" />
@@ -158,7 +158,7 @@ export const PRODUCTS: Record<ProductKey, ProductCard> = {
     description:
       "Verifies shipping charges against carrier terms to identify overcharges and missed refunds.",
     emoji: emojis.ship,
-    viz: vizes.ship,
+    viz: ANIMATIONS.ship,
     logos: [
       { src: `${CDN}/69e8a9a37f220d58951c852a_fedex.svg`, alt: "FedEx" },
       { src: `${CDN}/69e8a9a3e807d12509c3513b_ups.svg`, alt: "UPS" },
@@ -173,7 +173,7 @@ export const PRODUCTS: Record<ProductKey, ProductCard> = {
     description:
       "Verifies cloud usage against billing to identify overcharges and unused spend.",
     emoji: emojis.kloud,
-    viz: vizes.kloud,
+    viz: ANIMATIONS.kloud,
     logos: [
       { src: `${CDN}/69e8a986401a04fdfb516c2f_aws.svg`, alt: "AWS" },
       { src: `${CDN}/69e8a98614c119b6d0b24519_gcp.svg`, alt: "Google Cloud" },
@@ -186,7 +186,7 @@ export const PRODUCTS: Record<ProductKey, ProductCard> = {
     description:
       "Verifies SaaS usage against billing to identify unused licenses and overcharges.",
     emoji: emojis.seat,
-    viz: vizes.seat,
+    viz: ANIMATIONS.seat,
     logos: [
       { src: `${CDN}/69e8aa1be867fd9d7a66f538_salesforce.svg`, alt: "Salesforce" },
       { src: `${CDN}/69e8a997ae02448a9e62d5c0_google-workspace.svg`, alt: "Google Workspace" },
@@ -199,7 +199,7 @@ export const PRODUCTS: Record<ProductKey, ProductCard> = {
     description:
       "Verifies AI usage against billing to identify overcharges and inefficient spend.",
     emoji: emojis.token,
-    viz: vizes.token,
+    viz: ANIMATIONS.token,
     logos: [
       { src: `${CDN}/69e8a9ac553a539363414ad2_openai.svg`, alt: "OpenAI" },
       { src: `${CDN}/69e8a9ac046b54c24d008aed_anthropic.svg`, alt: "Anthropic" },
@@ -213,7 +213,7 @@ export const PRODUCTS: Record<ProductKey, ProductCard> = {
     description:
       "Verifies ad traffic against billing to identify invalid charges and discrepancies.",
     emoji: emojis.ad,
-    viz: vizes.ad,
+    viz: ANIMATIONS.ad,
     logos: [
       { src: `${CDN}/69e8a965ab121368400dc44f_google-ads.svg`, alt: "Google Ads" },
       { src: `${CDN}/69e8a965d6f564a86b177302_meta-ads.svg`, alt: "Meta Ads" },
@@ -228,7 +228,7 @@ export const PRODUCTS: Record<ProductKey, ProductCard> = {
     description:
       "Verifies payment fees against contracted rates to identify overcharges and hidden markups.",
     emoji: emojis.pay,
-    viz: vizes.pay,
+    viz: ANIMATIONS.pay,
     logos: [
       { src: `${CDN}/69e8a98d555377a44d02f6f1_stripe.svg`, alt: "Stripe" },
       { src: `${CDN}/69e8a98df379ab43b9e1f8fc_adyen.svg`, alt: "Adyen" },
