@@ -96,7 +96,6 @@ export default function AdidAnimation({
         </div>
       ))}
 
-      <div className="rc-adid__corner-glow" />
 
       <div className="rc-adid__col-flash" />
       <div className="rc-adid__col-flash" />
@@ -119,7 +118,6 @@ export default function AdidAnimation({
         <div className="rc-adid__sweep-bar" />
       </div>
 
-      <div className="rc-adid__scanlines" />
 
       <div className="rc-adid__notif">
         <span

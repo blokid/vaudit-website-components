@@ -29,20 +29,6 @@
 }
 .rc-adid__frame--active { opacity: 1; }
 
-.rc-adid__scanlines {
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  z-index: 20;
-  background: repeating-linear-gradient(
-    to bottom,
-    transparent,
-    transparent 3px,
-    rgba(0, 0, 0, 0.06) 3px,
-    rgba(0, 0, 0, 0.06) 4px
-  );
-}
-
 .rc-adid__sweep {
   position: absolute;
   inset: 0;
@@ -174,19 +160,3 @@
 .rc-adid__notif-orange { color: #fe602c; }
 .rc-adid__notif-white  { color: #ffffff; }
 
-.rc-adid__corner-glow {
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  z-index: 6;
-  animation: rc-adid-glow-breathe 4s ease-in-out infinite;
-  background: radial-gradient(
-    ellipse 70% 50% at 50% 50%,
-    rgba(254, 96, 44, 0.06) 0%,
-    transparent 70%
-  );
-}
-@keyframes rc-adid-glow-breathe {
-  0%, 100% { opacity: 0.6; }
-  50%      { opacity: 1; }
-}
