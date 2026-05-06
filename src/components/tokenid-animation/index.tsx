@@ -209,7 +209,7 @@ function enrichSVG(svg: SVGSVGElement) {
   const portBoxes = Array.from(svg.querySelectorAll<SVGRectElement>("rect")).filter(
     (r) => {
       const s = r.getAttribute("style") || "";
-      return s.includes("fill:#1e1e22") && Number(r.getAttribute("width")) === 20;
+      return s.includes("fill:#1a1a17") && Number(r.getAttribute("width")) === 20;
     },
   );
   portBoxes.forEach((r, i) => {

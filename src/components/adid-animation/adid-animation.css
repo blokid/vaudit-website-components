@@ -152,7 +152,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: #1e1e22;
+  background: #1a1a17;
   border: none;
   border-radius: clamp(8px, 2.8cqw, 36px);
   overflow: hidden;
