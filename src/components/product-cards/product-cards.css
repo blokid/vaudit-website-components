@@ -175,14 +175,10 @@ html.dark .preview-title {
 
 .preview-desc {
   margin: 0;
-  color: #ffffff;
+  color: inherit;
   font-size: 0.875rem !important;
   letter-spacing: normal !important;
   line-height: 1.5;
-}
-
-html.dark .preview-desc {
-  color: #ffffff;
 }
 
 /* ── Learn-more CTA (per-card opt-in via override.cta) ─ */

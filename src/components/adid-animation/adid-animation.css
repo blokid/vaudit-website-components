@@ -6,6 +6,7 @@
   margin: 0 auto;
   font-family: inherit;
   container-type: inline-size;
+  background: #1a1a17;
   animation: rc-adid-stage-in 0.8s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
