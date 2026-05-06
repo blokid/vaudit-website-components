@@ -8,6 +8,9 @@ const FALLBACK_BASE =
 
 function detectBase(): string {
   if (typeof document === "undefined") return FALLBACK_BASE;
+  const override = (window as unknown as { VAUDIT_ASSET_BASE?: string })
+    .VAUDIT_ASSET_BASE;
+  if (override) return override.endsWith("/") ? override : override + "/";
   const script = document.currentScript as HTMLScriptElement | null;
   const src = script?.src;
   if (!src) return FALLBACK_BASE;

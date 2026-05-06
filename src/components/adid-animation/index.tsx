@@ -53,7 +53,7 @@ export const meta: ComponentMeta<AdidAnimationProps> = {
     },
   },
   variants: {
-    "default": {},
+    default: {},
   },
 };
 
@@ -96,7 +96,6 @@ export default function AdidAnimation({
         </div>
       ))}
 
-
       <div className="rc-adid__col-flash" />
       <div className="rc-adid__col-flash" />
       <div className="rc-adid__col-flash" />
@@ -113,11 +112,6 @@ export default function AdidAnimation({
       </div>
 
       <div className="rc-adid__scan-line" />
-
-      <div className="rc-adid__sweep">
-        <div className="rc-adid__sweep-bar" />
-      </div>
-
 
       <div className="rc-adid__notif">
         <span

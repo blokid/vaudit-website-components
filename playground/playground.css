@@ -148,6 +148,11 @@ html, body {
   min-height: 200px;
 }
 
+html.dark .pg-stage {
+  background: #1a1a18;
+  border-color: #1a1a18;
+}
+
 .pg-stage--full-width > * {
   width: 100%;
 }

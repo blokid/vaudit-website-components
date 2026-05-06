@@ -13,7 +13,7 @@ export default defineConfig(({ mode }) => {
     return {
       root: fileURLToPath(new URL("./playground", import.meta.url)),
       plugins: [reactPlugin],
-      server: { port: 5180, open: true },
+      server: { port: 5180, open: true, fs: { allow: [".."] } },
       resolve: {
         alias: {
           "@components": fileURLToPath(new URL("./src/components", import.meta.url)),

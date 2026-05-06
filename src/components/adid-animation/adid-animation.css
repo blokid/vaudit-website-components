@@ -6,7 +6,6 @@
   margin: 0 auto;
   font-family: inherit;
   container-type: inline-size;
-  background: #1a1a17;
   animation: rc-adid-stage-in 0.8s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
@@ -112,6 +111,8 @@
   z-index: 8;
   animation: rc-adid-col-glow 6s ease-in-out infinite;
   opacity: 0;
+  mask-image: linear-gradient(to bottom, transparent 0%, black 18%, black 82%, transparent 100%);
+  -webkit-mask-image: linear-gradient(to bottom, transparent 0%, black 18%, black 82%, transparent 100%);
 }
 .rc-adid__col-flash:nth-child(1) { left: calc(253 / 1280 * 100%); width: calc(97 / 1280 * 100%); animation-delay: 0s; }
 .rc-adid__col-flash:nth-child(2) { left: calc(350 / 1280 * 100%); width: calc(97 / 1280 * 100%); animation-delay: 0.7s; }

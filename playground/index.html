@@ -9,6 +9,11 @@
     <style>
       [data-rc]:not([data-rc-mounted="true"]) { visibility: hidden; }
     </style>
+    <script>
+      // Dev-only: load assets from the local repo via vite's filesystem
+      // serving so changes to SVGs are reflected immediately (no CDN cache).
+      window.VAUDIT_ASSET_BASE = "/@fs/Users/phantomfaux/Projects/vaudit-components/";
+    </script>
   </head>
   <body>
     <div id="playground-root"></div>
