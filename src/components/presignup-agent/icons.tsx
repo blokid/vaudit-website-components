@@ -2,7 +2,7 @@
 // glyphs that inherit `currentColor` so the same icon picks up the right
 // hue in both themes (orange in eyebrows, muted gray in pending rows).
 
-import type { SVGProps } from "react";
+import type { ComponentType, SVGProps } from "react";
 
 const stroke = {
   fill: "none",
@@ -177,12 +177,100 @@ export function IconCaretRight(props: SVGProps<SVGSVGElement>) {
   );
 }
 
+export function IconGlobe(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg viewBox="0 0 24 24" {...stroke} {...props}>
+      <circle cx="12" cy="12" r="9" />
+      <path d="M3 12h18" />
+      <path d="M12 3a14 14 0 0 1 0 18" />
+      <path d="M12 3a14 14 0 0 0 0 18" />
+    </svg>
+  );
+}
+
+export function IconStack(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg viewBox="0 0 24 24" {...stroke} {...props}>
+      <path d="m12 3 9 5-9 5-9-5 9-5Z" />
+      <path d="m3 13 9 5 9-5" />
+      <path d="m3 17 9 5 9-5" />
+    </svg>
+  );
+}
+
+export function IconBuilding(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg viewBox="0 0 24 24" {...stroke} {...props}>
+      <rect x="4" y="3" width="16" height="18" rx="1.5" />
+      <path d="M8 7h2M8 11h2M8 15h2M14 7h2M14 11h2M14 15h2" />
+    </svg>
+  );
+}
+
+export function IconResearch(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg viewBox="0 0 24 24" {...stroke} {...props}>
+      <circle cx="11" cy="11" r="6" />
+      <path d="m20 20-4.3-4.3" />
+    </svg>
+  );
+}
+
+export function IconChart(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg viewBox="0 0 24 24" {...stroke} {...props}>
+      <path d="M4 19V5" />
+      <path d="M4 19h16" />
+      <path d="M8 15v-4" />
+      <path d="M12 15V9" />
+      <path d="M16 15v-7" />
+    </svg>
+  );
+}
+
+export function IconLink(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg viewBox="0 0 24 24" {...stroke} {...props}>
+      <path d="M9 15a4 4 0 0 1 0-6l2-2a4 4 0 0 1 6 6l-1 1" />
+      <path d="M15 9a4 4 0 0 1 0 6l-2 2a4 4 0 0 1-6-6l1-1" />
+    </svg>
+  );
+}
+
+export function IconAlert(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg viewBox="0 0 24 24" {...stroke} {...props}>
+      <path d="M12 3 2 21h20L12 3Z" />
+      <path d="M12 10v4" />
+      <path d="M12 17.5v.5" />
+    </svg>
+  );
+}
+
 /** Backend category id → icon component. */
 export const CATEGORY_ICONS = {
   ad_id: IconAd,
   vendor_id: IconVendor,
   token_id: IconToken,
 } as const;
+
+/** Profiler step → icon component (for the live-audit timeline). */
+export const PROFILER_ICONS: Record<string, ComponentType<SVGProps<SVGSVGElement>>> = {
+  dns: IconGlobe,
+  tech: IconStack,
+  apollo: IconBuilding,
+  business: IconResearch,
+  spend: IconChart,
+};
+
+/** Profiler step → display label. */
+export const PROFILER_LABELS: Record<string, string> = {
+  dns: "DNS records",
+  tech: "Tech stack",
+  apollo: "Company profile",
+  business: "Business research",
+  spend: "Spend benchmarks",
+};
 
 /** Backend category id → display label used in cards / rows. */
 export const CATEGORY_LABELS: Record<string, string> = {

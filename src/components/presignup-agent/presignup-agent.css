@@ -503,6 +503,256 @@ html.dark .rc-pa-card {
   transition: width 350ms ease;
 }
 
+/* ---- profiler timeline (replaces "Pending" rows during the
+   pre-products window of the estimate phase) ---------------------------- */
+
+.rc-pa-timeline {
+  display: flex;
+  flex-direction: column;
+}
+
+.rc-pa-timeline__row {
+  display: grid;
+  grid-template-columns: 22px 1.1fr 1.4fr;
+  grid-template-areas:
+    "status label caption"
+    ".      research research";
+  gap: 4px 10px;
+  align-items: center;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--rc-pa-row-divider);
+  font-size: 14px;
+}
+
+.rc-pa-timeline__row:last-child {
+  border-bottom: 0;
+}
+
+.rc-pa-timeline__status {
+  grid-area: status;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  border: 1.5px solid var(--rc-pa-border-strong);
+  background: transparent;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--rc-pa-fg-muted);
+}
+
+.rc-pa-timeline__row.is-started .rc-pa-timeline__status {
+  border-color: var(--rc-pa-orange);
+  background: rgba(254, 96, 44, 0.12);
+  color: var(--rc-pa-orange);
+}
+
+.rc-pa-timeline__row.is-done .rc-pa-timeline__status {
+  border-color: var(--rc-pa-orange);
+  background: var(--rc-pa-orange);
+  color: var(--rc-pa-on-orange);
+}
+
+.rc-pa-timeline__row.is-failed .rc-pa-timeline__status {
+  border-color: #c33;
+  color: #c33;
+}
+
+html.dark .rc-pa-timeline__row.is-failed .rc-pa-timeline__status {
+  border-color: #ff8c66;
+  color: #ff8c66;
+}
+
+.rc-pa-timeline__status svg {
+  width: 11px;
+  height: 11px;
+}
+
+.rc-pa-timeline__spinner {
+  animation: rc-pa-spin 1s linear infinite;
+}
+
+.rc-pa-timeline__label {
+  grid-area: label;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--rc-pa-fg);
+  font-weight: 500;
+}
+
+.rc-pa-timeline__icon {
+  width: 16px;
+  height: 16px;
+  color: var(--rc-pa-orange);
+}
+
+.rc-pa-timeline__row.is-pending .rc-pa-timeline__label,
+.rc-pa-timeline__row.is-pending .rc-pa-timeline__icon {
+  color: var(--rc-pa-fg-muted);
+}
+
+.rc-pa-timeline__caption {
+  grid-area: caption;
+  text-align: right;
+  color: var(--rc-pa-fg-soft);
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+}
+
+.rc-pa-timeline__row.is-started .rc-pa-timeline__caption {
+  color: var(--rc-pa-orange);
+}
+
+.rc-pa-timeline__row.is-failed .rc-pa-timeline__caption {
+  color: #c33;
+}
+
+html.dark .rc-pa-timeline__row.is-failed .rc-pa-timeline__caption {
+  color: #ff8c66;
+}
+
+.rc-pa-timeline__row.is-pending .rc-pa-timeline__caption {
+  color: var(--rc-pa-fg-muted);
+  font-style: italic;
+}
+
+/* ---- research accordion (Claude.ai-style "Completed N steps") --------- */
+
+.rc-pa-research {
+  grid-area: research;
+  margin-top: 8px;
+  border: 1px solid var(--rc-pa-border);
+  border-radius: 12px;
+  background: var(--rc-pa-card-bg);
+  overflow: hidden;
+}
+
+.rc-pa-research__toggle {
+  appearance: none;
+  background: transparent;
+  border: 0;
+  width: 100%;
+  display: grid;
+  grid-template-columns: 16px 1fr 16px;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  cursor: pointer;
+  text-align: left;
+  font: inherit;
+  color: var(--rc-pa-fg);
+  font-size: 13px;
+  transition: background 150ms ease;
+}
+
+.rc-pa-research__toggle:hover {
+  background: var(--rc-pa-elevated-bg);
+}
+
+.rc-pa-research__leading {
+  width: 14px;
+  height: 14px;
+  color: var(--rc-pa-orange);
+}
+
+.rc-pa-research__summary {
+  font-weight: 500;
+  color: var(--rc-pa-fg);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.rc-pa-research__chevron {
+  width: 14px;
+  height: 14px;
+  color: var(--rc-pa-fg-muted);
+  transition: transform 200ms ease;
+  justify-self: end;
+}
+
+.rc-pa-research.is-open .rc-pa-research__chevron {
+  transform: rotate(180deg);
+}
+
+.rc-pa-research__list {
+  list-style: none;
+  margin: 0;
+  padding: 4px 14px 12px 36px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  border-top: 1px solid var(--rc-pa-row-divider);
+  max-height: 320px;
+  overflow-y: auto;
+}
+
+.rc-pa-research__item {
+  display: grid;
+  grid-template-columns: 16px 1fr;
+  gap: 8px;
+  align-items: start;
+  font-size: 12.5px;
+  color: var(--rc-pa-fg-soft);
+  line-height: 1.5;
+  position: relative;
+}
+
+.rc-pa-research__item--narration {
+  color: var(--rc-pa-fg);
+  font-style: italic;
+}
+
+.rc-pa-research__item--soft {
+  color: var(--rc-pa-fg-muted);
+}
+
+.rc-pa-research__item--failed {
+  color: #c33;
+}
+
+html.dark .rc-pa-research__item--failed {
+  color: #ff8c66;
+}
+
+.rc-pa-research__item-icon {
+  width: 13px;
+  height: 13px;
+  margin-top: 2px;
+  color: var(--rc-pa-orange);
+  flex-shrink: 0;
+}
+
+.rc-pa-research__item--soft .rc-pa-research__item-icon {
+  color: var(--rc-pa-fg-muted);
+}
+
+.rc-pa-research__bullet {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--rc-pa-orange);
+  margin-top: 8px;
+  margin-left: 4px;
+}
+
+.rc-pa-research__text {
+  min-width: 0;
+  word-break: break-word;
+}
+
+.rc-pa-research__verb {
+  color: var(--rc-pa-fg);
+  font-weight: 600;
+}
+
+.rc-pa-research__url {
+  color: var(--rc-pa-fg);
+  font-family: ui-monospace, "SF Mono", Menlo, monospace;
+  font-size: 12px;
+}
+
 /* ---- results grid -------------------------------------------------------- */
 
 .rc-pa-grid {

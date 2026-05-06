@@ -1,4 +1,10 @@
-import type { Product, Vendor } from "./types";
+import type {
+  Product,
+  ProfilerState,
+  ProfilerStep,
+  ResearchEvent,
+  Vendor,
+} from "./types";
 
 const STAGING_BASE = "https://onboarding-agent.staging.vaudit.com";
 const PROD_BASE = "https://onboarding-agent.vaudit.com";
@@ -9,6 +15,7 @@ const SESSION_ENDPOINT = "/apps/presignup_agent/users/anonymous/sessions/";
 const RUN_SSE_ENDPOINT = "/run_sse";
 const AUDIT_REPORT_ENDPOINT = "/presignup/audit-report/";
 const ACCURATE_BREAKDOWN_ENDPOINT = "/presignup/accurate-breakdown/";
+const PROGRESS_SSE_ENDPOINT = "/presignup/progress/";
 
 const APP_NAME = "presignup_agent";
 const USER_ID = "anonymous";
@@ -327,6 +334,60 @@ export async function downloadAuditReport(
 
   const blob = await res.blob();
   return { blob, filename };
+}
+
+// ---------------------------------------------------------------------------
+// Progress SSE (Redis-backed per-step ticks during the estimate phase)
+// ---------------------------------------------------------------------------
+
+export type ProgressEvent =
+  | { step: ProfilerStep; state: ProfilerState; detail?: undefined }
+  | { step: "business"; state: "researching"; detail: ResearchEvent };
+
+/**
+ * Subscribe to `/presignup/progress/{sessionId}` and dispatch parsed events
+ * to the caller. Returns a teardown function — call it once the estimate
+ * is done (or the user navigates away) to close the EventSource.
+ *
+ * The endpoint is unauthenticated: the presignup token is single-use and
+ * has already been burned by the time the estimate is in flight, so the
+ * backend gates this route on session-id ownership only (the id is a
+ * client-generated UUID kept in localStorage, never exposed elsewhere).
+ */
+export function subscribePresignupProgress(
+  baseUrl: string,
+  sessionId: string,
+  onEvent: (event: ProgressEvent) => void,
+): () => void {
+  let es: EventSource | null = null;
+  try {
+    es = new EventSource(baseUrl + PROGRESS_SSE_ENDPOINT + encodeURIComponent(sessionId));
+  } catch (err) {
+    console.warn("[presignup-agent] progress SSE unavailable:", err);
+    return () => {};
+  }
+  const source = es;
+  source.onmessage = (ev: MessageEvent<string>) => {
+    if (!ev.data) return;
+    try {
+      const parsed = JSON.parse(ev.data) as ProgressEvent;
+      if (!parsed?.step || !parsed?.state) return;
+      onEvent(parsed);
+    } catch (_) {
+      /* malformed payload — ignore */
+    }
+  };
+  source.onerror = () => {
+    // Browser auto-reconnects. We keep the connection until the caller
+    // tears it down; nothing useful we can surface to the visitor here.
+  };
+  return () => {
+    try {
+      source.close();
+    } catch (_) {
+      /* ignore */
+    }
+  };
 }
 
 export function buildRunPayload(text: string, sessionId: string) {

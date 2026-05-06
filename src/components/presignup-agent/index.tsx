@@ -16,7 +16,9 @@ import {
   postAccurateBreakdown,
   resetSession,
   streamAgent,
+  subscribePresignupProgress,
 } from "./agent-api";
+import type { ProgressEvent } from "./agent-api";
 import {
   AgentMessage,
   AgentSection,
@@ -44,7 +46,6 @@ const SIGNUP_URL = "https://app.vaudit.com/v2/sign-up";
 
 // Pacing constants for the live-audit row animation. Long enough to feel
 // real, short enough not to slow the demo down.
-const TITLE_TICK_MS = 650;
 const ROW_ENTER_MS = 250;
 const ROW_VENDOR_MS = 280;
 const ROW_DONE_HOLD_MS = 220;
@@ -109,6 +110,10 @@ function queuedRows(): AuditRow[] {
     amount: 0,
   }));
 }
+
+/** Estimate-mode initial title — overridden by the active profiler step
+ *  as soon as progress events start arriving. */
+const INITIAL_ESTIMATE_TITLE = "Connecting to audit service";
 
 const SELECTION_LABEL: Record<AccurateSelection, string> = {
   ad_id: "Ad ID",
@@ -182,13 +187,16 @@ export default function PresignupAgent({ agentBaseUrl }: PresignupAgentProps) {
         kind: "live_audit",
         mode: "estimate",
         domain,
-        title: "Finding your vendors",
+        title: INITIAL_ESTIMATE_TITLE,
         total: 0,
         progress: 0,
         rows: blankRows(),
         completed: false,
+        profilers: {},
+        researchEvents: [],
       });
 
+      let closeProgress: () => void = () => {};
       try {
         const baseUrl = getAgentBaseUrl(agentBaseUrl);
         const sessionId = getSessionId();
@@ -200,14 +208,21 @@ export default function PresignupAgent({ agentBaseUrl }: PresignupAgentProps) {
         token = await getToken(baseUrl, controller.signal);
         if (cancelledRef.current) return;
 
+        // Subscribe to the per-step progress channel BEFORE we kick off
+        // the agent stream so we don't miss the first profiler `started`
+        // tick (Redis pub/sub drops messages with no live subscribers).
+        closeProgress = subscribePresignupProgress(
+          baseUrl,
+          sessionId,
+          (event) => applyProgressEvent(liveId, event, update),
+        );
+
         const stream = await streamAgent(
           baseUrl,
           buildRunPayload(domain, sessionId),
           token,
           controller.signal,
         );
-
-        const ticker = startTitleTicker(liveId, update);
 
         let pending = "";
         let committed = "";
@@ -228,7 +243,6 @@ export default function PresignupAgent({ agentBaseUrl }: PresignupAgentProps) {
           }
         });
         const accumulated = committed + pending;
-        ticker.stop();
 
         if (cancelledRef.current) return;
 
@@ -265,6 +279,7 @@ export default function PresignupAgent({ agentBaseUrl }: PresignupAgentProps) {
           retry: true,
         });
       } finally {
+        closeProgress();
         if (abortRef.current === controller) abortRef.current = null;
         setBusy(false);
       }
@@ -369,6 +384,8 @@ export default function PresignupAgent({ agentBaseUrl }: PresignupAgentProps) {
         progress: 0,
         rows: queuedRows(),
         completed: false,
+        profilers: {},
+        researchEvents: [],
       });
 
       const recalc = recalculateBreakdown(phase1, ranges, selection);
@@ -726,33 +743,72 @@ function AckText({ text }: { text: string }) {
 }
 
 // ---------------------------------------------------------------------------
-// Live-audit row animation
+// Progress-SSE → live-audit message
 // ---------------------------------------------------------------------------
 
-function startTitleTicker(
+const PROFILER_TITLE: Record<string, string> = {
+  dns: "Looking up DNS records",
+  tech: "Scanning your tech stack",
+  apollo: "Pulling company profile",
+  business: "Researching your business",
+  spend: "Estimating monthly spend",
+};
+
+const PROFILER_PRIORITY: ReadonlyArray<"business" | "tech" | "apollo" | "dns" | "spend"> = [
+  // Pick the title from the most "interesting" still-running step. Business
+  // takes priority because it has the longest visible tail (deep-research)
+  // and most users want to know that's what's happening.
+  "business",
+  "spend",
+  "tech",
+  "apollo",
+  "dns",
+];
+
+function applyProgressEvent(
   liveId: string,
+  event: ProgressEvent,
   update: (id: string, patch: (m: ChatMessage) => ChatMessage) => void,
 ) {
-  const titles = [
-    "Finding your vendors",
-    "Sizing recoverable spend",
-    "Running the audit",
-  ];
-  let i = 0;
-  const tick = () => {
-    update(liveId, (m) =>
-      m.kind === "live_audit" ? { ...m, title: titles[i] } : m,
+  update(liveId, (m) => {
+    if (m.kind !== "live_audit") return m;
+    // If the row-scan animation has already started, the rows take over the
+    // visual story — don't keep mutating the timeline header. We still want
+    // to record events though, so the research dropdown stays consistent.
+    const rowsActive = m.rows.some(
+      (row) => row.state === "active" || row.state === "done",
     );
-    i = Math.min(i + 1, titles.length - 1);
-  };
-  tick();
-  const handle = window.setInterval(tick, TITLE_TICK_MS);
-  return {
-    stop() {
-      window.clearInterval(handle);
-    },
-  };
+
+    if (event.state === "researching" && event.detail) {
+      return {
+        ...m,
+        researchEvents: [...m.researchEvents, event.detail],
+        title: rowsActive ? m.title : (PROFILER_TITLE.business ?? m.title),
+      };
+    }
+
+    const profilers = { ...m.profilers, [event.step]: event.state };
+    const nextTitle = rowsActive ? m.title : pickActiveTitle(profilers, m.title);
+    return { ...m, profilers, title: nextTitle };
+  });
 }
+
+function pickActiveTitle(
+  profilers: Partial<Record<string, "started" | "done" | "failed">>,
+  fallback: string,
+): string {
+  for (const step of PROFILER_PRIORITY) {
+    if (profilers[step] === "started") {
+      return PROFILER_TITLE[step] ?? fallback;
+    }
+  }
+  // Nothing in flight — keep the last title (or the connecting fallback).
+  return fallback;
+}
+
+// ---------------------------------------------------------------------------
+// Live-audit row animation
+// ---------------------------------------------------------------------------
 
 async function runScanSequence(
   liveId: string,
@@ -782,7 +838,10 @@ async function runScanSequence(
                   }
                 : row,
             ),
-            title: m.mode === "accurate" ? "Cross-checking vendor billing" : m.title,
+            title:
+              m.mode === "accurate"
+                ? "Cross-checking vendor billing"
+                : "Sizing recoverable spend",
           }
         : m,
     );

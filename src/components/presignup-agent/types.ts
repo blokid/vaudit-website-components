@@ -59,6 +59,33 @@ export type AuditRow = {
 export type LiveAuditMode = "estimate" | "accurate";
 
 // ---------------------------------------------------------------------------
+// Profiler progress (estimate phase only)
+// ---------------------------------------------------------------------------
+//
+// While the backend's `save_website_info` tool is running, it publishes
+// per-step progress events on a Redis pub/sub channel that the frontend
+// subscribes to via `/presignup/progress/{session_id}` (SSE). Two payload
+// shapes ride that channel:
+//
+//   1. {step, state: "started" | "done" | "failed"}
+//      — coarse per-profiler ticks. Drives the timeline below.
+//
+//   2. {step: "business", state: "researching", detail: {...}}
+//      — fine-grained timeline of the deep-research run inside the business
+//        profiler. `detail.type` is one of the five variants below.
+
+export type ProfilerStep = "dns" | "tech" | "apollo" | "business" | "spend";
+
+export type ProfilerState = "started" | "done" | "failed";
+
+export type ResearchEvent =
+  | { type: "narration"; text: string }
+  | { type: "search_started"; query: string }
+  | { type: "search_results"; results: Array<{ url: string; title: string | null }> }
+  | { type: "fetch_started"; url: string }
+  | { type: "fetch_completed"; url: string; ok: boolean };
+
+// ---------------------------------------------------------------------------
 // Chat thread
 // ---------------------------------------------------------------------------
 
@@ -91,6 +118,16 @@ export type LiveAuditMessage = Base & {
   rows: AuditRow[];
   /** True once all rows are done. */
   completed: boolean;
+  /**
+   * Per-profiler ticks observed on the progress SSE. Estimate phase only —
+   * empty in accurate mode, where no profilers run. The presence of any
+   * "started" entry tells the card to render the timeline view instead of
+   * the row-scan view; once any product row goes active, we hide the
+   * timeline so the rows can take centre stage.
+   */
+  profilers: Partial<Record<ProfilerStep, ProfilerState>>;
+  /** Streamed deep-research timeline (business profiler only). */
+  researchEvents: ResearchEvent[];
 };
 
 export type ResultsGridMessage = Base & {
