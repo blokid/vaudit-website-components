@@ -96,7 +96,6 @@ export default function AdidAnimation({
         </div>
       ))}
 
-      <div className="rc-adid__vignette" />
       <div className="rc-adid__corner-glow" />
 
       <div className="rc-adid__col-flash" />

@@ -174,18 +174,6 @@
 .rc-adid__notif-orange { color: #fe602c; }
 .rc-adid__notif-white  { color: #ffffff; }
 
-.rc-adid__vignette {
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  z-index: 5;
-  background: radial-gradient(
-    ellipse at center,
-    transparent 55%,
-    rgba(0, 0, 0, 0.45) 100%
-  );
-}
-
 .rc-adid__corner-glow {
   position: absolute;
   inset: 0;
