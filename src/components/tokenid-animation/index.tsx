@@ -243,6 +243,7 @@ function enrichSVG(svg: SVGSVGElement) {
     line.style.strokeDasharray = `${len}`;
     line.style.strokeDashoffset = `${len}`;
     line.style.setProperty("--rc-tokenid-len", `${len}`);
+    line.style.stroke = "var(--rc-tokenid-line-color)";
     line.style.animation = `rc-tokenid-draw-path 0.9s ease forwards ${(0.3 + i * 0.11).toFixed(2)}s`;
   });
 

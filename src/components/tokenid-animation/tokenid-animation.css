@@ -8,7 +8,10 @@
   user-select: none;
   font-family: inherit;
   container-type: inline-size;
+  --rc-tokenid-line-color: #000;
 }
+
+html.dark .rc-tokenid { --rc-tokenid-line-color: #fff; }
 
 .rc-tokenid__svg-wrap { width: 100%; height: 100%; }
 .rc-tokenid__svg-wrap svg { width: 100%; height: 100%; display: block; }
