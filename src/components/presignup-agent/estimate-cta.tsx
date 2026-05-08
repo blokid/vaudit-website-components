@@ -39,9 +39,9 @@ export default function EstimateCta({ message, onLockIn, onDownload }: Props) {
         </span>
         <div className="rc-pa-cta-est__total">{USD.format(total)}</div>
         <p className="rc-pa-cta-est__sub">
-          Recoverable across <strong>{message.categoryCount} vendor categories</strong> —
-          benchmarked to your size & sector. Want the exact number? Share your real spend
-          and I'll tighten this to <strong>±5%</strong>.
+          Estimated recoverable across <strong>{message.categoryCount} vendor categories</strong> —
+          benchmarked to your size & sector. Want a tighter range? Share your real spend
+          and I'll re-run the audit against it.
         </p>
 
         {emailMode ? (
@@ -51,19 +51,24 @@ export default function EstimateCta({ message, onLockIn, onDownload }: Props) {
           />
         ) : (
           <div className="rc-pa-cta-est__buttons">
+            {message.locked ? null : (
+              <button
+                type="button"
+                className={clsx("rc-pa-btn rc-pa-btn--primary", message.busy && "is-busy")}
+                onClick={onLockIn}
+                disabled={message.busy}
+              >
+                {message.busy ? <IconSpinner /> : <IconLockTarget />}
+                <span>Lock in exact numbers</span>
+                <span className="rc-pa-btn__time">~30s</span>
+              </button>
+            )}
             <button
               type="button"
-              className={clsx("rc-pa-btn rc-pa-btn--primary", message.busy && "is-busy")}
-              onClick={onLockIn}
-              disabled={message.busy}
-            >
-              {message.busy ? <IconSpinner /> : <IconLockTarget />}
-              <span>Lock in exact numbers</span>
-              <span className="rc-pa-btn__time">~30s</span>
-            </button>
-            <button
-              type="button"
-              className="rc-pa-btn rc-pa-btn--secondary"
+              className={clsx(
+                "rc-pa-btn",
+                message.locked ? "rc-pa-btn--primary" : "rc-pa-btn--secondary",
+              )}
               onClick={() => setEmailMode(true)}
             >
               <IconDownload />
@@ -76,6 +81,7 @@ export default function EstimateCta({ message, onLockIn, onDownload }: Props) {
           <span className="rc-pa-trust-row__item"><IconCheck /> Free</span>
           <span className="rc-pa-trust-row__item"><IconCheck /> No login</span>
           <span className="rc-pa-trust-row__item"><IconCheck /> No integrations</span>
+          <span className="rc-pa-trust-row__item"><IconCheck /> You only pay when we recover spend</span>
         </div>
       </div>
     </AgentMessage>

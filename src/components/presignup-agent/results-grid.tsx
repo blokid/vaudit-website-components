@@ -1,5 +1,10 @@
 import clsx from "clsx";
-import type { Product, ResultsGridMessage, Vendor } from "./types";
+import type {
+  Product,
+  ResultsGridMessage,
+  Vendor,
+  VerificationDepth,
+} from "./types";
 import { CATEGORY_ICONS, CATEGORY_LABELS, IconCheck } from "./icons";
 import { USD, compactUsd, vendorIcon } from "./agent-api";
 
@@ -10,6 +15,15 @@ type ResultsGridProps = {
 const ANNUALIZE = 12;
 const TOP_ORDER = ["ad_id", "token_id"]; // top row 2-up
 const FULL = "vendor_id";
+
+// Marketing Language Guide v1.0 — visitor-facing one-liner per Token ID
+// reconciliation depth tier. Mirrors `_DEPTH_DESCRIPTION` in
+// `backend/presignup_agent/tools/recovery.py`.
+const DEPTH_LABEL: Record<VerificationDepth, string> = {
+  full: "Full billing reconciliation",
+  partial: "Partial reconciliation",
+  statistical: "Statistical cost model",
+};
 
 function pickProduct(products: Product[], id: string): Product | undefined {
   return products.find((p) => p.id === id);
@@ -75,6 +89,9 @@ function VendorRow({ vendor }: { vendor: Vendor }) {
   const icon = vendorIcon(vendor.name);
   const annualSpend = (vendor.estSpend || 0) * ANNUALIZE;
   const annualWaste = (vendor.waste || 0) * ANNUALIZE;
+  const depthLabel = vendor.verificationDepth
+    ? DEPTH_LABEL[vendor.verificationDepth]
+    : null;
   return (
     <div className="rc-pa-vendor">
       <div className="rc-pa-vendor__name">
@@ -91,6 +108,17 @@ function VendorRow({ vendor }: { vendor: Vendor }) {
           />
         ) : null}
         <span>{vendor.name}</span>
+        {depthLabel ? (
+          <span
+            className={clsx(
+              "rc-pa-vendor__depth",
+              `rc-pa-vendor__depth--${vendor.verificationDepth}`,
+            )}
+            title={depthLabel}
+          >
+            {depthLabel}
+          </span>
+        ) : null}
       </div>
       <div className="rc-pa-vendor__fig">
         <span className="rc-pa-vendor__spend">{compactUsd(annualSpend)} spend</span>

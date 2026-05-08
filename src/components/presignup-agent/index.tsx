@@ -127,10 +127,12 @@ export default function PresignupAgent({ agentBaseUrl }: PresignupAgentProps) {
   const [composerValue, setComposerValue] = useState("");
   const [composerError, setComposerError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [breakdownLocked, setBreakdownLocked] = useState(false);
 
   const abortRef = useRef<AbortController | null>(null);
   const cancelledRef = useRef(false);
   const phase1ProductsRef = useRef<Product[] | null>(null);
+  const phase1LockedRef = useRef<boolean>(false);
   const domainRef = useRef<string>("");
   const phase2SelectionRef = useRef<AccurateSelection | null>(null);
 
@@ -246,11 +248,13 @@ export default function PresignupAgent({ agentBaseUrl }: PresignupAgentProps) {
 
         if (cancelledRef.current) return;
 
-        const products = extractAuditProducts(accumulated);
-        if (!products?.length) {
+        const result = extractAuditProducts(accumulated);
+        if (!result?.products.length) {
           throw new Error("Agent did not return any audit products.");
         }
+        const { products, locked } = result;
         phase1ProductsRef.current = products;
+        phase1LockedRef.current = locked;
 
         await runScanSequence(liveId, products, "estimate", update);
         if (cancelledRef.current) return;
@@ -269,6 +273,7 @@ export default function PresignupAgent({ agentBaseUrl }: PresignupAgentProps) {
           total,
           categoryCount: products.length,
           busy: false,
+          locked,
         });
       } catch (err) {
         if ((err as Error)?.name === "AbortError" || cancelledRef.current) return;
@@ -292,6 +297,10 @@ export default function PresignupAgent({ agentBaseUrl }: PresignupAgentProps) {
   // ------------------------------------------------------------------------
 
   const startAccurate = useCallback(() => {
+    // PDF render locks the breakdown server-side; phase-2 corrections are
+    // rejected with `LOCKED`. Don't even open the picker — the visitor was
+    // just emailed a frozen report and we'd be inviting a desync.
+    if (phase1LockedRef.current) return;
     append({
       id: nextId("user"),
       kind: "user_text",
@@ -576,6 +585,28 @@ export default function PresignupAgent({ agentBaseUrl }: PresignupAgentProps) {
         a.click();
         document.body.removeChild(a);
         setTimeout(() => URL.revokeObjectURL(url), 1000);
+        // PDF render locks the breakdown server-side. Reflect that on every
+        // open `estimate_cta` so the "Lock in exact numbers" button hides
+        // (the route would 409 anyway, but the visitor shouldn't be invited
+        // down a path that's just been frozen against them).
+        const wasLocked = phase1LockedRef.current;
+        phase1LockedRef.current = true;
+        setBreakdownLocked(true);
+        setMessages((prev) =>
+          prev.map((m) =>
+            m.kind === "estimate_cta" ? { ...m, locked: true } : m,
+          ),
+        );
+        if (!wasLocked) {
+          append({
+            id: nextId("agent-locked"),
+            kind: "agent_text",
+            eyebrow: "Report sent",
+            text:
+              "Your audit is now locked in — the numbers in the report match what you saw here. " +
+              "Need to change them? Audit again with a fresh domain or email us and we'll re-run it.",
+          });
+        }
         return true;
       } catch (err) {
         console.error("[presignup-agent] download failed:", err);
@@ -596,12 +627,14 @@ export default function PresignupAgent({ agentBaseUrl }: PresignupAgentProps) {
     cancelActive();
     cancelledRef.current = false;
     phase1ProductsRef.current = null;
+    phase1LockedRef.current = false;
     phase2SelectionRef.current = null;
     domainRef.current = "";
     setMessages([]);
     setComposerValue("");
     setComposerError(null);
     setBusy(false);
+    setBreakdownLocked(false);
     resetSession();
   }, [cancelActive]);
 
@@ -609,8 +642,11 @@ export default function PresignupAgent({ agentBaseUrl }: PresignupAgentProps) {
     if (isEmpty) {
       return "Enter a website (e.g. stripe.com), describe your stack, or paste a list of vendors you want audited…";
     }
+    if (breakdownLocked) {
+      return "Audit again with a different domain…";
+    }
     return "Ask a follow-up…";
-  }, [isEmpty]);
+  }, [isEmpty, breakdownLocked]);
 
   return (
     <section className="rc-pa-section">

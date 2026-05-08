@@ -7,10 +7,22 @@
 
 export type CategoryId = "ad_id" | "token_id" | "vendor_id";
 
+/**
+ * Per-provider verification depth for Token ID vendors. Marketing Language
+ * Guide v1.0 requires this disclosure when Token ID products are shown:
+ * - "full" — full billing reconciliation against usage logs (OpenAI, AWS Bedrock).
+ * - "partial" — partial reconciliation, statistical matching with invoice-level
+ *   verification (Anthropic).
+ * - "statistical" — statistical cost modelling against usage patterns (Google AI).
+ * Undefined for non-Token-ID vendors.
+ */
+export type VerificationDepth = "full" | "partial" | "statistical";
+
 export type Vendor = {
   name: string;
   estSpend: number;
   waste: number;
+  verificationDepth?: VerificationDepth;
 };
 
 export type Product = {
@@ -143,6 +155,13 @@ export type EstimateCtaMessage = Base & {
   categoryCount: number;
   /** While true, the lock-in button shows the calculating spinner. */
   busy: boolean;
+  /**
+   * True once the breakdown has been frozen by the backend (PDF render
+   * locked the audit_breakdown row). When set, the "Lock in exact numbers"
+   * button is hidden — phase-2 corrections are server-rejected with
+   * `LOCKED`, so we shouldn't even offer the path.
+   */
+  locked?: boolean;
 };
 
 export type FinalCtaMessage = Base & {

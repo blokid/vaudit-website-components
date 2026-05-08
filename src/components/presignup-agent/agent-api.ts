@@ -4,7 +4,20 @@ import type {
   ProfilerStep,
   ResearchEvent,
   Vendor,
+  VerificationDepth,
 } from "./types";
+
+const VERIFICATION_DEPTH_VALUES: ReadonlySet<string> = new Set([
+  "full",
+  "partial",
+  "statistical",
+]);
+
+function asVerificationDepth(value: unknown): VerificationDepth | undefined {
+  return typeof value === "string" && VERIFICATION_DEPTH_VALUES.has(value)
+    ? (value as VerificationDepth)
+    : undefined;
+}
 
 const STAGING_BASE = "https://onboarding-agent.staging.vaudit.com";
 const PROD_BASE = "https://onboarding-agent.vaudit.com";
@@ -215,10 +228,22 @@ function escapeRe(s: string): string {
   return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
+/**
+ * Parsed `:::audit_products{...}\n:::` widget block. `locked` flips to true
+ * after the visitor downloads the PDF (backend writes it to
+ * `onboarding_sessions.audit_breakdown.locked` on render). Used to suppress
+ * the phase-2 accurate-audit CTA so the visitor can't desync against the
+ * report they were just emailed.
+ */
+export type AuditProductsResult = {
+  products: Product[];
+  locked: boolean;
+};
+
 /** Parse the `:::audit_products{...}\n:::` widget block from accumulated text. */
-export function extractAuditProducts(text: string): Product[] | null {
+export function extractAuditProducts(text: string): AuditProductsResult | null {
   const parsed = extractWidgetBlock(text, "audit_products") as
-    | { products?: unknown }
+    | { products?: unknown; locked?: unknown }
     | null;
   if (!parsed) return null;
   const raw = Array.isArray(parsed.products) ? parsed.products : [];
@@ -233,6 +258,7 @@ export function extractAuditProducts(text: string): Product[] | null {
         name: v.name,
         estSpend: Number(v.est_spend || 0),
         waste: Number(v.waste || 0),
+        verificationDepth: asVerificationDepth(v.verification_depth),
       });
     }
     out.push({
@@ -241,7 +267,8 @@ export function extractAuditProducts(text: string): Product[] | null {
       vendors,
     });
   }
-  return out.length ? out : null;
+  if (!out.length) return null;
+  return { products: out, locked: parsed.locked === true };
 }
 
 /**
@@ -278,6 +305,7 @@ export async function postAccurateBreakdown(
       name: v.name,
       est_spend: Math.round(v.estSpend || 0),
       waste: Math.round(v.waste || 0),
+      ...(v.verificationDepth ? { verification_depth: v.verificationDepth } : {}),
     })),
   }));
   const body = {
