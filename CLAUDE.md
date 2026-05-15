@@ -203,6 +203,14 @@ The `docs/` folder holds Webflow-side conventions and frozen copies of the legac
 
 If you port one of these into a real React component, **leave the original `.md` in place** — it documents what the design looked like at migration time and what's currently live in Webflow until the new component ships.
 
+## Presignup agent — backend session reset
+
+`src/components/presignup-agent/` talks to the onboarding-agent backend (`presignup_agent` ADK app). As of 2026-05-12 the backend lazily resets unhealthy sessions: if a phase-1 or phase-2 turn raises a hard exception, the staging row is flagged `is_healthy=false`, and the next presignup HTTP turn wipes the ADK conversation + staging row and recreates a fresh ADK session **under the same `session_id`**. The frontend does **not** need to rotate its `localStorage`-cached session id — `ensureSession` already treats the 409-on-recreate case as success, which is exactly what happens after a reset.
+
+Practical consequence: a visitor whose phase-1 audit failed and who retries (via the error message's retry button) will silently get a fresh ADK session under the same id and see a new audit stream. No protocol change here is needed. If you ever want a clean break on the client side as well, `resetSession()` in `agent-api.ts` is the explicit escape hatch (clears the localStorage id and generates a new UUID).
+
+The `/presignup/accurate-breakdown/{session_id}` route — used by the client-driven phase-2 lock-in flow — now also triggers the same reset internally before reading the breakdown row. If a visitor's session went unhealthy between the last `/run_sse` and the lock-in POST, this route will return 404 ("session not found") rather than lock in numbers tied to a failed run. Surface that as the existing "session expired — please re-audit" error path.
+
 ## Tooling notes
 
 - The Webflow MCP server lives in the **other** repo's `.claude/` config — this repo doesn't need it. If a task involves changing what's live in Webflow Custom Code (e.g. swapping the script tag URL), do that work from `vaudit-website-pages` where the Webflow MCP is wired up.

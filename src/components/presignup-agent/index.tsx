@@ -61,7 +61,43 @@ const CATEGORY_ORDER: ("ad_id" | "vendor_id" | "token_id")[] = [
 type PresignupAgentProps = {
   /** Override the agent base URL — defaults to staging on non-vaudit.com origins. */
   agentBaseUrl?: string;
+  /**
+   * When provided, skip the composer-entry flow and replay a pre-computed
+   * audit (used by the Mucker portfolio dashboard). The replay animates the
+   * same row-scan and posts the same results-grid + estimate-cta as a live
+   * run, but never talks to the agent for phase 1. Phase 2 (lock-in + range
+   * recalc) is unchanged — it was already client-driven. Follow-ups still
+   * hit the live agent through the composer.
+   */
+  replay?: { domain: string; products: Product[] };
 };
+
+const REPLAY_DEMO_PRODUCTS: Product[] = [
+  {
+    id: "ad_id",
+    wasteTotal: 14_200,
+    vendors: [
+      { name: "Google Ads", estSpend: 95_000, waste: 9_500 },
+      { name: "Meta Ads", estSpend: 47_000, waste: 4_700 },
+    ],
+  },
+  {
+    id: "token_id",
+    wasteTotal: 4_800,
+    vendors: [
+      { name: "OpenAI", estSpend: 12_000, waste: 3_600, verificationDepth: "full" },
+      { name: "Anthropic", estSpend: 4_000, waste: 1_200, verificationDepth: "partial" },
+    ],
+  },
+  {
+    id: "vendor_id",
+    wasteTotal: 6_900,
+    vendors: [
+      { name: "AWS", estSpend: 38_000, waste: 3_800 },
+      { name: "Stripe", estSpend: 31_000, waste: 3_100 },
+    ],
+  },
+];
 
 export const meta: ComponentMeta<PresignupAgentProps> = {
   description:
@@ -73,11 +109,20 @@ export const meta: ComponentMeta<PresignupAgentProps> = {
         "Override the agent base URL. When omitted, uses prod on vaudit.com origins and staging elsewhere.",
       default: "auto-detect",
     },
+    replay: {
+      type: "{ domain: string; products: Product[] }",
+      description:
+        "Replay a pre-computed audit instead of running live (used by Mucker dashboard).",
+      default: "undefined",
+    },
   },
   variants: {
     "default (auto-detect)": {},
     "force local": { agentBaseUrl: "http://localhost:3000" },
     "force staging": { agentBaseUrl: "https://onboarding-agent.staging.vaudit.com" },
+    "replay (demo)": {
+      replay: { domain: "stripe.com", products: REPLAY_DEMO_PRODUCTS },
+    },
   },
 };
 
@@ -122,7 +167,7 @@ const SELECTION_LABEL: Record<AccurateSelection, string> = {
   all: "all three products",
 };
 
-export default function PresignupAgent({ agentBaseUrl }: PresignupAgentProps) {
+export default function PresignupAgent({ agentBaseUrl, replay }: PresignupAgentProps) {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [composerValue, setComposerValue] = useState("");
   const [composerError, setComposerError] = useState<string | null>(null);
@@ -291,6 +336,82 @@ export default function PresignupAgent({ agentBaseUrl }: PresignupAgentProps) {
     },
     [agentBaseUrl, append, cancelActive, update],
   );
+
+  // ------------------------------------------------------------------------
+  // Replay mode — no SSE, no auth, just animate against pre-computed products.
+  // Used by the Mucker dashboard. Phase 2 still runs live against the real
+  // agent, but phase-2 is already client-driven so nothing else changes.
+  // ------------------------------------------------------------------------
+
+  const runReplay = useCallback(
+    async (domain: string, products: Product[]) => {
+      cancelActive();
+      cancelledRef.current = false;
+      const controller = new AbortController();
+      abortRef.current = controller;
+      setBusy(true);
+
+      append({
+        id: nextId("ack"),
+        kind: "agent_text",
+        text: ackTextFor(domain),
+      });
+
+      const liveId = nextId("live");
+      append({
+        id: liveId,
+        kind: "live_audit",
+        mode: "estimate",
+        domain,
+        title: "Sizing recoverable spend",
+        total: 0,
+        progress: 0,
+        rows: blankRows(),
+        completed: false,
+        profilers: {},
+        researchEvents: [],
+      });
+
+      try {
+        await runScanSequence(liveId, products, "estimate", update);
+        if (cancelledRef.current) return;
+
+        phase1ProductsRef.current = products;
+        phase1LockedRef.current = false;
+
+        const total = products.reduce((acc, p) => acc + (p.wasteTotal || 0), 0);
+        append({
+          id: nextId("grid"),
+          kind: "results_grid",
+          mode: "estimate",
+          domain,
+          products,
+        });
+        append({
+          id: nextId("est-cta"),
+          kind: "estimate_cta",
+          total,
+          categoryCount: products.length,
+          busy: false,
+          locked: false,
+        });
+      } finally {
+        if (abortRef.current === controller) abortRef.current = null;
+        setBusy(false);
+      }
+    },
+    [append, cancelActive, update],
+  );
+
+  useEffect(() => {
+    if (!replay) return;
+    domainRef.current = replay.domain;
+    runReplay(replay.domain, replay.products);
+    // Cleanup on prop-change cancels any in-flight animation so the next
+    // replay starts cleanly. Parent should also re-key the component when
+    // switching companies for a hard reset of message state.
+    return () => cancelActive();
+  }, [replay, runReplay, cancelActive]);
 
   // ------------------------------------------------------------------------
   // Phase 2 — client-driven (picker → ranges → recalc → persist → grid)
