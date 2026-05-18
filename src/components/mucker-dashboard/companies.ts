@@ -12,9 +12,12 @@ export const COMPANIES: CompanyData[] = [
     id: "stripe",
     name: "Stripe",
     domain: "stripe.com",
-    industry: "Payments",
+    industry: "Fintech",
     estimated_annual_spend: 12_400_000,
     estimated_annual_recovery: 1_180_000,
+    estimated_annual_recovery_low: 820_000,
+    estimated_annual_recovery_high: 1_770_000,
+    confidence: "high",
     products: [
       {
         id: "ad_id",
@@ -54,9 +57,12 @@ export const COMPANIES: CompanyData[] = [
     id: "notion",
     name: "Notion",
     domain: "notion.so",
-    industry: "Productivity",
+    industry: "SaaS",
     estimated_annual_spend: 4_800_000,
     estimated_annual_recovery: 520_000,
+    estimated_annual_recovery_low: 360_000,
+    estimated_annual_recovery_high: 780_000,
+    confidence: "high",
     products: [
       {
         id: "ad_id",
@@ -96,9 +102,12 @@ export const COMPANIES: CompanyData[] = [
     id: "linear",
     name: "Linear",
     domain: "linear.app",
-    industry: "Productivity",
+    industry: "SaaS",
     estimated_annual_spend: 2_100_000,
     estimated_annual_recovery: 235_000,
+    estimated_annual_recovery_low: 165_000,
+    estimated_annual_recovery_high: 350_000,
+    confidence: "medium",
     products: [
       {
         id: "ad_id",
