@@ -2,6 +2,7 @@ node_modules/
 .DS_Store
 *.log
 .vite/
-.claude/
+.claude/*
+!.claude/commands/
 
 # NOTE: dist/ is intentionally NOT ignored — jsDelivr serves it from GitHub.
