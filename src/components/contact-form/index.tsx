@@ -164,17 +164,15 @@ export default function ContactForm({
     try {
       const res = await fetch(endpoint, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "X-Hubspot-Hutk": getCookie("hubspotutk"),
-          "X-Hubspot-Page-Uri": window.location.href,
-          "X-Hubspot-Page-Name": document.title,
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           full_name: values.name.trim(),
           company_name: values.company.trim(),
           company_email: values.email.trim(),
           additional_details: values.details.trim(),
+          hutk: getCookie("hubspotutk"),
+          page_uri: window.location.href,
+          page_name: document.title,
         }),
       });
       if (!res.ok) throw new Error(`Request failed (${res.status})`);
