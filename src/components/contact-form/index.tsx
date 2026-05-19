@@ -84,14 +84,6 @@ export const meta: ComponentMeta<ContactFormProps> = {
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const STORAGE_KEY = "vaudit:contact-form:submitted";
 
-function getCookie(name: string): string {
-  if (typeof document === "undefined") return "";
-  const match = document.cookie.match(
-    new RegExp(`(?:^|; )${name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}=([^;]*)`),
-  );
-  return match ? decodeURIComponent(match[1]) : "";
-}
-
 function readSubmitted(): boolean {
   try {
     return window.sessionStorage.getItem(STORAGE_KEY) === "1";
@@ -170,7 +162,6 @@ export default function ContactForm({
           company_name: values.company.trim(),
           company_email: values.email.trim(),
           additional_details: values.details.trim(),
-          hutk: getCookie("hubspotutk"),
           page_uri: window.location.href,
           page_name: document.title,
         }),
