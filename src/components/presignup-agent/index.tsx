@@ -136,6 +136,25 @@ function wait(ms: number): Promise<void> {
   return new Promise((r) => setTimeout(r, ms));
 }
 
+type PostHog = {
+  identify?: (distinctId: string, properties?: Record<string, unknown>) => void;
+  capture?: (event: string, properties?: Record<string, unknown>) => void;
+};
+
+function trackReportEmailSubmission(email: string, sessionId: string) {
+  const ph = (window as unknown as { posthog?: PostHog }).posthog;
+  if (!ph) return;
+  try {
+    ph.identify?.(email, { email });
+    ph.capture?.("presignup_report_email_submitted", {
+      email,
+      session_id: sessionId,
+    });
+  } catch (err) {
+    console.warn("[presignup-agent] posthog capture failed:", err);
+  }
+}
+
 function blankRows(): AuditRow[] {
   return CATEGORY_ORDER.map((cat) => ({
     category: cat,
@@ -698,6 +717,7 @@ export default function PresignupAgent({ agentBaseUrl, replay }: PresignupAgentP
         const baseUrl = getAgentBaseUrl(agentBaseUrl);
         const sessionId = getSessionId();
         const { blob, filename } = await downloadAuditReport(baseUrl, sessionId, trimmed);
+        trackReportEmailSubmission(trimmed, sessionId);
         const url = URL.createObjectURL(blob);
         const a = document.createElement("a");
         a.href = url;

@@ -47,7 +47,7 @@ export const meta: ComponentMeta<ContactFormProps> = {
     responseNote: {
       type: "string",
       description: "Copy beside the response-time pill.",
-      default: '"Our team typically responds shortly"',
+      default: '"Our team will get back to you within 1–2 business days"',
     },
     submitLabel: {
       type: "string",
@@ -107,7 +107,7 @@ export default function ContactForm({
   headline = "Talk to the Vaudit Team",
   subtext = "Independent spend verification across ads, AI, SaaS, cloud, payments, shipping, and operational vendor spend.",
   email = "support@vaudit.com",
-  responseNote = "Our team typically responds shortly",
+  responseNote = "Our team will get back to you within 1–2 business days",
   submitLabel = "GET IN TOUCH",
   successTitle = "We'll be in touch soon",
   successBody = "Thanks for reaching out.\nA member of the Vaudit team will get back to you shortly.",
