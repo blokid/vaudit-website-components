@@ -713,11 +713,12 @@ export default function PresignupAgent({ agentBaseUrl, replay }: PresignupAgentP
       const trimmed = email.trim();
       if (!EMAIL_RE.test(trimmed)) return false;
 
+      const sessionId = getSessionId();
+      trackReportEmailSubmission(trimmed, sessionId);
+
       try {
         const baseUrl = getAgentBaseUrl(agentBaseUrl);
-        const sessionId = getSessionId();
         const { blob, filename } = await downloadAuditReport(baseUrl, sessionId, trimmed);
-        trackReportEmailSubmission(trimmed, sessionId);
         const url = URL.createObjectURL(blob);
         const a = document.createElement("a");
         a.href = url;
