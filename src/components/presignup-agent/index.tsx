@@ -143,15 +143,25 @@ type PostHog = {
 
 function trackReportEmailSubmission(email: string, sessionId: string) {
   const ph = (window as unknown as { posthog?: PostHog }).posthog;
+  console.log("[presignup-agent] track email submission:", {
+    email,
+    sessionId,
+    posthog: typeof ph,
+  });
   if (!ph) return;
+  // Capture FIRST so the event lands even if identify misbehaves.
   try {
-    ph.identify?.(email, { email });
     ph.capture?.("presignup_report_email_submitted", {
       email,
       session_id: sessionId,
     });
   } catch (err) {
     console.warn("[presignup-agent] posthog capture failed:", err);
+  }
+  try {
+    ph.identify?.(email, { email });
+  } catch (err) {
+    console.warn("[presignup-agent] posthog identify failed:", err);
   }
 }
 
