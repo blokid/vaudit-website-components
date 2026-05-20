@@ -52,7 +52,7 @@ export const meta: ComponentMeta<ContactFormProps> = {
     submitLabel: {
       type: "string",
       description: "Submit button label.",
-      default: '"Request Spend Review"',
+      default: '"GET IN TOUCH"',
     },
     successTitle: {
       type: "string",
@@ -108,7 +108,7 @@ export default function ContactForm({
   subtext = "Independent spend verification across ads, AI, SaaS, cloud, payments, shipping, and operational vendor spend.",
   email = "support@vaudit.com",
   responseNote = "Our team typically responds shortly",
-  submitLabel = "Request Spend Review",
+  submitLabel = "GET IN TOUCH",
   successTitle = "We'll be in touch soon",
   successBody = "Thanks for reaching out.\nA member of the Vaudit team will get back to you shortly.",
   privacyUrl = "https://app.vaudit.com/privacy-policy",
