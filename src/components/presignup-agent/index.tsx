@@ -341,7 +341,7 @@ export default function PresignupAgent({ agentBaseUrl, replay }: PresignupAgentP
         if (cancelledRef.current) return;
 
         const total = products.reduce((acc, p) => acc + (p.wasteTotal || 0), 0);
-        latestTotalRef.current = total;
+        latestTotalRef.current = total * 12;
         append({
           id: nextId("grid"),
           kind: "results_grid",
@@ -417,7 +417,7 @@ export default function PresignupAgent({ agentBaseUrl, replay }: PresignupAgentP
         phase1LockedRef.current = false;
 
         const total = products.reduce((acc, p) => acc + (p.wasteTotal || 0), 0);
-        latestTotalRef.current = total;
+        latestTotalRef.current = total * 12;
         append({
           id: nextId("grid"),
           kind: "results_grid",
@@ -608,7 +608,7 @@ export default function PresignupAgent({ agentBaseUrl, replay }: PresignupAgentP
         domain: domainRef.current,
         products: recalc.products,
       });
-      latestTotalRef.current = recalc.total;
+      latestTotalRef.current = recalc.total * 12;
       append({
         id: nextId("final-cta"),
         kind: "final_cta",
