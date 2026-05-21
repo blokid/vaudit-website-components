@@ -141,11 +141,16 @@ type PostHog = {
   capture?: (event: string, properties?: Record<string, unknown>) => void;
 };
 
-function trackReportEmailSubmission(email: string, sessionId: string) {
+function trackReportEmailSubmission(
+  email: string,
+  sessionId: string,
+  estimateAmount: number,
+) {
   const ph = (window as unknown as { posthog?: PostHog }).posthog;
   console.log("[presignup-agent] track email submission:", {
     email,
     sessionId,
+    estimateAmount,
     posthog: typeof ph,
   });
   if (!ph) return;
@@ -154,6 +159,7 @@ function trackReportEmailSubmission(email: string, sessionId: string) {
     ph.capture?.("presignup_report_email_submitted", {
       email,
       session_id: sessionId,
+      calculator_estimate_amount: estimateAmount,
     });
   } catch (err) {
     console.warn("[presignup-agent] posthog capture failed:", err);
@@ -209,6 +215,7 @@ export default function PresignupAgent({ agentBaseUrl, replay }: PresignupAgentP
   const phase1LockedRef = useRef<boolean>(false);
   const domainRef = useRef<string>("");
   const phase2SelectionRef = useRef<AccurateSelection | null>(null);
+  const latestTotalRef = useRef<number>(0);
 
   const isEmpty = messages.length === 0;
 
@@ -334,6 +341,7 @@ export default function PresignupAgent({ agentBaseUrl, replay }: PresignupAgentP
         if (cancelledRef.current) return;
 
         const total = products.reduce((acc, p) => acc + (p.wasteTotal || 0), 0);
+        latestTotalRef.current = total;
         append({
           id: nextId("grid"),
           kind: "results_grid",
@@ -409,6 +417,7 @@ export default function PresignupAgent({ agentBaseUrl, replay }: PresignupAgentP
         phase1LockedRef.current = false;
 
         const total = products.reduce((acc, p) => acc + (p.wasteTotal || 0), 0);
+        latestTotalRef.current = total;
         append({
           id: nextId("grid"),
           kind: "results_grid",
@@ -599,6 +608,7 @@ export default function PresignupAgent({ agentBaseUrl, replay }: PresignupAgentP
         domain: domainRef.current,
         products: recalc.products,
       });
+      latestTotalRef.current = recalc.total;
       append({
         id: nextId("final-cta"),
         kind: "final_cta",
@@ -724,7 +734,7 @@ export default function PresignupAgent({ agentBaseUrl, replay }: PresignupAgentP
       if (!EMAIL_RE.test(trimmed)) return false;
 
       const sessionId = getSessionId();
-      trackReportEmailSubmission(trimmed, sessionId);
+      trackReportEmailSubmission(trimmed, sessionId, latestTotalRef.current);
 
       try {
         const baseUrl = getAgentBaseUrl(agentBaseUrl);
@@ -782,6 +792,7 @@ export default function PresignupAgent({ agentBaseUrl, replay }: PresignupAgentP
     phase1LockedRef.current = false;
     phase2SelectionRef.current = null;
     domainRef.current = "";
+    latestTotalRef.current = 0;
     setMessages([]);
     setComposerValue("");
     setComposerError(null);
