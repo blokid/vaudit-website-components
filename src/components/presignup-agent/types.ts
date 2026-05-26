@@ -30,7 +30,38 @@ export type Product = {
   id: string;
   wasteTotal: number;
   vendors: Vendor[];
+  /**
+   * Pass 2 reasoning routing key. When present, matches the `pot` field on
+   * `{step: "reasoning", pot, state, text}` SSE events from the backend so
+   * the "HOW WE GOT HERE" container under this card can pick up the right
+   * paragraph. Build Guide §Stage 5.5 Pass 2 / §Stage 7. Optional —
+   * widgets emitted before Phase 6 backend ships don't carry it.
+   */
+  reasoningId?: string;
 };
+
+/**
+ * Pass 2 per-pot reasoning paragraph + status. Backend SSE pushes
+ * started → done/failed transitions; the UI renders a loading shimmer
+ * while started, then types the paragraph in once a terminal event
+ * arrives. Build Guide §Stage 5.5 Pass 2.
+ */
+export type ReasoningStatus = "started" | "done" | "failed";
+
+export type ReasoningEntry = {
+  status: ReasoningStatus;
+  /** The paragraph itself. Present on `done` / `failed`; absent on `started`. */
+  text?: string;
+};
+
+/**
+ * Map of `pot` id → reasoning entry. Both display buckets (ad_id /
+ * token_id / vendor_id) and the four vendor_id internal sub-pots
+ * (kloud_id / seat_id / ship_id / payment_id) get their own entries —
+ * the simple UI renders the bucket-level entry; richer UIs can drill
+ * down into the four sub-pots.
+ */
+export type ReasoningMap = Record<string, ReasoningEntry>;
 
 /** A locked-in spend range chosen by the visitor in phase 2. */
 export type SpendRange = {
@@ -147,6 +178,13 @@ export type ResultsGridMessage = Base & {
   mode: LiveAuditMode;
   domain: string;
   products: Product[];
+  /**
+   * Pass 2 reasoning paragraphs per pot id. Populated incrementally as
+   * the backend's `step: "reasoning"` SSE events arrive. Build Guide
+   * §Stage 5.5 Pass 2. Missing keys render an empty "HOW WE GOT HERE"
+   * container; `status: "started"` renders a loading shimmer.
+   */
+  reasoning?: ReasoningMap;
 };
 
 export type EstimateCtaMessage = Base & {
@@ -191,6 +229,22 @@ export type ErrorMessage = Base & {
   retry: boolean;
 };
 
+/**
+ * Holding-company brand-picker prompt. Build Guide §Stage 1 — when the
+ * visitor's domain matches a portfolio / parent pattern, the backend
+ * skips profiling and asks for a specific operating subsidiary
+ * instead. Renders a free-text input + optional chip suggestions; the
+ * visitor's selection re-enters the flow with the new domain.
+ */
+export type HoldingRedirectMessage = Base & {
+  kind: "holding_redirect";
+  domain: string;
+  pattern: string;
+  suggestedBrands: string[];
+  /** Flips true once the visitor submits a subsidiary — locks the chips. */
+  submitted: boolean;
+};
+
 export type ChatMessage =
   | AgentTextMessage
   | UserTextMessage
@@ -200,6 +254,7 @@ export type ChatMessage =
   | FinalCtaMessage
   | AccuratePickerMessage
   | AccurateRangesMessage
+  | HoldingRedirectMessage
   | ErrorMessage;
 
 // ---------------------------------------------------------------------------

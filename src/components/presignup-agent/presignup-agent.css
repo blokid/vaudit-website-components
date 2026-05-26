@@ -939,6 +939,277 @@ html.dark .rc-pa-research__item--failed {
   font-weight: 600;
 }
 
+/* ---- "HOW WE GOT HERE" reasoning container (Pass 2) --------------------- */
+/* Build Guide §Stage 5.5 Pass 2. Per-pot paragraph that streams in after
+ * the audit_products widget ships. Renders a 3-dot shimmer while the
+ * backend's Haiku call is in flight, then the typed paragraph once a
+ * done/failed event arrives. <details> + <summary> for native a11y. */
+
+.rc-pa-reasoning {
+  margin-top: 16px;
+  padding-top: 14px;
+  border-top: 1px dashed var(--rc-pa-border);
+}
+.rc-pa-reasoning[open] > .rc-pa-reasoning__head::after {
+  transform: rotate(180deg);
+}
+.rc-pa-reasoning__head {
+  list-style: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--rc-pa-muted-fg, #6a6a64);
+  user-select: none;
+}
+.rc-pa-reasoning__head::after {
+  content: "▾";
+  font-size: 10px;
+  transition: transform 160ms ease;
+}
+.rc-pa-reasoning__head::-webkit-details-marker {
+  display: none;
+}
+.rc-pa-reasoning__label {
+  font-weight: 600;
+}
+.rc-pa-reasoning__text {
+  margin: 12px 0 0;
+  font-size: 13px;
+  line-height: 1.55;
+  color: var(--rc-pa-fg, #1a1a18);
+}
+.rc-pa-reasoning__text--compact {
+  font-size: 12px;
+  line-height: 1.5;
+}
+.rc-pa-reasoning__text--fallback {
+  color: var(--rc-pa-muted-fg, #6a6a64);
+  font-style: italic;
+}
+.rc-pa-reasoning__shimmer {
+  display: flex;
+  gap: 6px;
+  margin: 14px 0 4px;
+  align-items: center;
+  height: 18px;
+}
+.rc-pa-reasoning__shimmer--compact {
+  margin: 8px 0 4px;
+}
+.rc-pa-reasoning__shimmer span {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--rc-pa-orange);
+  opacity: 0.4;
+  animation: rc-pa-reasoning-dot 1.2s ease-in-out infinite;
+}
+.rc-pa-reasoning__shimmer span:nth-child(2) {
+  animation-delay: 0.16s;
+}
+.rc-pa-reasoning__shimmer span:nth-child(3) {
+  animation-delay: 0.32s;
+}
+@keyframes rc-pa-reasoning-dot {
+  0%, 80%, 100% { opacity: 0.25; transform: scale(0.85); }
+  40%           { opacity: 1;    transform: scale(1.15); }
+}
+.rc-pa-reasoning__sub {
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px dashed var(--rc-pa-border);
+}
+.rc-pa-reasoning__sub-head {
+  list-style: none;
+  cursor: pointer;
+  font-size: 11px;
+  color: var(--rc-pa-orange);
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  user-select: none;
+}
+.rc-pa-reasoning__sub-head::before {
+  content: "+ ";
+}
+.rc-pa-reasoning__sub[open] .rc-pa-reasoning__sub-head::before {
+  content: "− ";
+}
+.rc-pa-reasoning__sub-head::-webkit-details-marker {
+  display: none;
+}
+.rc-pa-reasoning__sub-grid {
+  display: grid;
+  gap: 12px;
+  margin-top: 10px;
+}
+.rc-pa-reasoning__sub-item {
+  background: var(--rc-pa-elevated-bg, #faf9f7);
+  border-radius: 10px;
+  padding: 10px 12px;
+}
+.rc-pa-reasoning__sub-label {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--rc-pa-muted-fg, #6a6a64);
+  font-weight: 600;
+}
+
+html.dark .rc-pa-reasoning {
+  border-top-color: var(--rc-pa-border);
+}
+html.dark .rc-pa-reasoning__text {
+  color: var(--rc-pa-fg, #ffffff);
+}
+html.dark .rc-pa-reasoning__sub {
+  border-top-color: var(--rc-pa-border);
+}
+html.dark .rc-pa-reasoning__sub-item {
+  background: var(--rc-pa-elevated-bg, #181815);
+}
+
+/* ---- holding-company brand picker (Stage 1 short-circuit) -------------- */
+/* Build Guide §Stage 1. Backend short-circuits before profiling when the
+ * visitor's domain matches a holding pattern; we render this card with
+ * a free-text input + optional suggestion chips. */
+
+.rc-pa-holding {
+  background: var(--rc-pa-elevated-bg, #faf9f7);
+  border: 1px solid var(--rc-pa-border);
+  border-radius: 18px;
+  padding: 22px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+.rc-pa-holding__head {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.rc-pa-holding__eyebrow {
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  font-weight: 700;
+  color: var(--rc-pa-orange);
+  text-transform: uppercase;
+}
+.rc-pa-holding__title {
+  font-size: 18px;
+  font-weight: 600;
+  margin: 0;
+  color: var(--rc-pa-fg, #1a1a18);
+  line-height: 1.3;
+}
+.rc-pa-holding__copy {
+  font-size: 14px;
+  line-height: 1.5;
+  margin: 0;
+  color: var(--rc-pa-muted-fg, #6a6a64);
+}
+.rc-pa-holding__chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.rc-pa-holding__chip {
+  background: var(--rc-pa-card-bg, #ffffff);
+  border: 1px solid var(--rc-pa-border);
+  color: var(--rc-pa-fg, #1a1a18);
+  border-radius: 999px;
+  padding: 8px 14px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: border-color 140ms ease, background 140ms ease;
+}
+.rc-pa-holding__chip:hover:not(:disabled) {
+  border-color: var(--rc-pa-orange);
+  background: rgba(254, 96, 44, 0.06);
+}
+.rc-pa-holding__chip:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+.rc-pa-holding__form {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.rc-pa-holding__label {
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  font-weight: 600;
+  color: var(--rc-pa-muted-fg, #6a6a64);
+}
+.rc-pa-holding__row {
+  display: flex;
+  gap: 10px;
+  align-items: stretch;
+}
+.rc-pa-holding__input {
+  flex: 1;
+  background: var(--rc-pa-card-bg, #ffffff);
+  border: 1px solid var(--rc-pa-border);
+  border-radius: 12px;
+  padding: 12px 14px;
+  font-size: 14px;
+  color: var(--rc-pa-fg, #1a1a18);
+  font-family: inherit;
+  transition: border-color 140ms ease, box-shadow 140ms ease;
+}
+.rc-pa-holding__input:focus {
+  outline: none;
+  border-color: var(--rc-pa-orange);
+  box-shadow: 0 0 0 3px var(--rc-pa-orange-glow, rgba(254, 96, 44, 0.45));
+}
+.rc-pa-holding__input:disabled {
+  opacity: 0.55;
+}
+.rc-pa-holding__submit {
+  background: var(--rc-pa-orange);
+  color: #ffffff;
+  border: none;
+  border-radius: 12px;
+  padding: 0 18px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 140ms ease, opacity 140ms ease;
+  white-space: nowrap;
+}
+.rc-pa-holding__submit:hover:not(:disabled) {
+  background: #e95624;
+}
+.rc-pa-holding__submit:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+.rc-pa-holding__submit--done {
+  background: #4f9d5a;
+}
+.rc-pa-holding__error {
+  font-size: 12px;
+  color: var(--rc-pa-orange);
+  margin-top: 4px;
+}
+
+html.dark .rc-pa-holding {
+  background: var(--rc-pa-elevated-bg, #181815);
+}
+html.dark .rc-pa-holding__chip {
+  background: var(--rc-pa-card-bg, #131311);
+}
+html.dark .rc-pa-holding__input {
+  background: var(--rc-pa-card-bg, #131311);
+}
+
 /* ---- estimate CTA card --------------------------------------------------- */
 
 .rc-pa-cta-est {

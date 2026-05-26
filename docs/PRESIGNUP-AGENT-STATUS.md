@@ -210,6 +210,46 @@ already has `extractWidgetBlock` in `agent-api.ts` for parsing them.
 Wiring this would replace the client-driven phase-2 flow with the same
 SSE-based pattern as `audit_products`.
 
+### Calculator Build Guide integration — v0.26.30
+
+Two backend Build Guide milestones are now wired up in this component:
+
+1. **Stage 5.5 Pass 2 — async post-display reasoning.** After the
+   `audit_products` widget ships, the backend fires 6 parallel Haiku
+   calls (one per pot: `ad_id`, `kloud_id`, `token_id`, `seat_id`,
+   `ship_id`, `payment_id`) and streams 30-50 word paragraphs onto the
+   existing `/presignup/progress/{session}` Redis SSE channel via a
+   new event shape:
+   ```json
+   {"step": "reasoning", "pot": "ad_id", "state": "started"}
+   {"step": "reasoning", "pot": "ad_id", "state": "done",
+    "text": "We estimated paid advertising at $15K/mo based on..."}
+   ```
+   `subscribePresignupProgress` decodes these, `applyProgressEvent`
+   routes them into the most-recent `results_grid` message's
+   `reasoning` map, and `results-grid.tsx`'s new `ReasoningContainer`
+   renders a 3-dot shimmer (`state="started"`) then types the
+   paragraph in (`state="done"` / `"failed"` — the failed state still
+   carries a templated fallback paragraph). The vendor_id card shows
+   the `kloud_id` paragraph as primary and tucks the other three sub-
+   pots under a "see breakdown" toggle.
+
+2. **Stage 1 — holding-company short-circuit.** When the visitor
+   submits a holding / portfolio domain (`.holdings`, `*group.com`,
+   `*holdings.com`, `*corp.com`, `*ventures.com`), the backend skips
+   profiling and emits a `:::holding_redirect{...}:::` widget instead
+   of `audit_products`. `extractHoldingRedirect` parses the payload
+   (`domain` / `pattern` / `suggested_brands`) and a new
+   `HoldingRedirect` widget renders a brand-picker card: free-text
+   subsidiary input + suggestion chips when Apollo's
+   `parent_organization` data populates them. Visitor's selection
+   resets the session and re-enters the flow with the new domain.
+
+`audit_products` products may now carry an optional `reasoning_id`
+field that maps the widget card to the SSE `pot` key — frontends
+default to the product id when missing. Schema-extension only; the
+widget shape stays backward-compatible with pre-Build-Guide backends.
+
 ## Current state
 
 ### Local

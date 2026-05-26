@@ -265,10 +265,57 @@ export function extractAuditProducts(text: string): AuditProductsResult | null {
       id: item.id,
       wasteTotal: Number(item.waste_total || 0),
       vendors,
+      // Pass 2 reasoning routing key (Build Guide §Stage 5.5 Pass 2).
+      // Optional; widgets emitted before the Phase 6 backend ships
+      // don't carry it.
+      ...(typeof item.reasoning_id === "string" && item.reasoning_id
+        ? { reasoningId: item.reasoning_id }
+        : {}),
     });
   }
   if (!out.length) return null;
   return { products: out, locked: parsed.locked === true };
+}
+
+/**
+ * Parsed `:::holding_redirect{...}\n:::` widget block. Build Guide
+ * §Stage 1: when the visitor's domain matches a holding / portfolio
+ * pattern (`.holdings`, `*group.com`, `*holdings.com`, `*corp.com`,
+ * `*ventures.com`) the backend short-circuits the audit and asks the
+ * visitor to pick a specific operating subsidiary.
+ *
+ * - ``domain`` — the canonical holding domain the visitor submitted.
+ * - ``pattern`` — slug identifying which holding pattern matched
+ *   (``tld_holdings`` / ``name_holdings`` / ``name_group`` /
+ *   ``name_corp`` / ``name_ventures``).
+ * - ``suggestedBrands`` — optional pre-populated subsidiary suggestions
+ *   from Apollo's ``parent_organization`` data. Empty list today;
+ *   populated when the Apollo extraction follow-up ships.
+ */
+export type HoldingRedirectResult = {
+  domain: string;
+  pattern: string;
+  suggestedBrands: string[];
+};
+
+/** Parse the `:::holding_redirect{...}\n:::` widget block. */
+export function extractHoldingRedirect(text: string): HoldingRedirectResult | null {
+  const parsed = extractWidgetBlock(text, "holding_redirect") as
+    | { domain?: unknown; pattern?: unknown; suggested_brands?: unknown }
+    | null;
+  if (!parsed) return null;
+  if (typeof parsed.domain !== "string" || !parsed.domain) return null;
+  if (typeof parsed.pattern !== "string" || !parsed.pattern) return null;
+  const rawBrands = Array.isArray(parsed.suggested_brands) ? parsed.suggested_brands : [];
+  const suggestedBrands: string[] = [];
+  for (const b of rawBrands) {
+    if (typeof b === "string" && b.trim()) suggestedBrands.push(b.trim());
+  }
+  return {
+    domain: parsed.domain,
+    pattern: parsed.pattern,
+    suggestedBrands,
+  };
 }
 
 /**
@@ -368,9 +415,38 @@ export async function downloadAuditReport(
 // Progress SSE (Redis-backed per-step ticks during the estimate phase)
 // ---------------------------------------------------------------------------
 
+/**
+ * Pass 2 reasoning event — Build Guide §Stage 5.5 Pass 2 ("Reasoning
+ * text, async post-display"). Backend dispatches six parallel Haiku
+ * calls after the audit_products widget ships; each pot emits
+ * started → done/failed transitions. The frontend matches `pot`
+ * against the widget's `Product.reasoningId` field and renders the
+ * paragraph into the per-pot "HOW WE GOT HERE" container.
+ *
+ * `text` is absent on `started`; present on `done` (Haiku output) and
+ * `failed` (templated fallback paragraph — backend always supplies
+ * text so the slot is never empty).
+ */
+export type ReasoningPot =
+  | "ad_id"
+  | "kloud_id"
+  | "token_id"
+  | "seat_id"
+  | "ship_id"
+  | "payment_id";
+
+export type ReasoningProgressEvent = {
+  step: "reasoning";
+  pot: ReasoningPot;
+  state: "started" | "done" | "failed";
+  text?: string;
+  reasoning_id?: string;
+};
+
 export type ProgressEvent =
   | { step: ProfilerStep; state: ProfilerState; detail?: undefined }
-  | { step: "business"; state: "researching"; detail: ResearchEvent };
+  | { step: "business"; state: "researching"; detail: ResearchEvent }
+  | ReasoningProgressEvent;
 
 /**
  * Subscribe to `/presignup/progress/{sessionId}` and dispatch parsed events
@@ -400,6 +476,9 @@ export function subscribePresignupProgress(
     try {
       const parsed = JSON.parse(ev.data) as ProgressEvent;
       if (!parsed?.step || !parsed?.state) return;
+      // Reasoning events carry an extra `pot` field; reject malformed
+      // ones that miss it so consumers don't have to null-check.
+      if (parsed.step === "reasoning" && !("pot" in parsed && parsed.pot)) return;
       onEvent(parsed);
     } catch (_) {
       /* malformed payload — ignore */

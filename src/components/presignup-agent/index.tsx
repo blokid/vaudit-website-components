@@ -1,3 +1,4 @@
+import type { Dispatch, SetStateAction } from "react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { ComponentMeta } from "../../registry";
 import {
@@ -7,6 +8,7 @@ import {
   EMAIL_RE,
   ensureSession,
   extractAuditProducts,
+  extractHoldingRedirect,
   getAgentBaseUrl,
   getSessionId,
   getToken,
@@ -31,6 +33,7 @@ import EstimateCta from "./estimate-cta";
 import FinalCta from "./final-cta";
 import AccuratePicker from "./accurate-picker";
 import AccurateRanges from "./accurate-ranges";
+import HoldingRedirect from "./holding-redirect";
 import { recalculateBreakdown, rangesSummaryLines } from "./recalc";
 import type {
   AccurateRanges as AccurateRangesType,
@@ -294,10 +297,13 @@ export default function PresignupAgent({ agentBaseUrl, replay }: PresignupAgentP
         // Subscribe to the per-step progress channel BEFORE we kick off
         // the agent stream so we don't miss the first profiler `started`
         // tick (Redis pub/sub drops messages with no live subscribers).
+        // Pass `setMessages` directly so reasoning events (which post
+        // after the live_audit is gone and the results_grid is on
+        // screen) can find the grid by kind via a setState-based lookup.
         closeProgress = subscribePresignupProgress(
           baseUrl,
           sessionId,
-          (event) => applyProgressEvent(liveId, event, update),
+          (event) => applyProgressEvent(liveId, event, update, setMessages),
         );
 
         const stream = await streamAgent(
@@ -328,6 +334,36 @@ export default function PresignupAgent({ agentBaseUrl, replay }: PresignupAgentP
         const accumulated = committed + pending;
 
         if (cancelledRef.current) return;
+
+        // Stage 1 holding-company short-circuit (Build Guide §Stage 1).
+        // When the backend detected the visitor's domain is a holding /
+        // portfolio pattern, it emits a holding_redirect widget instead
+        // of audit_products and skips profiling. Render the brand
+        // picker and bail out of the audit flow — the visitor's
+        // subsidiary choice re-enters the flow as a fresh domain
+        // submission.
+        const holding = extractHoldingRedirect(accumulated);
+        if (holding) {
+          // Drop the live_audit stub — there are no profilers to scan.
+          update(liveId, (m) =>
+            m.kind === "live_audit"
+              ? {
+                  ...m,
+                  rows: m.rows.map((row) => ({ ...row, state: "done" })),
+                  title: "Domain looks like a holding company",
+                }
+              : m,
+          );
+          append({
+            id: nextId("holding"),
+            kind: "holding_redirect",
+            domain: holding.domain,
+            pattern: holding.pattern,
+            suggestedBrands: holding.suggestedBrands,
+            submitted: false,
+          });
+          return;
+        }
 
         const result = extractAuditProducts(accumulated);
         if (!result?.products.length) {
@@ -801,6 +837,28 @@ export default function PresignupAgent({ agentBaseUrl, replay }: PresignupAgentP
     resetSession();
   }, [cancelActive]);
 
+  const handleHoldingSubmit = useCallback(
+    (holdingId: string, rawDomain: string) => {
+      const domain = normalizeDomain(rawDomain);
+      if (!isValidDomain(domain) || busy) return;
+
+      // Stage 1 brand-picker submission. Lock the picker (visible "Submitted"
+      // state on the button), echo the visitor's pick as a user bubble, then
+      // reset the session so backend state — including ``holding_redirect_
+      // active`` — starts clean for the new domain. Running with a stale
+      // session would re-trip the short-circuit since the flag never clears
+      // on its own.
+      update(holdingId, (m) =>
+        m.kind === "holding_redirect" ? { ...m, submitted: true } : m,
+      );
+      append({ id: nextId("user"), kind: "user_text", text: rawDomain });
+      resetSession();
+      domainRef.current = domain;
+      runEstimate(domain);
+    },
+    [append, busy, runEstimate, update],
+  );
+
   const placeholder = useMemo(() => {
     if (isEmpty) {
       return "Enter a website (e.g. stripe.com), describe your stack, or paste a list of vendors you want audited…";
@@ -824,6 +882,7 @@ export default function PresignupAgent({ agentBaseUrl, replay }: PresignupAgentP
               onRangesSubmit: handleRangesSubmit,
               onDownloadReport: handleDownloadReport,
               onAuditAgain: handleAuditAgain,
+              onHoldingSubmit: handleHoldingSubmit,
             }),
           )}
         </div>
@@ -855,6 +914,7 @@ type RenderHandlers = {
   ) => void;
   onDownloadReport: (email: string) => Promise<boolean>;
   onAuditAgain: () => void;
+  onHoldingSubmit: (holdingId: string, domain: string) => void;
 };
 
 function renderMessage(msg: ChatMessage, h: RenderHandlers) {
@@ -905,6 +965,14 @@ function renderMessage(msg: ChatMessage, h: RenderHandlers) {
           message={msg}
           onSubmit={(ranges) => h.onRangesSubmit(msg.id, ranges)}
           onBack={() => h.onRangesBack(msg.id)}
+        />
+      );
+    case "holding_redirect":
+      return (
+        <HoldingRedirect
+          key={msg.id}
+          message={msg}
+          onSubmit={(domain) => h.onHoldingSubmit(msg.id, domain)}
         />
       );
     case "error":
@@ -968,7 +1036,34 @@ function applyProgressEvent(
   liveId: string,
   event: ProgressEvent,
   update: (id: string, patch: (m: ChatMessage) => ChatMessage) => void,
+  setMessages: Dispatch<SetStateAction<ChatMessage[]>>,
 ) {
+  // Pass 2 reasoning events (Build Guide §Stage 5.5 Pass 2) arrive
+  // post-widget-emit — by the time they land, the live_audit is gone
+  // and the results_grid is on screen. Route them into the most-recent
+  // results_grid via a setState-based search; ignore when no grid is
+  // present (e.g. holding-company redirect path or audit error).
+  if (event.step === "reasoning") {
+    setMessages((prev) => {
+      // Walk in reverse so we land on the latest grid (phase-2
+      // corrections re-emit a new one).
+      for (let i = prev.length - 1; i >= 0; i--) {
+        const m = prev[i];
+        if (m.kind !== "results_grid") continue;
+        const reasoning = { ...(m.reasoning ?? {}) };
+        reasoning[event.pot] = {
+          status: event.state,
+          ...(event.text ? { text: event.text } : {}),
+        };
+        const next = [...prev];
+        next[i] = { ...m, reasoning };
+        return next;
+      }
+      return prev;
+    });
+    return;
+  }
+
   update(liveId, (m) => {
     if (m.kind !== "live_audit") return m;
     // If the row-scan animation has already started, the rows take over the
