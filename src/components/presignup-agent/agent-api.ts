@@ -531,6 +531,7 @@ export const VENDOR_ICONS: Record<string, string> = {
   "shopify":          "https://cdn.prod.website-files.com/67e174863b0c93ae0a0cffee/69e8a98de0d6b803860417b8_shopify.svg",
   "salesforce":       "https://cdn.prod.website-files.com/67e174863b0c93ae0a0cffee/69e8aa1be867fd9d7a66f538_salesforce.svg",
   "google workspace": "https://cdn.prod.website-files.com/67e174863b0c93ae0a0cffee/69e8a997ae02448a9e62d5c0_google-workspace.svg",
+  "microsoft 365":    "https://api.iconify.design/logos/microsoft.svg",
   "openai":           "https://cdn.prod.website-files.com/67e174863b0c93ae0a0cffee/69e8a9ac553a539363414ad2_openai.svg",
   "anthropic":        "https://cdn.prod.website-files.com/67e174863b0c93ae0a0cffee/69e8a9ac046b54c24d008aed_anthropic.svg",
   "gemini":           "https://cdn.prod.website-files.com/67e174863b0c93ae0a0cffee/69e8abaccd7cfdce2d3ae140_gemini-color.svg",
