@@ -28,6 +28,7 @@ const SESSION_ENDPOINT = "/apps/presignup_agent/users/anonymous/sessions/";
 const RUN_SSE_ENDPOINT = "/run_sse";
 const AUDIT_REPORT_ENDPOINT = "/presignup/audit-report/";
 const ACCURATE_BREAKDOWN_ENDPOINT = "/presignup/accurate-breakdown/";
+const BREAKDOWN_ENDPOINT = "/presignup/breakdown/";
 const PROGRESS_SSE_ENDPOINT = "/presignup/progress/";
 
 const APP_NAME = "presignup_agent";
@@ -61,6 +62,20 @@ export function getSessionId(): string {
     return next;
   } catch (_) {
     return newSessionId();
+  }
+}
+
+/**
+ * Return the cached session id without minting one. Used on mount to decide
+ * whether there's a prior session worth rehydrating — a brand-new visitor
+ * (no cached id) has nothing to fetch, and we don't want to create a session
+ * id just to probe.
+ */
+export function peekSessionId(): string | null {
+  try {
+    return localStorage.getItem(SESSION_KEY);
+  } catch (_) {
+    return null;
   }
 }
 
@@ -240,13 +255,14 @@ export type AuditProductsResult = {
   locked: boolean;
 };
 
-/** Parse the `:::audit_products{...}\n:::` widget block from accumulated text. */
-export function extractAuditProducts(text: string): AuditProductsResult | null {
-  const parsed = extractWidgetBlock(text, "audit_products") as
-    | { products?: unknown; locked?: unknown }
-    | null;
-  if (!parsed) return null;
-  const raw = Array.isArray(parsed.products) ? parsed.products : [];
+/**
+ * Normalize a raw products array (snake_case wire shape, from either the
+ * `audit_products` widget JSON or the `/presignup/breakdown` rehydration
+ * route) into the internal `Product[]` shape. Shared so both entry points
+ * apply identical validation and field mapping.
+ */
+export function normalizeProducts(rawProducts: unknown): Product[] {
+  const raw = Array.isArray(rawProducts) ? rawProducts : [];
   const out: Product[] = [];
   for (const item of raw as Array<Record<string, unknown>>) {
     if (!item || typeof item.id !== "string") continue;
@@ -273,8 +289,67 @@ export function extractAuditProducts(text: string): AuditProductsResult | null {
         : {}),
     });
   }
+  return out;
+}
+
+/** Parse the `:::audit_products{...}\n:::` widget block from accumulated text. */
+export function extractAuditProducts(text: string): AuditProductsResult | null {
+  const parsed = extractWidgetBlock(text, "audit_products") as
+    | { products?: unknown; locked?: unknown }
+    | null;
+  if (!parsed) return null;
+  const out = normalizeProducts(parsed.products);
   if (!out.length) return null;
   return { products: out, locked: parsed.locked === true };
+}
+
+/**
+ * Result of rehydrating a persisted breakdown via `/presignup/breakdown`.
+ * `domain` is the website the audit was run for (echoed from the session
+ * row); absent only for very old rows persisted before it was stored.
+ */
+export type PersistedBreakdown = {
+  products: Product[];
+  locked: boolean;
+  domain: string | null;
+};
+
+/**
+ * Fetch the persisted audit breakdown for a returning session so the
+ * frontend can re-paint the `audit_products` widget after a page refresh
+ * (the rendered transcript is lost on reload but the backend session +
+ * breakdown survive — without this the next turn is phase-2 prose with no
+ * widget to anchor to). Returns null when there's nothing to rehydrate
+ * (no prior breakdown) or on any network/parse failure — rehydration is
+ * best-effort and must never block the normal landing input.
+ */
+export async function fetchPersistedBreakdown(
+  baseUrl: string,
+  sessionId: string,
+  signal?: AbortSignal,
+): Promise<PersistedBreakdown | null> {
+  try {
+    const res = await fetch(baseUrl + BREAKDOWN_ENDPOINT + encodeURIComponent(sessionId), {
+      method: "GET",
+      headers: { Accept: "application/json" },
+      signal,
+    });
+    if (!res.ok) return null;
+    const data = (await res.json()) as {
+      products?: unknown;
+      locked?: unknown;
+      domain?: unknown;
+    };
+    const products = normalizeProducts(data?.products);
+    if (!products.length) return null;
+    return {
+      products,
+      locked: data?.locked === true,
+      domain: typeof data?.domain === "string" && data.domain ? data.domain : null,
+    };
+  } catch (_) {
+    return null;
+  }
 }
 
 /**

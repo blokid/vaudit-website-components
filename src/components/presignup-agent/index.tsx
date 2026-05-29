@@ -9,12 +9,14 @@ import {
   ensureSession,
   extractAuditProducts,
   extractHoldingRedirect,
+  fetchPersistedBreakdown,
   getAgentBaseUrl,
   getSessionId,
   getToken,
   isValidDomain,
   mergeStreamText,
   normalizeDomain,
+  peekSessionId,
   postAccurateBreakdown,
   resetSession,
   streamAgent,
@@ -219,8 +221,15 @@ export default function PresignupAgent({ agentBaseUrl, replay }: PresignupAgentP
   const domainRef = useRef<string>("");
   const phase2SelectionRef = useRef<AccurateSelection | null>(null);
   const latestTotalRef = useRef<number>(0);
+  // Mirror of `messages` for reads inside async callbacks (rehydration)
+  // without adding them to effect deps.
+  const messagesRef = useRef<ChatMessage[]>([]);
 
   const isEmpty = messages.length === 0;
+
+  useEffect(() => {
+    messagesRef.current = messages;
+  }, [messages]);
 
   const append = useCallback((msg: ChatMessage) => {
     setMessages((prev) => [...prev, msg]);
@@ -486,6 +495,71 @@ export default function PresignupAgent({ agentBaseUrl, replay }: PresignupAgentP
     // switching companies for a hard reset of message state.
     return () => cancelActive();
   }, [replay, runReplay, cancelActive]);
+
+  // ------------------------------------------------------------------------
+  // Rehydrate a prior audit on mount — page-refresh recovery.
+  // ------------------------------------------------------------------------
+  // The session id is cached in localStorage, so a refresh reuses the same
+  // backend session: its persisted breakdown survives but the rendered
+  // transcript does not, and the next turn is classified phase-2
+  // ``followup`` (prose, no widget). Without re-painting the breakdown the
+  // visitor sees "Agent did not return any audit products". Fetch the
+  // persisted breakdown and re-render the results grid + CTA so phase-2's
+  // "correct the estimates above" has its referent. Best-effort and silent:
+  // any miss falls through to the normal landing input.
+  const rehydratedRef = useRef(false);
+  useEffect(() => {
+    if (replay) return; // replay owns the transcript
+    if (rehydratedRef.current) return;
+    rehydratedRef.current = true;
+
+    const cached = peekSessionId();
+    if (!cached) return; // brand-new visitor — nothing to rehydrate
+
+    (async () => {
+      const baseUrl = getAgentBaseUrl(agentBaseUrl);
+      const bd = await fetchPersistedBreakdown(baseUrl, cached);
+      if (!bd || !bd.products.length) return;
+      // Don't clobber a live run that the visitor kicked off in the gap
+      // between mount and this resolving.
+      if (messagesRef.current.length > 0) return;
+
+      const domain = bd.domain || "";
+      const { products, locked } = bd;
+      domainRef.current = domain;
+      phase1ProductsRef.current = products;
+      phase1LockedRef.current = locked;
+      setBreakdownLocked(locked);
+
+      const total = products.reduce((acc, p) => acc + (p.wasteTotal || 0), 0);
+      latestTotalRef.current = total * 12;
+
+      append({
+        id: nextId("rehydrate-ack"),
+        kind: "agent_text",
+        text: domain
+          ? `Welcome back — here's the audit we saved for ${domain}. ` +
+            `Ask me to refine any number, see how we got here, or download the report.`
+          : `Welcome back — here's the audit we saved for you. ` +
+            `Ask me to refine any number, see how we got here, or download the report.`,
+      });
+      append({
+        id: nextId("grid"),
+        kind: "results_grid",
+        mode: "estimate",
+        domain,
+        products,
+      });
+      append({
+        id: nextId("est-cta"),
+        kind: "estimate_cta",
+        total,
+        categoryCount: products.length,
+        busy: false,
+        locked,
+      });
+    })();
+  }, [replay, agentBaseUrl, append]);
 
   // ------------------------------------------------------------------------
   // Phase 2 — client-driven (picker → ranges → recalc → persist → grid)
