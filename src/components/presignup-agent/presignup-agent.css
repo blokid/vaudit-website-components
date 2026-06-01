@@ -1601,6 +1601,34 @@ html.dark .rc-pa-btn__time {
 
 /* ---- composer ------------------------------------------------------------ */
 
+/* Always-visible "Start over" control — pinned to the card's top-right while
+   an audit is on screen. Clears the conversation and starts a clean audit on
+   the same session id (backend teardown). Subtle by default, warms on hover. */
+.rc-pa-startover {
+  position: absolute;
+  top: 10px;
+  right: 14px;
+  z-index: 3;
+  appearance: none;
+  border: 1px solid var(--rc-pa-border);
+  background: var(--rc-pa-card-bg);
+  border-radius: 999px;
+  padding: 4px 11px;
+  font: inherit;
+  font-size: 12.5px;
+  line-height: 1;
+  color: var(--rc-pa-fg-muted);
+  cursor: pointer;
+  transition:
+    color 140ms ease,
+    border-color 140ms ease;
+}
+
+.rc-pa-startover:hover {
+  color: var(--rc-pa-orange);
+  border-color: var(--rc-pa-orange);
+}
+
 .rc-pa-composer {
   border-top: 1px solid var(--rc-pa-row-divider);
   padding: 14px var(--rc-pa-thread-pad-x) 18px;

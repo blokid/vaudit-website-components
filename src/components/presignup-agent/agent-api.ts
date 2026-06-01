@@ -30,6 +30,7 @@ const AUDIT_REPORT_ENDPOINT = "/presignup/audit-report/";
 const ACCURATE_BREAKDOWN_ENDPOINT = "/presignup/accurate-breakdown/";
 const BREAKDOWN_ENDPOINT = "/presignup/breakdown/";
 const PROGRESS_SSE_ENDPOINT = "/presignup/progress/";
+const FRESH_START_ENDPOINT = "/presignup/fresh-start/";
 
 const APP_NAME = "presignup_agent";
 const USER_ID = "anonymous";
@@ -448,6 +449,38 @@ export async function postAccurateBreakdown(
   if (!res.ok) {
     throw new Error(`Accurate breakdown persist failed: ${res.status}`);
   }
+}
+
+/** Thrown by {@link freshStartSession} on a non-OK response so the caller
+ *  can branch on `.status` (e.g. fall back to a client-side id rotation
+ *  when the session's trust window has lapsed → 401). */
+export class FreshStartError extends Error {
+  status: number;
+  constructor(status: number) {
+    super(`Fresh start failed: ${status}`);
+    this.name = "FreshStartError";
+    this.status = status;
+  }
+}
+
+/**
+ * Explicit "Start over": tell the backend to tear down the conversation +
+ * staging row (including any PDF lock) and recreate a fresh ADK session
+ * under the **same** id. After this resolves the session stays trusted, so
+ * the next domain submit streams without rotating the localStorage id.
+ * Throws {@link FreshStartError} on failure; the caller falls back to
+ * {@link resetSession} (id rotation) so the button always works.
+ */
+export async function freshStartSession(
+  baseUrl: string,
+  sessionId: string,
+  signal?: AbortSignal,
+): Promise<void> {
+  const res = await fetch(
+    baseUrl + FRESH_START_ENDPOINT + encodeURIComponent(sessionId),
+    { method: "POST", headers: { Accept: "application/json" }, signal },
+  );
+  if (!res.ok) throw new FreshStartError(res.status);
 }
 
 export async function downloadAuditReport(

@@ -415,13 +415,28 @@ doesn't need it. If a task involves changing what's live in Webflow Custom
 Code (e.g. swapping the script tag URL), do that work from
 `vaudit-website-pages` where the Webflow MCP is wired up.
 
+## Explicit "Start over" (2026-06-01)
+
+A card-corner **Start over** button (`.rc-pa-startover`, shown whenever an
+audit is on screen) gives the visitor a clean restart on the **same** session
+id. `handleStartOver` calls `freshStartSession()` → `POST
+/presignup/fresh-start/{session_id}`; the backend tears down the conversation
++ staging row (**including a PDF-`locked` breakdown — the escape hatch from a
+locked session**) and recreates the ADK session under the same id. The route
+is trust-gated, so on `401` (trust window lapsed) `handleStartOver` falls back
+to `resetSession()` (client-side id rotation). The post-results "Audit again"
+CTA is unchanged (hard break via `resetSession()`). See the "Presignup agent —
+backend session reset" section of the repo `CLAUDE.md` for the full contract.
+
 ## Open items (non-blocking)
 
 - **Agent-driven phase-2 widgets.** Marker contract is in `types.ts`; the
   agent prompt + a new tool would replace the client-driven flow.
 - **`Audit again` rate-limit interaction.** `PresignupGuardMiddleware`
   rate-limits per IP × domain. Repeat audits of the same domain from the
-  same browser may hit the limit; behaviour acceptable for now.
+  same browser may hit the limit; behaviour acceptable for now. Note
+  fresh-start itself is **not** rate-limited (trust-gated + lock-serialized),
+  but the subsequent `/run_sse` still hits the per-IP×domain run limit.
 
 ## Reference
 

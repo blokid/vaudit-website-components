@@ -10,6 +10,7 @@ import {
   extractAuditProducts,
   extractHoldingRedirect,
   fetchPersistedBreakdown,
+  freshStartSession,
   getAgentBaseUrl,
   getSessionId,
   getToken,
@@ -895,7 +896,10 @@ export default function PresignupAgent({ agentBaseUrl, replay }: PresignupAgentP
     [agentBaseUrl, append],
   );
 
-  const handleAuditAgain = useCallback(() => {
+  // Clear all client-side audit state back to the empty hero, aborting any
+  // in-flight stream. Does NOT touch the session id — callers decide whether
+  // to keep it (same-id backend teardown) or rotate it (`resetSession`).
+  const resetLocalUiState = useCallback(() => {
     cancelActive();
     cancelledRef.current = false;
     phase1ProductsRef.current = null;
@@ -908,8 +912,30 @@ export default function PresignupAgent({ agentBaseUrl, replay }: PresignupAgentP
     setComposerError(null);
     setBusy(false);
     setBreakdownLocked(false);
-    resetSession();
   }, [cancelActive]);
+
+  // Post-results "Audit again" (FinalCta): hard break — reset local state and
+  // rotate the session id so the new audit starts on a brand-new session.
+  const handleAuditAgain = useCallback(() => {
+    resetLocalUiState();
+    resetSession();
+  }, [resetLocalUiState]);
+
+  // Always-visible "Start over": clean restart on the SAME session id. Ask the
+  // backend to tear down + recreate the session under the same id (wipes any
+  // PDF lock); on failure (trust window lapsed → 401, or network) fall back to
+  // rotating the id so the next submit still starts clean. Uses `peekSessionId`
+  // so a brand-new visitor with no cached id doesn't mint one just to reset.
+  const handleStartOver = useCallback(async () => {
+    const sessionId = peekSessionId();
+    resetLocalUiState();
+    if (!sessionId) return;
+    try {
+      await freshStartSession(getAgentBaseUrl(agentBaseUrl), sessionId);
+    } catch (_) {
+      resetSession();
+    }
+  }, [agentBaseUrl, resetLocalUiState]);
 
   const handleHoldingSubmit = useCallback(
     (holdingId: string, rawDomain: string) => {
@@ -947,6 +973,16 @@ export default function PresignupAgent({ agentBaseUrl, replay }: PresignupAgentP
     <section className="rc-pa-section">
       <div className={`rc-pa-card${isEmpty ? " is-empty" : ""}`}>
         {isEmpty && <span className="rc-pa-card__shimmer" aria-hidden="true" />}
+        {!isEmpty && (
+          <button
+            type="button"
+            className="rc-pa-startover"
+            onClick={handleStartOver}
+            title="Clear this audit and start a new one"
+          >
+            Start over
+          </button>
+        )}
         <div className={`rc-pa-thread${isEmpty ? " is-empty" : ""}`}>
           {messages.map((msg) =>
             renderMessage(msg, {
