@@ -167,6 +167,30 @@ html.dark .rc-pa-card {
   padding: 0;
 }
 
+/* Cap the conversation panel so it doesn't grow without bound as the audit
+   streams and phase-2 turns pile up. Once an audit is on screen the card
+   becomes a flex column with a max height; the thread scrolls internally
+   while the composer stays pinned at the bottom and the Start-over button
+   (absolutely positioned) stays pinned at the top. The empty (hero) state is
+   left unconstrained so the landing composer sizes to its content. */
+.rc-pa-card:not(.is-empty) {
+  display: flex;
+  flex-direction: column;
+  max-height: min(620px, 78vh);
+}
+
+.rc-pa-card:not(.is-empty) .rc-pa-thread {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  /* Don't chain scroll to the host Webflow page at the thread's edges. */
+  overscroll-behavior: contain;
+}
+
+.rc-pa-card:not(.is-empty) .rc-pa-composer {
+  flex: 0 0 auto;
+}
+
 /* ---- agent message ------------------------------------------------------- */
 
 .rc-pa-msg-agent {

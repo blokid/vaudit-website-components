@@ -222,6 +222,18 @@ export default function PresignupAgent({ agentBaseUrl, replay }: PresignupAgentP
   const domainRef = useRef<string>("");
   const phase2SelectionRef = useRef<AccurateSelection | null>(null);
   const latestTotalRef = useRef<number>(0);
+  // Auto-follow the latest content as the audit streams / phase-2 turns land,
+  // but only while the visitor is already pinned to the bottom — if they've
+  // scrolled up to re-read earlier content, leave their position alone.
+  const threadRef = useRef<HTMLDivElement>(null);
+  const stickToBottomRef = useRef(true);
+  const handleThreadScroll = useCallback(() => {
+    const el = threadRef.current;
+    if (!el) return;
+    stickToBottomRef.current =
+      el.scrollHeight - el.scrollTop - el.clientHeight < 80;
+  }, []);
+
   // Mirror of `messages` for reads inside async callbacks (rehydration)
   // without adding them to effect deps.
   const messagesRef = useRef<ChatMessage[]>([]);
@@ -230,6 +242,13 @@ export default function PresignupAgent({ agentBaseUrl, replay }: PresignupAgentP
 
   useEffect(() => {
     messagesRef.current = messages;
+  }, [messages]);
+
+  // Keep the thread scrolled to the newest content. `update` replaces the
+  // messages array on every streamed token, so this fires throughout a stream.
+  useEffect(() => {
+    const el = threadRef.current;
+    if (el && stickToBottomRef.current) el.scrollTop = el.scrollHeight;
   }, [messages]);
 
   const append = useCallback((msg: ChatMessage) => {
@@ -983,7 +1002,11 @@ export default function PresignupAgent({ agentBaseUrl, replay }: PresignupAgentP
             Start over
           </button>
         )}
-        <div className={`rc-pa-thread${isEmpty ? " is-empty" : ""}`}>
+        <div
+          ref={threadRef}
+          onScroll={handleThreadScroll}
+          className={`rc-pa-thread${isEmpty ? " is-empty" : ""}`}
+        >
           {messages.map((msg) =>
             renderMessage(msg, {
               onLockIn: startAccurate,
