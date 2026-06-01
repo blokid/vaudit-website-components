@@ -37,6 +37,7 @@ import FinalCta from "./final-cta";
 import AccuratePicker from "./accurate-picker";
 import AccurateRanges from "./accurate-ranges";
 import HoldingRedirect from "./holding-redirect";
+import { IconRefresh } from "./icons";
 import { recalculateBreakdown, rangesSummaryLines } from "./recalc";
 import type {
   AccurateRanges as AccurateRangesType,
@@ -992,16 +993,6 @@ export default function PresignupAgent({ agentBaseUrl, replay }: PresignupAgentP
     <section className="rc-pa-section">
       <div className={`rc-pa-card${isEmpty ? " is-empty" : ""}`}>
         {isEmpty && <span className="rc-pa-card__shimmer" aria-hidden="true" />}
-        {!isEmpty && (
-          <button
-            type="button"
-            className="rc-pa-startover"
-            onClick={handleStartOver}
-            title="Clear this audit and start a new one"
-          >
-            Start over
-          </button>
-        )}
         <div
           ref={threadRef}
           onScroll={handleThreadScroll}
@@ -1029,6 +1020,19 @@ export default function PresignupAgent({ agentBaseUrl, replay }: PresignupAgentP
           error={isEmpty ? composerError : null}
         />
       </div>
+      {!isEmpty && (
+        <div className="rc-pa-startover-row">
+          <button
+            type="button"
+            className="rc-pa-btn rc-pa-btn--secondary rc-pa-startover"
+            onClick={handleStartOver}
+            title="Clear this audit and start a new one"
+          >
+            <IconRefresh aria-hidden="true" />
+            Start over
+          </button>
+        </div>
+      )}
     </section>
   );
 }

@@ -62,8 +62,6 @@ export const registry = { ...registry, "my-thing": MyThing };
 - **Dark mode uses the existing `html.dark` cascade.** Style light on the base class, then write `html.dark .rc-foo { … }` overrides next to the base styles in the same `.css` file. See `docs/WEBFLOW-THEME-CONVENTION.md` for the full convention. No JS-side theme handling — the dark class is set synchronously by a HEAD bootstrap on the Webflow side.
 - **Responsive: standard `@media` queries.** Webflow's breakpoints are 991/767/479 px (per `docs/legacy-CLAUDE.md`); match them when porting existing sections.
 
-The smoke test (`examples/smoke-test.html`) renders components against a plain page so the render in dev should match the render in Webflow byte-for-byte once the page font is inherited.
-
 ## Build / release
 
 ```

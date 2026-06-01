@@ -177,7 +177,7 @@ Before pushing a tag, verify the playground renders the change you expect:
 ```bash
 npm run hub          # http://localhost:5173 — full playground
 # or
-npm run dev          # vite build --watch — drives examples/smoke-test.html
+npm run dev          # vite build --watch — rebuilds dist/ on save
 ```
 
 The playground reads from `src/`, but `dist/` is what jsDelivr serves. Run `npm run build` again immediately before tagging — easy to forget after iterating.

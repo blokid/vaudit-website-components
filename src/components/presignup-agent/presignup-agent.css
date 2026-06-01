@@ -49,7 +49,8 @@
   --rc-pa-thread-pad-y: clamp(20px, 3vw, 28px);
 
   display: flex;
-  justify-content: center;
+  flex-direction: column;
+  align-items: center;
   width: 100%;
   padding: clamp(24px, 5vw, 48px) clamp(12px, 4vw, 32px);
   box-sizing: border-box;
@@ -185,6 +186,11 @@ html.dark .rc-pa-card {
   overflow-y: auto;
   /* Don't chain scroll to the host Webflow page at the thread's edges. */
   overscroll-behavior: contain;
+  /* Round the thread's top corners to match the card so the WebKit scrollbar
+     is clipped inside the rounded edge instead of overshooting it. The bottom
+     edge meets the composer (straight divider) so only the top needs rounding. */
+  border-top-left-radius: calc(var(--rc-pa-card-radius) - 1px);
+  border-top-right-radius: calc(var(--rc-pa-card-radius) - 1px);
   /* Modern, on-brand scrollbar (Firefox / standard): thin, transparent track,
      translucent-orange thumb. */
   scrollbar-width: thin;
@@ -1652,32 +1658,27 @@ html.dark .rc-pa-btn__time {
 
 /* ---- composer ------------------------------------------------------------ */
 
-/* Always-visible "Start over" control — pinned to the card's top-right while
-   an audit is on screen. Clears the conversation and starts a clean audit on
-   the same session id (backend teardown). Subtle by default, warms on hover. */
-.rc-pa-startover {
-  position: absolute;
-  top: 10px;
-  right: 14px;
-  z-index: 3;
-  appearance: none;
-  border: 1px solid var(--rc-pa-border);
-  background: var(--rc-pa-card-bg);
-  border-radius: 999px;
-  padding: 4px 11px;
-  font: inherit;
-  font-size: 12.5px;
-  line-height: 1;
-  color: var(--rc-pa-fg-muted);
-  cursor: pointer;
-  transition:
-    color 140ms ease,
-    border-color 140ms ease;
+/* Always-visible "Start over" control — sits in its own row directly below
+   the chat card, horizontally centered. Clears the conversation and starts a
+   clean audit on the same session id (backend teardown). Uses the standard
+   secondary button variant so it reads as an actionable control rather than a
+   muted corner pill. */
+.rc-pa-startover-row {
+  display: flex;
+  justify-content: center;
+  width: 100%;
+  max-width: 960px;
+  margin-top: 18px;
 }
 
-.rc-pa-startover:hover {
-  color: var(--rc-pa-orange);
-  border-color: var(--rc-pa-orange);
+.rc-pa-startover {
+  padding: 9px 18px;
+  font-size: 13.5px;
+}
+
+.rc-pa-startover svg {
+  width: 15px;
+  height: 15px;
 }
 
 .rc-pa-composer {
