@@ -35,17 +35,19 @@ import ResultsGrid from "./results-grid";
 import EstimateCta from "./estimate-cta";
 import FinalCta from "./final-cta";
 import AccuratePicker from "./accurate-picker";
-import AccurateRanges from "./accurate-ranges";
+import AccurateSpends from "./accurate-spends";
 import HoldingRedirect from "./holding-redirect";
 import { IconRefresh } from "./icons";
-import { recalculateBreakdown, rangesSummaryLines } from "./recalc";
+import {
+  recalculateFromExactSpends,
+  spendsSummaryLines,
+  type ExactMonthlyByVendor,
+} from "./recalc";
 import type {
-  AccurateRanges as AccurateRangesType,
   AccurateSelection,
   AuditRow,
   ChatMessage,
   Product,
-  SpendRange,
 } from "./types";
 import "./presignup-agent.css";
 
@@ -72,9 +74,9 @@ type PresignupAgentProps = {
    * When provided, skip the composer-entry flow and replay a pre-computed
    * audit (used by the Mucker portfolio dashboard). The replay animates the
    * same row-scan and posts the same results-grid + estimate-cta as a live
-   * run, but never talks to the agent for phase 1. Phase 2 (lock-in + range
-   * recalc) is unchanged — it was already client-driven. Follow-ups still
-   * hit the live agent through the composer.
+   * run, but never talks to the agent for phase 1. Phase 2 (lock-in +
+   * exact-spend recalc) is unchanged — it was already client-driven.
+   * Follow-ups still hit the live agent through the composer.
    */
   replay?: { domain: string; products: Product[] };
 };
@@ -617,11 +619,20 @@ export default function PresignupAgent({ agentBaseUrl, replay }: PresignupAgentP
         kind: "user_text",
         text: `I want an accurate audit for ${SELECTION_LABEL[selection]}.`,
       });
+      // Prefill the spend form with the phase-1 products for the opted-in
+      // categories only. "all" keeps every product; a single pick narrows to
+      // that one category's vendors.
+      const phase1 = phase1ProductsRef.current ?? [];
+      const opted =
+        selection === "all"
+          ? new Set(["ad_id", "token_id", "vendor_id"])
+          : new Set([selection]);
+      const formProducts = phase1.filter((p) => opted.has(p.id));
       append({
-        id: nextId("ranges"),
-        kind: "accurate_ranges",
+        id: nextId("spends"),
+        kind: "accurate_spends",
         selection,
-        ranges: {},
+        products: formProducts,
         busy: false,
         completed: false,
       });
@@ -629,9 +640,9 @@ export default function PresignupAgent({ agentBaseUrl, replay }: PresignupAgentP
     [append, update],
   );
 
-  const handleRangesBack = useCallback((rangesId: string) => {
+  const handleSpendsBack = useCallback((spendsId: string) => {
     setMessages((prev) => {
-      const idx = prev.findIndex((m) => m.id === rangesId);
+      const idx = prev.findIndex((m) => m.id === spendsId);
       if (idx < 0) return prev;
       const before = prev.slice(0, idx);
       let stripIdx = before.length - 1;
@@ -644,32 +655,22 @@ export default function PresignupAgent({ agentBaseUrl, replay }: PresignupAgentP
     phase2SelectionRef.current = null;
   }, []);
 
-  const handleRangesSubmit = useCallback(
-    async (
-      rangesId: string,
-      partialRanges: Partial<Record<"ad" | "ai" | "vendor", SpendRange>>,
-    ) => {
+  const handleSpendsSubmit = useCallback(
+    async (spendsId: string, exact: ExactMonthlyByVendor) => {
       const selection = phase2SelectionRef.current ?? "all";
       const phase1 = phase1ProductsRef.current;
       if (!phase1) return;
 
-      // recalculateBreakdown ignores ranges for categories not in `selection`,
-      // so we can stub anything for the missing ones — use a no-op zero range.
-      const NOOP: SpendRange = { min: 0, max: 0, label: "—" };
-      const ranges: AccurateRangesType = {
-        ad: partialRanges.ad ?? NOOP,
-        ai: partialRanges.ai ?? NOOP,
-        vendor: partialRanges.vendor ?? NOOP,
-      };
-
-      update(rangesId, (m) =>
-        m.kind === "accurate_ranges" ? { ...m, ranges, busy: true } : m,
+      update(spendsId, (m) =>
+        m.kind === "accurate_spends" ? { ...m, busy: true } : m,
       );
+
+      const recalc = recalculateFromExactSpends(phase1, exact, selection);
 
       append({
         id: nextId("user"),
         kind: "user_text",
-        text: rangesSummaryLines(partialRanges).join("\n"),
+        text: spendsSummaryLines(recalc.products, selection).join("\n"),
       });
 
       const liveId = nextId("live-acc");
@@ -687,44 +688,23 @@ export default function PresignupAgent({ agentBaseUrl, replay }: PresignupAgentP
         researchEvents: [],
       });
 
-      const recalc = recalculateBreakdown(phase1, ranges, selection);
-
       await runScanSequence(liveId, recalc.products, "accurate", update);
 
-      update(rangesId, (m) =>
-        m.kind === "accurate_ranges" ? { ...m, busy: false, completed: true } : m,
+      update(spendsId, (m) =>
+        m.kind === "accurate_spends" ? { ...m, busy: false, completed: true } : m,
       );
 
       try {
         const baseUrl = getAgentBaseUrl(agentBaseUrl);
         const sessionId = getSessionId();
-        const payloadRanges: Partial<Record<"ad" | "ai" | "vendor",
-          { min: number; max: number; label: string }>> = {};
-        if (partialRanges.ad) {
-          payloadRanges.ad = {
-            min: partialRanges.ad.min,
-            max: finiteOr(partialRanges.ad.max),
-            label: partialRanges.ad.label,
-          };
-        }
-        if (partialRanges.ai) {
-          payloadRanges.ai = {
-            min: partialRanges.ai.min,
-            max: finiteOr(partialRanges.ai.max),
-            label: partialRanges.ai.label,
-          };
-        }
-        if (partialRanges.vendor) {
-          payloadRanges.vendor = {
-            min: partialRanges.vendor.min,
-            max: finiteOr(partialRanges.vendor.max),
-            label: partialRanges.vendor.label,
-          };
-        }
+        // The accurate-breakdown route persists per-vendor products directly;
+        // `ranges` is metadata only. Derive a per-category summary range
+        // (min = max = the corrected annual category total) so the persisted
+        // `accurate.ranges` block still reflects what the visitor locked in.
         await postAccurateBreakdown(baseUrl, sessionId, {
           products: recalc.products,
           total: recalc.total,
-          ranges: payloadRanges,
+          ranges: buildRangeMetadata(recalc.products, selection),
           selection,
         });
       } catch (err) {
@@ -1002,8 +982,8 @@ export default function PresignupAgent({ agentBaseUrl, replay }: PresignupAgentP
             renderMessage(msg, {
               onLockIn: startAccurate,
               onPickerConfirm: handlePickerConfirm,
-              onRangesBack: handleRangesBack,
-              onRangesSubmit: handleRangesSubmit,
+              onSpendsBack: handleSpendsBack,
+              onSpendsSubmit: handleSpendsSubmit,
               onDownloadReport: handleDownloadReport,
               onAuditAgain: handleAuditAgain,
               onHoldingSubmit: handleHoldingSubmit,
@@ -1044,11 +1024,8 @@ export default function PresignupAgent({ agentBaseUrl, replay }: PresignupAgentP
 type RenderHandlers = {
   onLockIn: () => void;
   onPickerConfirm: (pickerId: string, selection: AccurateSelection) => void;
-  onRangesBack: (rangesId: string) => void;
-  onRangesSubmit: (
-    rangesId: string,
-    ranges: Partial<Record<"ad" | "ai" | "vendor", SpendRange>>,
-  ) => void;
+  onSpendsBack: (spendsId: string) => void;
+  onSpendsSubmit: (spendsId: string, exact: ExactMonthlyByVendor) => void;
   onDownloadReport: (email: string) => Promise<boolean>;
   onAuditAgain: () => void;
   onHoldingSubmit: (holdingId: string, domain: string) => void;
@@ -1095,13 +1072,13 @@ function renderMessage(msg: ChatMessage, h: RenderHandlers) {
           onConfirm={(s) => h.onPickerConfirm(msg.id, s)}
         />
       );
-    case "accurate_ranges":
+    case "accurate_spends":
       return (
-        <AccurateRanges
+        <AccurateSpends
           key={msg.id}
           message={msg}
-          onSubmit={(ranges) => h.onRangesSubmit(msg.id, ranges)}
-          onBack={() => h.onRangesBack(msg.id)}
+          onSubmit={(exact) => h.onSpendsSubmit(msg.id, exact)}
+          onBack={() => h.onSpendsBack(msg.id)}
         />
       );
     case "holding_redirect":
@@ -1336,6 +1313,38 @@ async function runScanSequence(
   await wait(FINAL_HOLD_MS);
 }
 
-function finiteOr(n: number): number {
-  return Number.isFinite(n) ? n : 1e15;
+/**
+ * Derive the per-category `ranges` metadata the accurate-breakdown route
+ * persists. With per-vendor exact inputs there is no real range, so each
+ * category collapses to a single point (min = max = the corrected annual
+ * category total). Keyed by the route's row keys (ad / ai / vendor).
+ */
+function buildRangeMetadata(
+  products: Product[],
+  selection: AccurateSelection,
+): Partial<Record<"ad" | "ai" | "vendor", { min: number; max: number; label: string }>> {
+  const opted =
+    selection === "all"
+      ? new Set(["ad_id", "token_id", "vendor_id"])
+      : new Set([selection]);
+  const ROW_KEY: Record<string, "ad" | "ai" | "vendor"> = {
+    ad_id: "ad",
+    token_id: "ai",
+    vendor_id: "vendor",
+  };
+  const out: Partial<Record<"ad" | "ai" | "vendor", { min: number; max: number; label: string }>> = {};
+  for (const p of products) {
+    if (!opted.has(p.id)) continue;
+    const key = ROW_KEY[p.id];
+    if (!key) continue;
+    const annual = Math.round(
+      p.vendors.reduce((acc, v) => acc + (v.estSpend || 0), 0) * 12,
+    );
+    out[key] = {
+      min: annual,
+      max: annual,
+      label: `$${annual.toLocaleString("en-US")}/yr`,
+    };
+  }
+  return out;
 }

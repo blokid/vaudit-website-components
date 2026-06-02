@@ -15,7 +15,7 @@
  *         .rc-pa-cta-est      → estimate CTA panel
  *         .rc-pa-cta-final    → final CTA panel
  *         .rc-pa-picker       → phase-2 product picker widget
- *         .rc-pa-ranges       → phase-2 spend-range form widget
+ *         .rc-pa-spends       → phase-2 exact per-vendor spend form widget
  *       .rc-pa-composer       → persistent input, pinned to card bottom
  * -------------------------------------------------------------------------- */
 
@@ -1546,9 +1546,9 @@ html.dark .rc-pa-btn__time {
   height: 13px;
 }
 
-/* ---- phase-2 ranges widget ---------------------------------------------- */
+/* ---- phase-2 exact-spend form ------------------------------------------- */
 
-.rc-pa-ranges {
+.rc-pa-spends {
   display: flex;
   flex-direction: column;
   gap: 12px;
@@ -1558,7 +1558,7 @@ html.dark .rc-pa-btn__time {
   padding: 16px;
 }
 
-.rc-pa-ranges__row {
+.rc-pa-spends__group {
   background: var(--rc-pa-card-bg);
   border: 1px solid var(--rc-pa-border);
   border-radius: 12px;
@@ -1568,7 +1568,7 @@ html.dark .rc-pa-btn__time {
   gap: 10px;
 }
 
-.rc-pa-ranges__label {
+.rc-pa-spends__group-head {
   display: inline-flex;
   align-items: center;
   gap: 8px;
@@ -1577,58 +1577,85 @@ html.dark .rc-pa-btn__time {
   color: var(--rc-pa-fg);
 }
 
-.rc-pa-ranges__icon {
+.rc-pa-spends__group-icon {
   width: 16px;
   height: 16px;
   color: var(--rc-pa-orange);
 }
 
-.rc-pa-ranges__chips {
+.rc-pa-spends__row {
   display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
 }
 
-.rc-pa-chip {
-  appearance: none;
+.rc-pa-spends__vendor {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  font-size: 13.5px;
+  color: var(--rc-pa-fg);
+}
+
+.rc-pa-spends__vendor > span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.rc-pa-spends__logo {
+  width: 16px;
+  height: 16px;
+  border-radius: 4px;
+  object-fit: contain;
+  flex-shrink: 0;
+}
+
+.rc-pa-spends__input-wrap {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
   background: var(--rc-pa-chip-bg);
   border: 1px solid transparent;
-  border-radius: 999px;
-  padding: 7px 14px;
-  font-size: 13px;
-  color: var(--rc-pa-fg);
-  cursor: pointer;
-  transition: background 150ms ease, color 150ms ease, border-color 150ms ease;
-  font-weight: 500;
+  border-radius: 8px;
+  padding: 0 10px;
+  flex-shrink: 0;
+  transition: border-color 150ms ease, background 150ms ease;
 }
 
-.rc-pa-chip:hover {
-  background: var(--rc-pa-chip-bg-hover);
-}
-
-.rc-pa-chip.is-selected {
-  background: var(--rc-pa-orange);
-  color: var(--rc-pa-on-orange);
-}
-
-.rc-pa-chip-custom-input {
-  appearance: none;
+.rc-pa-spends__input-wrap:focus-within {
+  border-color: var(--rc-pa-orange);
   background: var(--rc-pa-card-bg);
-  border: 1px solid var(--rc-pa-orange);
-  border-radius: 999px;
-  padding: 7px 14px;
+}
+
+.rc-pa-spends__input-wrap.is-invalid {
+  border-color: #e5484d;
+}
+
+.rc-pa-spends__currency,
+.rc-pa-spends__suffix {
   font-size: 13px;
-  color: var(--rc-pa-fg);
+  color: var(--rc-pa-fg-muted);
+  flex-shrink: 0;
+}
+
+.rc-pa-spends__input {
+  appearance: none;
+  background: transparent;
+  border: none;
+  outline: none;
   font: inherit;
-  width: 140px;
+  font-size: 13.5px;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+  color: var(--rc-pa-fg);
+  width: 110px;
+  padding: 7px 2px;
 }
 
-.rc-pa-chip-custom-input:focus {
-  outline: 2px solid rgba(254, 96, 44, 0.35);
-  outline-offset: 1px;
-}
-
-.rc-pa-ranges__footer {
+.rc-pa-spends__footer {
   display: flex;
   justify-content: flex-end;
   align-items: center;
@@ -1637,12 +1664,12 @@ html.dark .rc-pa-btn__time {
   gap: 8px;
 }
 
-.rc-pa-ranges__buttons {
+.rc-pa-spends__buttons {
   display: flex;
   gap: 8px;
 }
 
-.rc-pa-ranges__note {
+.rc-pa-spends__note {
   display: inline-flex;
   align-items: center;
   gap: 6px;
@@ -1651,7 +1678,7 @@ html.dark .rc-pa-btn__time {
   margin-top: 4px;
 }
 
-.rc-pa-ranges__note svg {
+.rc-pa-spends__note svg {
   width: 13px;
   height: 13px;
 }

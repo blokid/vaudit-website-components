@@ -63,24 +63,6 @@ export type ReasoningEntry = {
  */
 export type ReasoningMap = Record<string, ReasoningEntry>;
 
-/** A locked-in spend range chosen by the visitor in phase 2. */
-export type SpendRange = {
-  /** Inclusive lower bound in USD per year. */
-  min: number;
-  /** Exclusive upper bound in USD per year. `Infinity` for the open "$X+" chip. */
-  max: number;
-  /** Display label, e.g. "$5M – $25M" or "$25M+". */
-  label: string;
-  /** True when the visitor entered a custom value. */
-  custom?: boolean;
-};
-
-export type AccurateRanges = {
-  ad: SpendRange;
-  ai: SpendRange;
-  vendor: SpendRange;
-};
-
 /** Selection from the phase-2 product picker widget. */
 export type AccurateSelection = "ad_id" | "token_id" | "vendor_id" | "all";
 
@@ -214,11 +196,16 @@ export type AccuratePickerMessage = Base & {
   completed: boolean;
 };
 
-export type AccurateRangesMessage = Base & {
-  kind: "accurate_ranges";
+export type AccurateSpendsMessage = Base & {
+  kind: "accurate_spends";
   /** Which categories the form should ask about — derived from the picker. */
   selection: AccurateSelection;
-  ranges: Partial<AccurateRanges>;
+  /**
+   * Phase-1 products filtered to the opted-in categories. The form renders one
+   * prefilled input per vendor, seeded from `estSpend × 12` (annual USD), so
+   * the visitor edits the exact figure instead of picking a range.
+   */
+  products: Product[];
   busy: boolean;
   completed: boolean;
 };
@@ -253,7 +240,7 @@ export type ChatMessage =
   | EstimateCtaMessage
   | FinalCtaMessage
   | AccuratePickerMessage
-  | AccurateRangesMessage
+  | AccurateSpendsMessage
   | HoldingRedirectMessage
   | ErrorMessage;
 
@@ -272,7 +259,7 @@ export type AccuratePickerWidgetParams = {
   default?: AccurateSelection;
 };
 
-export type AccurateRangesWidgetParams = {
-  /** Categories whose ranges we ask for. Defaults to all three. */
+export type AccurateSpendsWidgetParams = {
+  /** Categories whose vendor spends we prefill. Defaults to all three. */
   ask?: ("ad" | "ai" | "vendor")[];
 };

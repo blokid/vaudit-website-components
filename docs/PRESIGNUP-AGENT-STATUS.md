@@ -38,18 +38,21 @@ inside the same thread.
    picker widget** drops in: 2×2 chip grid (`Ad ID` / `Token ID` /
    `Vendor ID` / `All three` with a `MOST ACCURATE` ribbon, pre-selected).
    Single-click confirm; a second user bubble echoes the choice.
-7. A **spend-range form widget** appears. Three stacked rows
-   (`Ad spend / yr`, `AI / API spend / yr`, `Vendor spend / yr`), each with
-   six chips (`< $X`, mid-bands, `$X+`, `Custom`). `Custom` opens an inline
-   input that accepts `$2.5M`, `750k`, `1500000`, etc. Footer: `Back` (drops
-   the form, re-opens the picker) and `Run accurate audit` (gated until all
-   three rows have a selection).
-8. On submit, a multi-line user bubble summarises the chosen ranges, the
-   ranges form's primary button flips to `Calculating…`, and a second live
-   audit card runs in `accurate` mode (rows go `Queued → Scanning… → ✓`)
-   driven by **client-side recalc** of the phase-1 breakdown using the
-   visitor's annual ranges. Title cycles to `Cross-checking vendor billing
-   → Accurate audit complete`.
+7. An **exact-spend form widget** appears. Vendors are grouped by category
+   (`Ad ID` / `Token ID` / `Vendor ID`, scoped to the picker selection), and
+   every vendor gets its own input **prefilled with our estimate** (annual
+   USD, `est_spend × 12`). The visitor edits any figure to their actual
+   annual spend; inputs accept `$2.5M`, `750k`, `1,500,000`, plain numbers.
+   Footer: `Back` (drops the form, re-opens the picker) and `Run accurate
+   audit` (gated until every input parses to a positive figure).
+8. On submit, a multi-line user bubble summarises the corrected per-category
+   annual totals, the form's primary button flips to `Calculating…`, and a
+   second live audit card runs in `accurate` mode (rows go `Queued →
+   Scanning… → ✓`) driven by **client-side recalc** of the phase-1 breakdown
+   using the visitor's exact spends. Each vendor's recoverable amount is
+   re-derived by preserving its original in-band waste % (clamped to the
+   category band), mirroring the backend `update_audit_breakdown` tool. Title
+   cycles to `Cross-checking vendor billing → Accurate audit complete`.
 9. The accurate breakdown is POSTed to the backend (see API contract below)
    so the PDF route can re-render with the locked-in numbers.
 10. A second results grid expands (`Accurate` chips instead of `COMPLETED`).
@@ -79,7 +82,7 @@ inside the same thread.
 | `live-audit-card.tsx` | Estimate / accurate live audit card with the running total, three category rows, and progress bar. |
 | `results-grid.tsx` | 2×2 category card grid with per-vendor `$spend / $wasted` rows. |
 | `estimate-cta.tsx` / `final-cta.tsx` | The two CTA bubbles. |
-| `accurate-picker.tsx` / `accurate-ranges.tsx` | Phase-2 widgets. |
+| `accurate-picker.tsx` / `accurate-spends.tsx` | Phase-2 widgets (category picker + prefilled per-vendor exact-spend form). |
 | `presignup-agent.css` | All styling. Light defaults, `html.dark .rc-pa-*` overrides per repo convention. Class prefix `rc-pa-` (BEM-ish) to avoid collisions with Webflow-authored classes. |
 
 Bundle: `dist/vaudit.css` ~6 KB gzip · `dist/vaudit.js` ~81 KB gzip.
@@ -100,17 +103,18 @@ POST ${baseUrl}/run_sse  →  SSE with `:::audit_products{...}\n:::` block
 ```
 
 Phase 2 is **client-driven** in this cut — no agent round-trip for the
-picker / ranges widgets. The visitor's range selections are scaled against
-the phase-1 breakdown using the same waste-rate bands the backend uses, so
+picker / exact-spend widgets. The visitor's exact per-vendor spends drive a
+client-side recalc against the same waste-rate bands the backend uses, so
 the numbers stay consistent with the PDF that gets generated downstream.
 
 ### Unit semantics
 
 Backend returns **monthly USD** for `est_spend`, `waste`, and `waste_total`.
 The chat UI multiplies by 12 at every display site so the visitor sees
-**annual** figures (matching the design's `/yr` ranges and big annual
-totals). `recalc.ts` keeps its internal model in monthly USD too — only
-the display layer annualises.
+**annual** figures (the exact-spend form prefills and edits `/yr` values,
+matching the big annual totals). `recalc.ts` keeps its internal model in
+monthly USD too — the form divides its annual inputs back to monthly before
+recalc, and only the display layer annualises.
 
 ### Agent base URL
 
@@ -180,13 +184,20 @@ Payload shape (sent by `postAccurateBreakdown` in `agent-api.ts`):
   ],
   "total": 67890,
   "ranges": {
-    "ad":     {"min": 5000000, "max": 25000000, "label": "$5M – $25M"},
-    "ai":     {"min": 250000,  "max": 1000000,  "label": "$250K – $1M"},
-    "vendor": {"min": 500000,  "max": 2000000,  "label": "$500K – $2M"}
+    "ad":     {"min": 600000, "max": 600000, "label": "$600,000/yr"},
+    "ai":     {"min": 240000, "max": 240000, "label": "$240,000/yr"},
+    "vendor": {"min": 900000, "max": 900000, "label": "$900,000/yr"}
   },
   "selection": "all"
 }
 ```
+
+The route persists `products` per-vendor directly; `ranges` is metadata
+only (stored under `accurate.ranges` for "estimated → accurate" PDF
+context). Since the visitor now edits exact per-vendor figures rather than
+picking a band, `buildRangeMetadata` in `index.tsx` collapses each opted-in
+category to a single point — `min = max =` the corrected annual category
+total — so the persisted metadata still reflects what was locked in.
 
 Auth: capability check via `presignup_token.is_session_trusted` (the
 session was already trusted during the run flow). No fresh single-use
@@ -204,7 +215,7 @@ token needed for the lock-in POST. The endpoint:
 ### Future: agent-driven phase-2 widgets
 
 `types.ts` defines a widget marker contract
-(`AccuratePickerWidgetParams`, `AccurateRangesWidgetParams`) that the
+(`AccuratePickerWidgetParams`, `AccurateSpendsWidgetParams`) that the
 agent could emit via existing `:::name{json}\n:::` blocks. The frontend
 already has `extractWidgetBlock` in `agent-api.ts` for parsing them.
 Wiring this would replace the client-driven phase-2 flow with the same
