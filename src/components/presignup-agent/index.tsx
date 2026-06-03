@@ -9,6 +9,7 @@ import {
   ensureSession,
   extractAuditProducts,
   extractHoldingRedirect,
+  extractSpendForm,
   fetchPersistedBreakdown,
   freshStartSession,
   getAgentBaseUrl,
@@ -18,7 +19,6 @@ import {
   mergeStreamText,
   normalizeDomain,
   peekSessionId,
-  postAccurateBreakdown,
   resetSession,
   streamAgent,
   subscribePresignupProgress,
@@ -32,26 +32,20 @@ import {
 import Composer from "./composer";
 import LiveAuditCard from "./live-audit-card";
 import ResultsGrid from "./results-grid";
-import EstimateCta from "./estimate-cta";
 import FinalCta from "./final-cta";
-import AccuratePicker from "./accurate-picker";
 import AccurateSpends from "./accurate-spends";
 import HoldingRedirect from "./holding-redirect";
 import { IconRefresh } from "./icons";
-import {
-  recalculateFromExactSpends,
-  spendsSummaryLines,
-  type ExactMonthlyByVendor,
-} from "./recalc";
 import type {
-  AccurateSelection,
   AuditRow,
   ChatMessage,
+  ExactMonthlyByVendor,
   Product,
 } from "./types";
 import "./presignup-agent.css";
 
 const SIGNUP_URL = "https://app.vaudit.com/v2/sign-up";
+const CALL_URL = "https://calendly.com/vaudit-support";
 
 // Pacing constants for the live-audit row animation. Long enough to feel
 // real, short enough not to slow the demo down.
@@ -73,10 +67,10 @@ type PresignupAgentProps = {
   /**
    * When provided, skip the composer-entry flow and replay a pre-computed
    * audit (used by the Mucker portfolio dashboard). The replay animates the
-   * same row-scan and posts the same results-grid + estimate-cta as a live
-   * run, but never talks to the agent for phase 1. Phase 2 (lock-in +
-   * exact-spend recalc) is unchanged — it was already client-driven.
-   * Follow-ups still hit the live agent through the composer.
+   * row-scan and posts the results grid + final CTA directly (the numbers
+   * are already computed), skipping the edit-before-recovery flow and never
+   * talking to the agent for phase 1. Follow-ups still hit the live agent
+   * through the composer.
    */
   replay?: { domain: string; products: Product[] };
 };
@@ -200,16 +194,91 @@ function queuedRows(): AuditRow[] {
   }));
 }
 
-/** Estimate-mode initial title — overridden by the active profiler step
- *  as soon as progress events start arriving. */
-const INITIAL_ESTIMATE_TITLE = "Connecting to audit service";
+/** Estimate-mode initial title. We open directly on the profiler timeline (the
+ *  DNS step shown in-flight) rather than a "Connecting…" placeholder, so the
+ *  card lands on real work the instant the domain is submitted. Overridden by
+ *  the active profiler step as soon as progress events start arriving. */
+const INITIAL_ESTIMATE_TITLE = "Looking up DNS records";
 
-const SELECTION_LABEL: Record<AccurateSelection, string> = {
-  ad_id: "Ad ID",
-  token_id: "Token ID",
-  vendor_id: "Vendor ID",
-  all: "all three products",
+// Categories we always offer in the spend form so the visitor can volunteer
+// spend a static scan can't see (client-side ad pixels, undetected AI usage).
+// Mirrors the backend `_FORM_DEFAULT_VENDORS` seed; the frontend re-adds them
+// defensively because the spend_form widget is LLM-emitted and an LLM tends to
+// drop a $0 category. The backend `apply_spend_edits` upserts these on submit,
+// so they flow into recovery whether or not the widget included them.
+const DEFAULT_SPEND_VENDORS: Record<string, string[]> = {
+  ad_id: ["Google Ads", "Meta Ads"],
+  token_id: ["OpenAI", "Anthropic"],
 };
+const SPEND_GROUP_ORDER = ["ad_id", "token_id", "vendor_id"];
+
+/** Ensure AdID + Token ID groups expose every default vendor (seeded $0 when
+ *  missing), in canonical order, so the form never silently drops a vendor the
+ *  backend will upsert on submit. We merge per-vendor — not per-group — because
+ *  the LLM widget may return a group with *some* vendors (e.g. Google Vertex AI,
+ *  AWS Bedrock) while omitting the always-on defaults (OpenAI, Anthropic); the
+ *  backend `apply_spend_edits` adds those back on submit, so they'd otherwise
+ *  show up in the results grid with $0 having never appeared in the form. */
+function ensureDefaultSpendGroups(products: Product[]): Product[] {
+  const byId = new Map(products.map((p) => [p.id, p]));
+  for (const [id, names] of Object.entries(DEFAULT_SPEND_VENDORS)) {
+    const existing = byId.get(id);
+    if (!existing) {
+      byId.set(id, {
+        id,
+        wasteTotal: 0,
+        vendors: names.map((name) => ({ name, estSpend: 0, waste: 0 })),
+      });
+      continue;
+    }
+    // Prepend any default vendors the widget dropped (seeded $0), matching the
+    // results grid which lists the defaults first.
+    const present = new Set(existing.vendors.map((v) => v.name.toLowerCase()));
+    const missing = names
+      .filter((name) => !present.has(name.toLowerCase()))
+      .map((name) => ({ name, estSpend: 0, waste: 0 }));
+    if (missing.length > 0) {
+      byId.set(id, { ...existing, vendors: [...missing, ...existing.vendors] });
+    }
+  }
+  const ordered: Product[] = [];
+  for (const id of SPEND_GROUP_ORDER) {
+    const p = byId.get(id);
+    if (p) { ordered.push(p); byId.delete(id); }
+  }
+  for (const p of byId.values()) ordered.push(p);
+  return ordered;
+}
+
+/** Build the backend `overrides` payload from the form's edited monthly spends. */
+function toSpendOverrides(
+  exact: ExactMonthlyByVendor,
+): Record<string, Record<string, { monthly_spend: number }>> {
+  const out: Record<string, Record<string, { monthly_spend: number }>> = {};
+  for (const [productId, vendors] of Object.entries(exact)) {
+    out[productId] = {};
+    for (const [name, monthly] of Object.entries(vendors)) {
+      out[productId][name] = { monthly_spend: Math.round(monthly) };
+    }
+  }
+  return out;
+}
+
+/** One "Ad spend: $X /yr"-style line per edited category, for the user echo. */
+function spendEditEcho(exact: ExactMonthlyByVendor): string[] {
+  const LABEL: Record<string, string> = {
+    ad_id: "Ad spend",
+    token_id: "AI / API spend",
+    vendor_id: "Vendor spend",
+  };
+  const lines: string[] = [];
+  for (const [productId, vendors] of Object.entries(exact)) {
+    const annual = Object.values(vendors).reduce((acc, m) => acc + (m || 0), 0) * 12;
+    if (annual <= 0) continue;
+    lines.push(`${LABEL[productId] ?? productId}: $${Math.round(annual).toLocaleString("en-US")} /yr`);
+  }
+  return lines.length ? lines : ["Here are my actual monthly spends."];
+}
 
 export default function PresignupAgent({ agentBaseUrl, replay }: PresignupAgentProps) {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -221,9 +290,7 @@ export default function PresignupAgent({ agentBaseUrl, replay }: PresignupAgentP
   const abortRef = useRef<AbortController | null>(null);
   const cancelledRef = useRef(false);
   const phase1ProductsRef = useRef<Product[] | null>(null);
-  const phase1LockedRef = useRef<boolean>(false);
   const domainRef = useRef<string>("");
-  const phase2SelectionRef = useRef<AccurateSelection | null>(null);
   const latestTotalRef = useRef<number>(0);
   // Auto-follow the latest content as the audit streams / phase-2 turns land,
   // but only while the visitor is already pinned to the bottom — if they've
@@ -310,7 +377,10 @@ export default function PresignupAgent({ agentBaseUrl, replay }: PresignupAgentP
         progress: 0,
         rows: blankRows(),
         completed: false,
-        profilers: {},
+        // Seed the first profiler as in-flight so the timeline view renders
+        // immediately (showTimeline keys off a non-empty profilers map). Real
+        // SSE profiler events overwrite this as they arrive.
+        profilers: { dns: "started" },
         researchEvents: [],
       });
 
@@ -397,33 +467,31 @@ export default function PresignupAgent({ agentBaseUrl, replay }: PresignupAgentP
           return;
         }
 
-        const result = extractAuditProducts(accumulated);
-        if (!result?.products.length) {
-          throw new Error("Agent did not return any audit products.");
+        // Turn 1 stops after spend + logic-check: the agent emits a
+        // spend_form widget (estimated per-vendor monthly spends, no
+        // recovery yet) instead of audit_products. Show the prefilled,
+        // editable form; recovery runs on submit (handleSpendsSubmit).
+        const parsed = extractSpendForm(accumulated);
+        if (!parsed?.length) {
+          throw new Error("Agent did not return any estimated spends.");
         }
-        const { products, locked } = result;
+        // Defensively guarantee the AdID + Token ID groups (seeded $0 if the
+        // LLM widget dropped them) so a zero-spend category is never hidden.
+        const products = ensureDefaultSpendGroups(parsed);
         phase1ProductsRef.current = products;
-        phase1LockedRef.current = locked;
 
-        await runScanSequence(liveId, products, "estimate", update);
-        if (cancelledRef.current) return;
+        // The live-audit card only made sense for the old estimate→recovery
+        // flow (it shows a "recoverable so far" total). In turn 1 there's no
+        // recovery yet, so once the spend form is ready we drop the card —
+        // it served its purpose as a progress indicator during profiling.
+        setMessages((prev) => prev.filter((m) => m.id !== liveId));
 
-        const total = products.reduce((acc, p) => acc + (p.wasteTotal || 0), 0);
-        latestTotalRef.current = total * 12;
         append({
-          id: nextId("grid"),
-          kind: "results_grid",
-          mode: "estimate",
-          domain,
+          id: nextId("spends"),
+          kind: "accurate_spends",
           products,
-        });
-        append({
-          id: nextId("est-cta"),
-          kind: "estimate_cta",
-          total,
-          categoryCount: products.length,
           busy: false,
-          locked,
+          completed: false,
         });
       } catch (err) {
         if ((err as Error)?.name === "AbortError" || cancelledRef.current) return;
@@ -482,25 +550,20 @@ export default function PresignupAgent({ agentBaseUrl, replay }: PresignupAgentP
         if (cancelledRef.current) return;
 
         phase1ProductsRef.current = products;
-        phase1LockedRef.current = false;
 
         const total = products.reduce((acc, p) => acc + (p.wasteTotal || 0), 0);
         latestTotalRef.current = total * 12;
+        // Replay (Mucker portfolio view) is a pre-computed audit with
+        // recoverable amounts already in hand — show the results + final CTA
+        // directly, skipping the edit-before-recovery flow.
         append({
           id: nextId("grid"),
           kind: "results_grid",
-          mode: "estimate",
+          mode: "accurate",
           domain,
           products,
         });
-        append({
-          id: nextId("est-cta"),
-          kind: "estimate_cta",
-          total,
-          categoryCount: products.length,
-          busy: false,
-          locked: false,
-        });
+        append({ id: nextId("final-cta"), kind: "final_cta", total, domain: domain || "" });
       } finally {
         if (abortRef.current === controller) abortRef.current = null;
         setBusy(false);
@@ -551,7 +614,6 @@ export default function PresignupAgent({ agentBaseUrl, replay }: PresignupAgentP
       const { products, locked } = bd;
       domainRef.current = domain;
       phase1ProductsRef.current = products;
-      phase1LockedRef.current = locked;
       setBreakdownLocked(locked);
 
       const total = products.reduce((acc, p) => acc + (p.wasteTotal || 0), 0);
@@ -569,18 +631,11 @@ export default function PresignupAgent({ agentBaseUrl, replay }: PresignupAgentP
       append({
         id: nextId("grid"),
         kind: "results_grid",
-        mode: "estimate",
+        mode: "accurate",
         domain,
         products,
       });
-      append({
-        id: nextId("est-cta"),
-        kind: "estimate_cta",
-        total,
-        categoryCount: products.length,
-        busy: false,
-        locked,
-      });
+      append({ id: nextId("final-cta"), kind: "final_cta", total, domain: domain || "" });
     })();
   }, [replay, agentBaseUrl, append]);
 
@@ -588,89 +643,25 @@ export default function PresignupAgent({ agentBaseUrl, replay }: PresignupAgentP
   // Phase 2 — client-driven (picker → ranges → recalc → persist → grid)
   // ------------------------------------------------------------------------
 
-  const startAccurate = useCallback(() => {
-    // PDF render locks the breakdown server-side; phase-2 corrections are
-    // rejected with `LOCKED`. Don't even open the picker — the visitor was
-    // just emailed a frozen report and we'd be inviting a desync.
-    if (phase1LockedRef.current) return;
-    append({
-      id: nextId("user"),
-      kind: "user_text",
-      text: "Yes — let's run the accurate audit.",
-    });
-    append({
-      id: nextId("picker"),
-      kind: "accurate_picker",
-      selection: "all",
-      completed: false,
-    });
-  }, [append]);
-
-  const handlePickerConfirm = useCallback(
-    (pickerId: string, selection: AccurateSelection) => {
-      phase2SelectionRef.current = selection;
-      update(pickerId, (m) =>
-        m.kind === "accurate_picker"
-          ? { ...m, selection, completed: true }
-          : m,
-      );
-      append({
-        id: nextId("user"),
-        kind: "user_text",
-        text: `I want an accurate audit for ${SELECTION_LABEL[selection]}.`,
-      });
-      // Prefill the spend form with the phase-1 products for the opted-in
-      // categories only. "all" keeps every product; a single pick narrows to
-      // that one category's vendors.
-      const phase1 = phase1ProductsRef.current ?? [];
-      const opted =
-        selection === "all"
-          ? new Set(["ad_id", "token_id", "vendor_id"])
-          : new Set([selection]);
-      const formProducts = phase1.filter((p) => opted.has(p.id));
-      append({
-        id: nextId("spends"),
-        kind: "accurate_spends",
-        selection,
-        products: formProducts,
-        busy: false,
-        completed: false,
-      });
-    },
-    [append, update],
-  );
-
-  const handleSpendsBack = useCallback((spendsId: string) => {
-    setMessages((prev) => {
-      const idx = prev.findIndex((m) => m.id === spendsId);
-      if (idx < 0) return prev;
-      const before = prev.slice(0, idx);
-      let stripIdx = before.length - 1;
-      while (stripIdx >= 0 && before[stripIdx].kind !== "user_text") stripIdx -= 1;
-      const trimmed = stripIdx >= 0 ? before.slice(0, stripIdx) : before;
-      return trimmed.map((m) =>
-        m.kind === "accurate_picker" ? { ...m, completed: false } : m,
-      );
-    });
-    phase2SelectionRef.current = null;
-  }, []);
-
+  // Turn 2 of phase-1: the visitor submits the prefilled spend form. We send
+  // their edited per-vendor monthly spends to the agent as a [SPEND_EDITS]
+  // message; the backend applies them and runs recovery on the actual spend,
+  // streaming back the audit_products widget with recoverable amounts.
   const handleSpendsSubmit = useCallback(
     async (spendsId: string, exact: ExactMonthlyByVendor) => {
-      const selection = phase2SelectionRef.current ?? "all";
-      const phase1 = phase1ProductsRef.current;
-      if (!phase1) return;
+      cancelActive();
+      cancelledRef.current = false;
+      const controller = new AbortController();
+      abortRef.current = controller;
+      setBusy(true);
 
       update(spendsId, (m) =>
         m.kind === "accurate_spends" ? { ...m, busy: true } : m,
       );
-
-      const recalc = recalculateFromExactSpends(phase1, exact, selection);
-
       append({
         id: nextId("user"),
         kind: "user_text",
-        text: spendsSummaryLines(recalc.products, selection).join("\n"),
+        text: spendEditEcho(exact).join("\n"),
       });
 
       const liveId = nextId("live-acc");
@@ -679,7 +670,7 @@ export default function PresignupAgent({ agentBaseUrl, replay }: PresignupAgentP
         kind: "live_audit",
         mode: "accurate",
         domain: domainRef.current,
-        title: "Cross-checking vendor billing",
+        title: "Calculating recoverable spend",
         total: 0,
         progress: 0,
         rows: queuedRows(),
@@ -688,45 +679,100 @@ export default function PresignupAgent({ agentBaseUrl, replay }: PresignupAgentP
         researchEvents: [],
       });
 
-      await runScanSequence(liveId, recalc.products, "accurate", update);
-
-      update(spendsId, (m) =>
-        m.kind === "accurate_spends" ? { ...m, busy: false, completed: true } : m,
-      );
-
+      let closeProgress: () => void = () => {};
+      // Honest client-side "working" feedback for the recalc wait (phase 2
+      // sends no profiler events). Stopped before the real row-scan, and again
+      // in finally to cover the cancel/error paths.
+      const stopRecalcProgress = startAccurateRecalcProgress(liveId, update);
       try {
         const baseUrl = getAgentBaseUrl(agentBaseUrl);
         const sessionId = getSessionId();
-        // The accurate-breakdown route persists per-vendor products directly;
-        // `ranges` is metadata only. Derive a per-category summary range
-        // (min = max = the corrected annual category total) so the persisted
-        // `accurate.ranges` block still reflects what the visitor locked in.
-        await postAccurateBreakdown(baseUrl, sessionId, {
-          products: recalc.products,
-          total: recalc.total,
-          ranges: buildRangeMetadata(recalc.products, selection),
-          selection,
-        });
-      } catch (err) {
-        // Persist failure is non-fatal — keep the accurate UI on screen.
-        console.warn("[presignup-agent] accurate breakdown persist failed:", err);
-      }
 
-      append({
-        id: nextId("grid-acc"),
-        kind: "results_grid",
-        mode: "accurate",
-        domain: domainRef.current,
-        products: recalc.products,
-      });
-      latestTotalRef.current = recalc.total * 12;
-      append({
-        id: nextId("final-cta"),
-        kind: "final_cta",
-        total: recalc.total,
-      });
+        let token = await getToken(baseUrl, controller.signal);
+        if (cancelledRef.current) return;
+        await ensureSession(baseUrl, sessionId, token, controller.signal);
+        if (cancelledRef.current) return;
+        token = await getToken(baseUrl, controller.signal);
+        if (cancelledRef.current) return;
+
+        closeProgress = subscribePresignupProgress(
+          baseUrl,
+          sessionId,
+          (event) => applyProgressEvent(liveId, event, update, setMessages),
+        );
+
+        const message = `[SPEND_EDITS]${JSON.stringify(toSpendOverrides(exact))}`;
+        const stream = await streamAgent(
+          baseUrl,
+          buildRunPayload(message, sessionId),
+          token,
+          controller.signal,
+        );
+
+        let pending = "";
+        let committed = "";
+        await consumeSSE(stream, (event) => {
+          if (!event?.content?.parts) return;
+          let chunk = "";
+          for (const part of event.content.parts) {
+            if (typeof part?.text === "string") chunk += part.text;
+          }
+          if (!chunk) return;
+          if (event.partial === true) {
+            pending = mergeStreamText(pending, chunk);
+          } else if (!pending) {
+            committed += chunk;
+          } else {
+            committed += pending;
+            pending = "";
+          }
+        });
+        const accumulated = committed + pending;
+        if (cancelledRef.current) return;
+
+        const result = extractAuditProducts(accumulated);
+        if (!result?.products.length) {
+          throw new Error("We couldn't compute your recoverable amounts. Please try again.");
+        }
+        const { products } = result;
+
+        update(spendsId, (m) =>
+          m.kind === "accurate_spends" ? { ...m, busy: false, completed: true } : m,
+        );
+        // Real products are in — hand the bar/title off to the row-scan.
+        stopRecalcProgress();
+        await runScanSequence(liveId, products, "accurate", update);
+        if (cancelledRef.current) return;
+
+        const total = products.reduce((acc, p) => acc + (p.wasteTotal || 0), 0);
+        latestTotalRef.current = total * 12;
+        append({
+          id: nextId("grid-acc"),
+          kind: "results_grid",
+          mode: "accurate",
+          domain: domainRef.current,
+          products,
+        });
+        append({ id: nextId("final-cta"), kind: "final_cta", total, domain: domainRef.current });
+      } catch (err) {
+        if ((err as Error)?.name === "AbortError" || cancelledRef.current) return;
+        update(spendsId, (m) =>
+          m.kind === "accurate_spends" ? { ...m, busy: false } : m,
+        );
+        append({
+          id: nextId("err"),
+          kind: "error",
+          text: (err as Error)?.message || "Something went wrong. Please try again.",
+          retry: false,
+        });
+      } finally {
+        stopRecalcProgress();
+        closeProgress();
+        if (abortRef.current === controller) abortRef.current = null;
+        setBusy(false);
+      }
     },
-    [agentBaseUrl, append, update],
+    [agentBaseUrl, append, cancelActive, update],
   );
 
   // ------------------------------------------------------------------------
@@ -858,18 +904,10 @@ export default function PresignupAgent({ agentBaseUrl, replay }: PresignupAgentP
         a.click();
         document.body.removeChild(a);
         setTimeout(() => URL.revokeObjectURL(url), 1000);
-        // PDF render locks the breakdown server-side. Reflect that on every
-        // open `estimate_cta` so the "Lock in exact numbers" button hides
-        // (the route would 409 anyway, but the visitor shouldn't be invited
-        // down a path that's just been frozen against them).
-        const wasLocked = phase1LockedRef.current;
-        phase1LockedRef.current = true;
+        // PDF render locks the breakdown server-side so the report can't
+        // desync from what the visitor saw.
+        const wasLocked = breakdownLocked;
         setBreakdownLocked(true);
-        setMessages((prev) =>
-          prev.map((m) =>
-            m.kind === "estimate_cta" ? { ...m, locked: true } : m,
-          ),
-        );
         if (!wasLocked) {
           append({
             id: nextId("agent-locked"),
@@ -893,7 +931,7 @@ export default function PresignupAgent({ agentBaseUrl, replay }: PresignupAgentP
         return false;
       }
     },
-    [agentBaseUrl, append],
+    [agentBaseUrl, append, breakdownLocked],
   );
 
   // Clear all client-side audit state back to the empty hero, aborting any
@@ -903,8 +941,6 @@ export default function PresignupAgent({ agentBaseUrl, replay }: PresignupAgentP
     cancelActive();
     cancelledRef.current = false;
     phase1ProductsRef.current = null;
-    phase1LockedRef.current = false;
-    phase2SelectionRef.current = null;
     domainRef.current = "";
     latestTotalRef.current = 0;
     setMessages([]);
@@ -913,13 +949,6 @@ export default function PresignupAgent({ agentBaseUrl, replay }: PresignupAgentP
     setBusy(false);
     setBreakdownLocked(false);
   }, [cancelActive]);
-
-  // Post-results "Audit again" (FinalCta): hard break — reset local state and
-  // rotate the session id so the new audit starts on a brand-new session.
-  const handleAuditAgain = useCallback(() => {
-    resetLocalUiState();
-    resetSession();
-  }, [resetLocalUiState]);
 
   // Always-visible "Start over": clean restart on the SAME session id. Ask the
   // backend to tear down + recreate the session under the same id (wipes any
@@ -980,12 +1009,8 @@ export default function PresignupAgent({ agentBaseUrl, replay }: PresignupAgentP
         >
           {messages.map((msg) =>
             renderMessage(msg, {
-              onLockIn: startAccurate,
-              onPickerConfirm: handlePickerConfirm,
-              onSpendsBack: handleSpendsBack,
               onSpendsSubmit: handleSpendsSubmit,
               onDownloadReport: handleDownloadReport,
-              onAuditAgain: handleAuditAgain,
               onHoldingSubmit: handleHoldingSubmit,
             }),
           )}
@@ -1022,12 +1047,8 @@ export default function PresignupAgent({ agentBaseUrl, replay }: PresignupAgentP
 // ---------------------------------------------------------------------------
 
 type RenderHandlers = {
-  onLockIn: () => void;
-  onPickerConfirm: (pickerId: string, selection: AccurateSelection) => void;
-  onSpendsBack: (spendsId: string) => void;
   onSpendsSubmit: (spendsId: string, exact: ExactMonthlyByVendor) => void;
   onDownloadReport: (email: string) => Promise<boolean>;
-  onAuditAgain: () => void;
   onHoldingSubmit: (holdingId: string, domain: string) => void;
 };
 
@@ -1045,31 +1066,14 @@ function renderMessage(msg: ChatMessage, h: RenderHandlers) {
       return <LiveAuditCard key={msg.id} message={msg} />;
     case "results_grid":
       return <ResultsGrid key={msg.id} message={msg} />;
-    case "estimate_cta":
-      return (
-        <EstimateCta
-          key={msg.id}
-          message={msg}
-          onLockIn={h.onLockIn}
-          onDownload={(email) => h.onDownloadReport(email)}
-        />
-      );
     case "final_cta":
       return (
         <FinalCta
           key={msg.id}
           message={msg}
           signupUrl={SIGNUP_URL}
-          onAuditAgain={h.onAuditAgain}
+          callUrl={CALL_URL}
           onDownload={(email) => h.onDownloadReport(email)}
-        />
-      );
-    case "accurate_picker":
-      return (
-        <AccuratePicker
-          key={msg.id}
-          message={msg}
-          onConfirm={(s) => h.onPickerConfirm(msg.id, s)}
         />
       );
     case "accurate_spends":
@@ -1078,7 +1082,6 @@ function renderMessage(msg: ChatMessage, h: RenderHandlers) {
           key={msg.id}
           message={msg}
           onSubmit={(exact) => h.onSpendsSubmit(msg.id, exact)}
-          onBack={() => h.onSpendsBack(msg.id)}
         />
       );
     case "holding_redirect":
@@ -1215,6 +1218,62 @@ function pickActiveTitle(
 }
 
 // ---------------------------------------------------------------------------
+// Accurate-phase recalc progress (client-side)
+// ---------------------------------------------------------------------------
+//
+// Phase 2 emits no progress events on the SSE channel — profilers are an
+// estimate-phase concept (see types.ts). Without this the card sits frozen on
+// "Calculating recoverable spend" with a 0% bar and "Queued" rows for the whole
+// recalc. We instead run an honest client-side ticker that rotates the title
+// through reconciliation stages and eases the progress bar toward a 90% ceiling
+// while we await the streamed audit_products widget. No fake totals or row
+// completions — once the real products land, runScanSequence finishes the bar
+// and fills in the rows.
+// Each stage drives both the card title and the per-row caption. While a stage
+// is up, every not-yet-resolved category row is shown "active" (pulsing circle,
+// orange caption) so nothing reads as static "Queued" during the wait.
+const ACCURATE_RECALC_STAGES: ReadonlyArray<{ title: string; caption: string }> = [
+  { title: "Applying your spend figures", caption: "applying your figures…" },
+  { title: "Reconciling vendor billing", caption: "reconciling billing…" },
+  { title: "Matching usage against invoices", caption: "matching invoices…" },
+  { title: "Computing recoverable waste", caption: "computing waste…" },
+];
+
+function startAccurateRecalcProgress(
+  liveId: string,
+  update: (id: string, patch: (m: ChatMessage) => ChatMessage) => void,
+): () => void {
+  let stage = 0;
+  let progress = 0.08;
+  const apply = () =>
+    update(liveId, (m) =>
+      m.kind === "live_audit"
+        ? {
+            ...m,
+            title: ACCURATE_RECALC_STAGES[stage].title,
+            progress,
+            // Animate every row the real scan hasn't finished yet — "active"
+            // gives the status circle its pulse and shows the rotating caption.
+            rows: m.rows.map((row) =>
+              row.state === "done"
+                ? row
+                : { ...row, state: "active", activeCaption: ACCURATE_RECALC_STAGES[stage].caption },
+            ),
+          }
+        : m,
+    );
+  apply();
+  const id: ReturnType<typeof setInterval> = setInterval(() => {
+    stage = Math.min(stage + 1, ACCURATE_RECALC_STAGES.length - 1);
+    // Ease toward 0.9 so the bar keeps moving but always leaves headroom for
+    // the real row-scan to complete it.
+    progress = progress + (0.9 - progress) * 0.45;
+    apply();
+  }, 1100);
+  return () => clearInterval(id);
+}
+
+// ---------------------------------------------------------------------------
 // Live-audit row animation
 // ---------------------------------------------------------------------------
 
@@ -1289,7 +1348,9 @@ async function runScanSequence(
             : row,
         ),
         total: newTotal,
-        progress: (i + 1) / ordered.length,
+        // Monotonic: the accurate phase pre-fills the bar to ~0.9 via the
+        // recalc ticker, so never let a row update drag it backward.
+        progress: Math.max(m.progress, (i + 1) / ordered.length),
       };
     });
     await wait(ROW_DONE_HOLD_MS);
@@ -1313,38 +1374,3 @@ async function runScanSequence(
   await wait(FINAL_HOLD_MS);
 }
 
-/**
- * Derive the per-category `ranges` metadata the accurate-breakdown route
- * persists. With per-vendor exact inputs there is no real range, so each
- * category collapses to a single point (min = max = the corrected annual
- * category total). Keyed by the route's row keys (ad / ai / vendor).
- */
-function buildRangeMetadata(
-  products: Product[],
-  selection: AccurateSelection,
-): Partial<Record<"ad" | "ai" | "vendor", { min: number; max: number; label: string }>> {
-  const opted =
-    selection === "all"
-      ? new Set(["ad_id", "token_id", "vendor_id"])
-      : new Set([selection]);
-  const ROW_KEY: Record<string, "ad" | "ai" | "vendor"> = {
-    ad_id: "ad",
-    token_id: "ai",
-    vendor_id: "vendor",
-  };
-  const out: Partial<Record<"ad" | "ai" | "vendor", { min: number; max: number; label: string }>> = {};
-  for (const p of products) {
-    if (!opted.has(p.id)) continue;
-    const key = ROW_KEY[p.id];
-    if (!key) continue;
-    const annual = Math.round(
-      p.vendors.reduce((acc, v) => acc + (v.estSpend || 0), 0) * 12,
-    );
-    out[key] = {
-      min: annual,
-      max: annual,
-      label: `$${annual.toLocaleString("en-US")}/yr`,
-    };
-  }
-  return out;
-}

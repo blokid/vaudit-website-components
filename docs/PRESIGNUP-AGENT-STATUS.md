@@ -6,65 +6,53 @@ read first when picking the work back up.
 
 ## What the feature does
 
-A single bordered chat-card on the Vaudit Webflow homepage. Visitors enter a
-domain, the card narrates a two-phase audit (Estimate → Accurate) end-to-end
-inside the same thread.
+A single bordered chat-card on the Vaudit Webflow homepage. The visitor enters
+a domain; the card profiles the business, shows our **estimated per-vendor
+monthly spends in an editable form**, and only computes recoverable amounts
+**after** the visitor confirms/edits those spends — all in the same thread.
+Phase-1 now runs in two turns with a human-in-the-loop pause at the
+spend → recovery seam.
 
-### Phase 1 — Estimate (~10s)
+### Turn 1 — Estimate spends (~10s)
 
-1. Empty composer (no chips, no template, no headline). Single placeholder.
-2. Visitor submits a domain. The card immediately renders an agent ack
-   bubble — *"On it. Scanning **{domain}** against our vendor benchmarks
-   now — this gives you an **estimate in ~10 seconds**. You can lock in
-   exact numbers right after."* — and a **live audit card** below it.
-3. The live audit card shows three category rows (Ad ID / Vendor ID / Token
-   ID), a `Scanning {domain} · 3 categories` pill, a thin top progress bar,
-   and a `RECOVERABLE SO FAR $X` running total. Rows progress
-   `pending → active ("checking Stripe…") → done (✓ + vendor list + $)` as
-   the SSE stream from the backend `presignup_agent` lands.
-4. When done, the pill flips to `Audited`, rows freeze, and a **2×2 results
-   grid** appears (Ad ID + Token ID side-by-side on the top row, Vendor ID
-   full-width below). Each card lists vendors with `$Xk spend / $Y wasted`
-   (annual figures).
-5. An **estimate CTA bubble** lands at the bottom: eyebrow `● ESTIMATED ·
-   READY IN SECONDS`, big total, sub-copy with a `±5%` promise, two buttons
-   (`Lock in exact numbers ~30s` / `Download report`), trust row (`Free`,
-   `No login`, `No integrations`).
+1. Empty composer (single placeholder). Visitor submits a domain → agent ack
+   bubble + a **live audit card** (three category rows) driven by the profiler
+   progress SSE (`tech` / `business` / `dns` / `apollo` / `spend`).
+2. The backend chain runs tech → business → spend → logic-check and **STOPS
+   before recovery**, emitting a `:::spend_form{...}:::` widget (per-vendor
+   `est_spend`, logic-checked). No recoverable numbers are computed yet.
+3. The card finalizes the live audit and renders the **prefilled spend form**
+   (`accurate-spends.tsx`): vendors grouped by category (Ad ID / Token ID /
+   Vendor ID), each with an input **prefilled with our estimate** (annual USD,
+   `est_spend × 12`). Inputs accept `$2.5M`, `750k`, `1,500,000`, plain
+   numbers. Button: `Run my recovery audit` (gated until every input parses to
+   a positive figure).
 
-### Phase 2 — Accurate (~30s)
+### Turn 2 — Recover (~10s)
 
-6. Visitor clicks **Lock in exact numbers**. An auto-injected user bubble
-   echoes — *"Yes — let's run the accurate audit."* — and a **product
-   picker widget** drops in: 2×2 chip grid (`Ad ID` / `Token ID` /
-   `Vendor ID` / `All three` with a `MOST ACCURATE` ribbon, pre-selected).
-   Single-click confirm; a second user bubble echoes the choice.
-7. An **exact-spend form widget** appears. Vendors are grouped by category
-   (`Ad ID` / `Token ID` / `Vendor ID`, scoped to the picker selection), and
-   every vendor gets its own input **prefilled with our estimate** (annual
-   USD, `est_spend × 12`). The visitor edits any figure to their actual
-   annual spend; inputs accept `$2.5M`, `750k`, `1,500,000`, plain numbers.
-   Footer: `Back` (drops the form, re-opens the picker) and `Run accurate
-   audit` (gated until every input parses to a positive figure).
-8. On submit, a multi-line user bubble summarises the corrected per-category
-   annual totals, the form's primary button flips to `Calculating…`, and a
-   second live audit card runs in `accurate` mode (rows go `Queued →
-   Scanning… → ✓`) driven by **client-side recalc** of the phase-1 breakdown
-   using the visitor's exact spends. Each vendor's recoverable amount is
-   re-derived by preserving its original in-band waste % (clamped to the
-   category band), mirroring the backend `update_audit_breakdown` tool. Title
-   cycles to `Cross-checking vendor billing → Accurate audit complete`.
-9. The accurate breakdown is POSTed to the backend (see API contract below)
-   so the PDF route can re-render with the locked-in numbers.
-10. A second results grid expands (`Accurate` chips instead of `COMPLETED`).
-11. **Final CTA bubble**: eyebrow `● ✓ FULL ACCURATE AUDIT COMPLETE`, big
-    total, three buttons:
-    - `Go to dashboard` → `https://app.vaudit.com/v2/sign-up` (new tab)
-    - `Audit again` → reset to empty composer, fresh session
-    - `Download report` → existing PDF route, hits the persisted accurate
-      breakdown
-12. Throughout phase 2 the persistent **`Ask a follow-up…` composer** at the
-    card bottom routes plain-text turns through the agent's existing
-    `/run_sse` (`explain_methodology`, etc.).
+4. On submit, the form sends the edited per-vendor **monthly** spends to the
+   agent as a `[SPEND_EDITS]{json}` `/run_sse` message (overrides shaped
+   `{product_id: {vendor: {monthly_spend}}}`). A user bubble echoes the
+   corrected per-category annual totals; a second live audit card animates the
+   `recovery` progress step.
+5. The coordinator calls `apply_spend_edits` (patches `formula_estimate` in
+   session state), transfers to `recovery_estimation_agent`, and emits the
+   `:::audit_products{...}:::` widget with recoverable amounts computed on the
+   **edited** spends. `capture_audit_breakdown` persists it to
+   `onboarding_sessions.audit_breakdown` (session flips to phase-2).
+6. A results grid expands (`Accurate` chips) and a **Final CTA bubble** lands:
+   big total, three buttons — `Go to dashboard`
+   (`https://app.vaudit.com/v2/sign-up`), `Audit again` (reset + fresh
+   session), `Download report` (PDF route → persisted breakdown, locks it).
+7. Throughout, the persistent **`Ask a follow-up…` composer** routes
+   plain-text turns through `/run_sse` (`explain_methodology`, a new domain to
+   restart, etc.).
+
+> **Retired (was the old phase-2):** the post-pitch correction path — the
+> `accurate_picker` widget, the client-side `recalc.ts` recompute, and the
+> `POST /presignup/accurate-breakdown` lock-in — is gone. Editing now happens
+> once, up front, before recovery. The backend route still exists but the
+> public flow no longer calls it.
 
 ## Architecture
 
@@ -72,17 +60,16 @@ inside the same thread.
 
 | Path | Role |
 |---|---|
-| `index.tsx` | Chat shell. Owns the message-list state, the phase-1 SSE wire-up, the phase-2 client-driven flow, the persistent follow-up composer, and the CTA actions. |
-| `agent-api.ts` | Token / session / SSE / PDF download / accurate-breakdown POST + `audit_products` widget parser + vendor icon map. |
-| `recalc.ts` | Client-side recalc engine. Mirrors backend `langfuse_config` waste-rate bands (`ad_id 5–12`, `token_id 20–40`, `vendor_id 5–15` whole percent). Pure functions, no React. |
-| `types.ts` | Discriminated `ChatMessage` union, accurate-phase data shapes, agent-driven widget marker contract (forward-looking). |
+| `index.tsx` | Chat shell. Owns the message-list state, the two-turn phase-1 wire-up (turn 1 spend form, turn 2 recovery), the persistent follow-up composer, and the CTA actions. |
+| `agent-api.ts` | Token / session / SSE / PDF download + `audit_products` / `spend_form` widget parsers + vendor icon map. |
+| `types.ts` | Discriminated `ChatMessage` union, accurate-phase data shapes (incl. `ExactMonthlyByVendor`), widget marker contract. |
 | `icons.tsx` | Shared SVG glyphs (Ad / Vendor / Token / lock / send / etc.) — stroke-only, inherit `currentColor`. |
 | `chat-message.tsx` | `AgentMessage` (avatar + label + bubble), `AgentSection` (agent text + widget child), `UserBubble` (orange pill, right-aligned). |
 | `composer.tsx` | Auto-growing textarea + send button. Two visual modes via `is-empty`. |
 | `live-audit-card.tsx` | Estimate / accurate live audit card with the running total, three category rows, and progress bar. |
 | `results-grid.tsx` | 2×2 category card grid with per-vendor `$spend / $wasted` rows. |
-| `estimate-cta.tsx` / `final-cta.tsx` | The two CTA bubbles. |
-| `accurate-picker.tsx` / `accurate-spends.tsx` | Phase-2 widgets (category picker + prefilled per-vendor exact-spend form). |
+| `final-cta.tsx` | The post-recovery CTA bubble. |
+| `accurate-spends.tsx` | The prefilled per-vendor spend form (turn-1 `spend_form` → edit → submit drives recovery). |
 | `presignup-agent.css` | All styling. Light defaults, `html.dark .rc-pa-*` overrides per repo convention. Class prefix `rc-pa-` (BEM-ish) to avoid collisions with Webflow-authored classes. |
 
 Bundle: `dist/vaudit.css` ~6 KB gzip · `dist/vaudit.js` ~81 KB gzip.
@@ -94,27 +81,29 @@ The chat thread is a `ChatMessage[]` discriminated union; every entry has an
 `index.tsx`. Imperative animation (live-audit row progression) patches
 specific message fields by id via `update(id, patch)`.
 
-Phase 1 hits the existing backend:
+Both phase-1 turns hit the agent over `/run_sse`:
 
 ```
 GET  ${baseUrl}/presignup/token
 POST ${baseUrl}/apps/presignup_agent/users/anonymous/sessions/<sessionId>
-POST ${baseUrl}/run_sse  →  SSE with `:::audit_products{...}\n:::` block
+POST ${baseUrl}/run_sse  (domain)              →  SSE with `:::spend_form{...}\n:::`
+POST ${baseUrl}/run_sse  (`[SPEND_EDITS]{...}`) →  SSE with `:::audit_products{...}\n:::`
 ```
 
-Phase 2 is **client-driven** in this cut — no agent round-trip for the
-picker / exact-spend widgets. The visitor's exact per-vendor spends drive a
-client-side recalc against the same waste-rate bands the backend uses, so
-the numbers stay consistent with the PDF that gets generated downstream.
+Recovery is **backend math** now: turn 2 sends the visitor's edited per-vendor
+monthly spends as a `[SPEND_EDITS]` overrides payload; the coordinator applies
+them (`apply_spend_edits`) and runs `recovery_estimation_agent`, so the
+recoverable numbers — and the PDF generated from the persisted breakdown —
+reflect the visitor's actual spend. No client-side recompute.
 
 ### Unit semantics
 
 Backend returns **monthly USD** for `est_spend`, `waste`, and `waste_total`.
 The chat UI multiplies by 12 at every display site so the visitor sees
-**annual** figures (the exact-spend form prefills and edits `/yr` values,
-matching the big annual totals). `recalc.ts` keeps its internal model in
-monthly USD too — the form divides its annual inputs back to monthly before
-recalc, and only the display layer annualises.
+**annual** figures (the spend form prefills and edits `/yr` values, matching
+the big annual totals). The form divides its annual inputs back to **monthly**
+before sending the `[SPEND_EDITS]` overrides (the backend schema is monthly),
+and only the display layer annualises.
 
 ### Agent base URL
 
@@ -167,11 +156,16 @@ is gone with the old hero card).
 
 ## Backend coupling
 
-Phase 1 hits the existing backend; phase 2 round-trips cleanly via
-**`POST /presignup/accurate-breakdown/{session_id}`** (added in
-onboarding-agent at `backend/core/routes/presignup_accurate_breakdown.py`).
+Both phase-1 turns round-trip via `/run_sse` (see Data flow above). Spend edits
+go to the agent as a `[SPEND_EDITS]` message → `apply_spend_edits` → recovery.
 
-Payload shape (sent by `postAccurateBreakdown` in `agent-api.ts`):
+> **Retired:** the route below (`POST /presignup/accurate-breakdown`) was the
+> old client-driven phase-2 lock-in. The public flow no longer calls it; the
+> route still exists in onboarding-agent but is unused here. Kept for
+> reference only.
+
+Payload shape (legacy — was sent by `postAccurateBreakdown` in `agent-api.ts`,
+which is now an unused export):
 
 ```json
 {

@@ -31,7 +31,6 @@ const ROW_LABEL: Record<string, string> = CATEGORY_LABELS;
 const ESTIMATE_PILL_LABEL = (completed: boolean) => (completed ? "Audited" : "Scanning");
 const ACCURATE_PILL_LABEL = (completed: boolean) => (completed ? "Audited" : "Recalculating");
 
-const ESTIMATE_TOTAL_LABEL = "Recoverable so far";
 const ACCURATE_TOTAL_LABEL = "Accurate so far";
 
 const ESTIMATE_EYEBROW = "Live audit";
@@ -134,12 +133,14 @@ export default function LiveAuditCard({ message }: LiveAuditCardProps) {
               {!message.completed && <span className="rc-pa-live__caret" aria-hidden="true" />}
             </div>
           </div>
-          <div className="rc-pa-live__total">
-            <span className="rc-pa-live__total-label">
-              {isAccurate ? ACCURATE_TOTAL_LABEL : ESTIMATE_TOTAL_LABEL}
-            </span>
-            <span className="rc-pa-live__total-value">{USD.format(animatedTotal)}</span>
-          </div>
+          {/* Phase-1 (estimate) sizes spend, not recovery, so it shows no
+              running total. The accurate phase reveals the recoverable figure. */}
+          {isAccurate && (
+            <div className="rc-pa-live__total">
+              <span className="rc-pa-live__total-label">{ACCURATE_TOTAL_LABEL}</span>
+              <span className="rc-pa-live__total-value">{USD.format(animatedTotal)}</span>
+            </div>
+          )}
         </div>
 
         {showTimeline ? (

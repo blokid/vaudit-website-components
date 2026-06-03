@@ -1563,12 +1563,15 @@ html.dark .rc-pa-btn__time {
   border: 1px solid var(--rc-pa-border);
   border-radius: 12px;
   padding: 12px 14px;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
+  /* Two vendors per row on desktop; collapses to one column at ≤767px. The
+     category head spans both columns via grid-column below. */
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px 44px;
 }
 
 .rc-pa-spends__group-head {
+  grid-column: 1 / -1;
   display: inline-flex;
   align-items: center;
   gap: 8px;
@@ -1651,7 +1654,7 @@ html.dark .rc-pa-btn__time {
   font-variant-numeric: tabular-nums;
   text-align: right;
   color: var(--rc-pa-fg);
-  width: 110px;
+  width: 132px;
   padding: 7px 2px;
 }
 
@@ -2062,6 +2065,10 @@ html.dark .rc-pa-error {
   .rc-pa-card-cat--full .rc-pa-card-cat__vendors {
     grid-template-columns: 1fr;
     column-gap: 0;
+  }
+
+  .rc-pa-spends__group {
+    grid-template-columns: 1fr;
   }
 
   .rc-pa-picker__grid {

@@ -63,8 +63,12 @@ export type ReasoningEntry = {
  */
 export type ReasoningMap = Record<string, ReasoningEntry>;
 
-/** Selection from the phase-2 product picker widget. */
-export type AccurateSelection = "ad_id" | "token_id" | "vendor_id" | "all";
+/**
+ * Visitor's edited monthly spend, keyed by product/category id then vendor
+ * name. Produced by the spend form (`accurate-spends.tsx`) and sent to the
+ * agent as the `[SPEND_EDITS]` overrides payload that drives recovery.
+ */
+export type ExactMonthlyByVendor = Record<string, Record<string, number>>;
 
 /** Per-row state in the live-audit card. */
 export type AuditRowState = "pending" | "active" | "done" | "queued";
@@ -169,41 +173,20 @@ export type ResultsGridMessage = Base & {
   reasoning?: ReasoningMap;
 };
 
-export type EstimateCtaMessage = Base & {
-  kind: "estimate_cta";
-  total: number;
-  categoryCount: number;
-  /** While true, the lock-in button shows the calculating spinner. */
-  busy: boolean;
-  /**
-   * True once the breakdown has been frozen by the backend (PDF render
-   * locked the audit_breakdown row). When set, the "Lock in exact numbers"
-   * button is hidden — phase-2 corrections are server-rejected with
-   * `LOCKED`, so we shouldn't even offer the path.
-   */
-  locked?: boolean;
-};
-
 export type FinalCtaMessage = Base & {
   kind: "final_cta";
   total: number;
-};
-
-export type AccuratePickerMessage = Base & {
-  kind: "accurate_picker";
-  selection: AccurateSelection | null;
-  /** True once the visitor confirms their selection. */
-  completed: boolean;
+  /** Audited domain, e.g. "flmng.ai" — used to personalize the CTA copy.
+   *  May be "" for the holding/replay paths, which fall back to generic copy. */
+  domain: string;
 };
 
 export type AccurateSpendsMessage = Base & {
   kind: "accurate_spends";
-  /** Which categories the form should ask about — derived from the picker. */
-  selection: AccurateSelection;
   /**
-   * Phase-1 products filtered to the opted-in categories. The form renders one
-   * prefilled input per vendor, seeded from `estSpend × 12` (annual USD), so
-   * the visitor edits the exact figure instead of picking a range.
+   * Our estimated per-vendor spends (turn-1 `spend_form` widget). The form
+   * renders one prefilled input per vendor, seeded from `estSpend × 12`
+   * (annual USD); on submit the edited values drive the recovery turn.
    */
   products: Product[];
   busy: boolean;
@@ -237,9 +220,7 @@ export type ChatMessage =
   | UserTextMessage
   | LiveAuditMessage
   | ResultsGridMessage
-  | EstimateCtaMessage
   | FinalCtaMessage
-  | AccuratePickerMessage
   | AccurateSpendsMessage
   | HoldingRedirectMessage
   | ErrorMessage;
@@ -247,17 +228,10 @@ export type ChatMessage =
 // ---------------------------------------------------------------------------
 // Phase-2 widget marker contract (agent-driven via SSE text)
 // ---------------------------------------------------------------------------
-// The agent emits these inline `:::name{json}\n:::` blocks so the client knows
-// when to render phase-2 UI. They mirror the existing `audit_products` widget
-// pattern. The first widget appears after the visitor clicks "Lock in exact
-// numbers"; the second after they pick which products to audit.
-
-export type AccuratePickerWidgetParams = {
-  /** Order of options to render in the 2x2 grid. Defaults to all four. */
-  options?: AccurateSelection[];
-  /** Defaults to "all" — pre-selected with the MOST ACCURATE ribbon. */
-  default?: AccurateSelection;
-};
+// The agent emits inline `:::name{json}\n:::` blocks so the client knows when
+// to render phase-1/2 UI, mirroring the `audit_products` widget pattern. The
+// `spend_form` widget appears after spend + logic-check (turn 1); the visitor
+// edits it and submits, which triggers recovery (turn 2 → `audit_products`).
 
 export type AccurateSpendsWidgetParams = {
   /** Categories whose vendor spends we prefill. Defaults to all three. */

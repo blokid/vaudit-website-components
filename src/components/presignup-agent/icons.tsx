@@ -128,6 +128,23 @@ export function IconDashboard(props: SVGProps<SVGSVGElement>) {
   );
 }
 
+export function IconBolt(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg viewBox="0 0 24 24" {...stroke} {...props}>
+      <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
+    </svg>
+  );
+}
+
+export function IconCalendar(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg viewBox="0 0 24 24" {...stroke} {...props}>
+      <rect x="3" y="4" width="18" height="18" rx="2" />
+      <path d="M16 2v4M8 2v4M3 10h18" />
+    </svg>
+  );
+}
+
 export function IconArrowLeft(props: SVGProps<SVGSVGElement>) {
   return (
     <svg viewBox="0 0 24 24" {...stroke} {...props}>

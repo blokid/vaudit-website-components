@@ -1,7 +1,6 @@
 import { useMemo, useState } from "react";
 import clsx from "clsx";
-import type { AccurateSpendsMessage, Product } from "./types";
-import type { ExactMonthlyByVendor } from "./recalc";
+import type { AccurateSpendsMessage, ExactMonthlyByVendor, Product } from "./types";
 import {
   CATEGORY_ICONS,
   CATEGORY_LABELS,
@@ -16,7 +15,8 @@ import { AgentSection } from "./chat-message";
 type Props = {
   message: AccurateSpendsMessage;
   onSubmit: (exact: ExactMonthlyByVendor) => void;
-  onBack: () => void;
+  /** Optional — the up-front spend form has no "Back" target. */
+  onBack?: () => void;
 };
 
 /** Stable draft key — category id + vendor name uniquely identify a row. */
@@ -42,8 +42,10 @@ export default function AccurateSpends({ message, onSubmit, onBack }: Props) {
     return seed;
   });
 
-  // Parse every draft up front; a row is valid when it parses to a positive
-  // annual figure. The form can only run once every row is valid.
+  // Parse every draft up front; a row is valid when it parses to a
+  // non-negative annual figure ($0 is allowed — it means "I don't spend on
+  // this vendor", e.g. a seeded default the visitor leaves untouched). The
+  // form can only run once every row is valid.
   const parsed = useMemo(() => {
     const out: Record<string, number | null> = {};
     for (const p of products) {
@@ -56,7 +58,7 @@ export default function AccurateSpends({ message, onSubmit, onBack }: Props) {
   }, [drafts, products]);
 
   const allValid = useMemo(
-    () => Object.values(parsed).every((n) => n != null && n > 0),
+    () => Object.values(parsed).every((n) => n != null && n >= 0),
     [parsed],
   );
 
@@ -92,28 +94,32 @@ export default function AccurateSpends({ message, onSubmit, onBack }: Props) {
       }
     >
       <div className="rc-pa-spends">
-        {products.map((product) => (
-          <SpendGroup
-            key={product.id}
-            product={product}
-            drafts={drafts}
-            parsed={parsed}
-            locked={locked}
-            onChange={setDraft}
-          />
-        ))}
+        {products
+          .filter((product) => product.vendors.length > 0)
+          .map((product) => (
+            <SpendGroup
+              key={product.id}
+              product={product}
+              drafts={drafts}
+              parsed={parsed}
+              locked={locked}
+              onChange={setDraft}
+            />
+          ))}
 
         <div className="rc-pa-spends__footer">
           <div className="rc-pa-spends__buttons">
-            <button
-              type="button"
-              className="rc-pa-btn rc-pa-btn--ghost"
-              onClick={onBack}
-              disabled={locked || busy}
-            >
-              <IconArrowLeft />
-              <span>Back</span>
-            </button>
+            {onBack ? (
+              <button
+                type="button"
+                className="rc-pa-btn rc-pa-btn--ghost"
+                onClick={onBack}
+                disabled={locked || busy}
+              >
+                <IconArrowLeft />
+                <span>Back</span>
+              </button>
+            ) : null}
             <button
               type="button"
               className={clsx("rc-pa-btn rc-pa-btn--primary", busy && "is-busy")}
@@ -121,7 +127,7 @@ export default function AccurateSpends({ message, onSubmit, onBack }: Props) {
               disabled={!allValid || locked || busy}
             >
               {busy ? <IconSpinner /> : <IconCheck />}
-              <span>{busy ? "Calculating…" : "Run accurate audit"}</span>
+              <span>{busy ? "Calculating…" : "Run my recovery audit"}</span>
             </button>
           </div>
         </div>
@@ -158,9 +164,11 @@ function SpendGroup({
       {product.vendors.map((v) => {
         const key = draftKey(product.id, v.name);
         const logo = vendorIcon(v.name);
+        // $0 is a valid answer ("I don't spend on this vendor") — only a parse
+        // failure or a negative value is invalid, matching `allValid` above.
         const invalid = (() => {
           const n = parsed[key];
-          return n == null || n <= 0;
+          return n == null || n < 0;
         })();
         return (
           <div className="rc-pa-spends__row" key={key}>
@@ -211,8 +219,8 @@ function SpendGroup({
 
 /**
  * Parse a spend input into annual USD. Accepts "$2.5M", "750k",
- * "1,500,000", and plain "46536". Returns null on parse failure or a
- * non-positive value.
+ * "1,500,000", plain "46536", and "0". Returns null on parse failure or a
+ * negative value; `0` is valid ("I don't spend on this vendor").
  */
 function parseAnnualSpend(raw: string): number | null {
   const s = raw.replace(/[\s$,]/g, "").toLowerCase();
@@ -220,7 +228,7 @@ function parseAnnualSpend(raw: string): number | null {
   const m = s.match(/^(\d+(?:\.\d+)?)([km]?)$/);
   if (!m) return null;
   const n = parseFloat(m[1]);
-  if (!Number.isFinite(n) || n <= 0) return null;
+  if (!Number.isFinite(n) || n < 0) return null;
   if (m[2] === "k") return Math.round(n * 1_000);
   if (m[2] === "m") return Math.round(n * 1_000_000);
   return Math.round(n);

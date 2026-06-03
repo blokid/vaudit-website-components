@@ -305,6 +305,20 @@ export function extractAuditProducts(text: string): AuditProductsResult | null {
 }
 
 /**
+ * Parse the `:::spend_form{...}\n:::` widget block from accumulated text.
+ * Turn-1 of the two-turn phase-1 flow: the agent shows our estimated
+ * per-vendor monthly spends (no recovery yet) so the visitor can edit them
+ * before recovery runs. Same product shape as `audit_products` minus waste,
+ * so `normalizeProducts` (waste defaults to 0) handles it.
+ */
+export function extractSpendForm(text: string): Product[] | null {
+  const parsed = extractWidgetBlock(text, "spend_form") as { products?: unknown } | null;
+  if (!parsed) return null;
+  const out = normalizeProducts(parsed.products);
+  return out.length ? out : null;
+}
+
+/**
  * Result of rehydrating a persisted breakdown via `/presignup/breakdown`.
  * `domain` is the website the audit was run for (echoed from the session
  * row); absent only for very old rows persisted before it was stored.
