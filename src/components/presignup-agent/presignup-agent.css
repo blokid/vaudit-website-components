@@ -88,8 +88,11 @@ html.dark .rc-pa-section {
 
 .rc-pa-card {
   position: relative;
+  /* No max-width: the component fills 100% of whatever container it's mounted
+     in, and the host page owns the width (wrap the [data-rc] element in a
+     container div and size that). The root .rc-pa-section still supplies the
+     responsive padding gutters. */
   width: 100%;
-  max-width: 960px;
   background: var(--rc-pa-card-bg);
   border: 1px solid var(--rc-pa-border);
   border-radius: var(--rc-pa-card-radius);
@@ -1697,7 +1700,6 @@ html.dark .rc-pa-btn__time {
   display: flex;
   justify-content: center;
   width: 100%;
-  max-width: 960px;
   margin-top: 18px;
 }
 
