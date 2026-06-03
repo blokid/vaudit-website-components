@@ -959,10 +959,19 @@ export default function PresignupAgent({ agentBaseUrl, replay }: PresignupAgentP
     const sessionId = peekSessionId();
     resetLocalUiState();
     if (!sessionId) return;
+    // Gate the composer until the backend teardown+recreate finishes.
+    // resetLocalUiState() just set busy=false (reopening the composer), but
+    // the fresh-start POST tears down and recreates the ADK session under the
+    // same id — a domain submit racing that window starts a /run_sse whose
+    // append_event hits a half-deleted session ("Session not found"). Holding
+    // busy until freshStartSession resolves means no submit can race it.
+    setBusy(true);
     try {
       await freshStartSession(getAgentBaseUrl(agentBaseUrl), sessionId);
     } catch (_) {
       resetSession();
+    } finally {
+      setBusy(false);
     }
   }, [agentBaseUrl, resetLocalUiState]);
 
@@ -1221,55 +1230,67 @@ function pickActiveTitle(
 // Accurate-phase recalc progress (client-side)
 // ---------------------------------------------------------------------------
 //
-// Phase 2 emits no progress events on the SSE channel — profilers are an
-// estimate-phase concept (see types.ts). Without this the card sits frozen on
-// "Calculating recoverable spend" with a 0% bar and "Queued" rows for the whole
-// recalc. We instead run an honest client-side ticker that rotates the title
-// through reconciliation stages and eases the progress bar toward a 90% ceiling
-// while we await the streamed audit_products widget. No fake totals or row
-// completions — once the real products land, runScanSequence finishes the bar
-// and fills in the rows.
-// Each stage drives both the card title and the per-row caption. While a stage
-// is up, every not-yet-resolved category row is shown "active" (pulsing circle,
-// orange caption) so nothing reads as static "Queued" during the wait.
-const ACCURATE_RECALC_STAGES: ReadonlyArray<{ title: string; caption: string }> = [
-  { title: "Applying your spend figures", caption: "applying your figures…" },
-  { title: "Reconciling vendor billing", caption: "reconciling billing…" },
-  { title: "Matching usage against invoices", caption: "matching invoices…" },
-  { title: "Computing recoverable waste", caption: "computing waste…" },
+// The recalc card has three stages, driven by the backend's `recovery`
+// progress event (recorded into `m.profilers.recovery` by applyProgressEvent):
+//   0 — before recovery starts: applying the visitor's edited spends
+//   1 — recovery "started":     the heavy compute step is running
+//   2 — recovery "done"/"failed": finalizing, widget about to stream
+// Each stage drives the card title, the per-row caption, and the bar ceiling,
+// so the bar advances in step with the real backend work rather than a blind
+// timer. A time-based fallback still bumps the stage if the event never
+// arrives (older backend / dropped SSE), so the card never sits frozen. No
+// fake totals or row completions — once the real products land, the ticker is
+// stopped and runScanSequence finishes the bar and fills in the rows.
+const ACCURATE_RECALC_STAGES: ReadonlyArray<{ title: string; caption: string; ceiling: number }> = [
+  { title: "Applying your spend figures", caption: "applying your figures…", ceiling: 0.55 },
+  { title: "Computing recoverable waste", caption: "computing waste…", ceiling: 0.82 },
+  { title: "Finalizing your audit", caption: "finalizing…", ceiling: 0.95 },
 ];
+
+const RECALC_TICK_MS = 800;
+// Fallback stage advancement (ms elapsed → stage) when no `recovery` event
+// arrives. Real events take precedence via Math.max, so they only ever speed
+// the card up, never slow it down.
+const RECALC_FALLBACK_PHASE1_MS = 3000;
+const RECALC_FALLBACK_PHASE2_MS = 7000;
 
 function startAccurateRecalcProgress(
   liveId: string,
   update: (id: string, patch: (m: ChatMessage) => ChatMessage) => void,
 ): () => void {
-  let stage = 0;
   let progress = 0.08;
+  let ticks = 0;
   const apply = () =>
-    update(liveId, (m) =>
-      m.kind === "live_audit"
-        ? {
-            ...m,
-            title: ACCURATE_RECALC_STAGES[stage].title,
-            progress,
-            // Animate every row the real scan hasn't finished yet — "active"
-            // gives the status circle its pulse and shows the rotating caption.
-            rows: m.rows.map((row) =>
-              row.state === "done"
-                ? row
-                : { ...row, state: "active", activeCaption: ACCURATE_RECALC_STAGES[stage].caption },
-            ),
-          }
-        : m,
-    );
+    update(liveId, (m) => {
+      if (m.kind !== "live_audit") return m;
+      const rec = m.profilers.recovery;
+      const eventPhase = rec === "done" || rec === "failed" ? 2 : rec === "started" ? 1 : 0;
+      const elapsed = ticks * RECALC_TICK_MS;
+      const timePhase =
+        elapsed >= RECALC_FALLBACK_PHASE2_MS ? 2 : elapsed >= RECALC_FALLBACK_PHASE1_MS ? 1 : 0;
+      const phase = Math.max(eventPhase, timePhase);
+      const stage = ACCURATE_RECALC_STAGES[phase];
+      // Ease toward the stage ceiling; never regress (runScanSequence finishes
+      // the bar after the ticker stops).
+      progress = Math.min(stage.ceiling, progress + (stage.ceiling - progress) * 0.4);
+      return {
+        ...m,
+        title: stage.title,
+        progress: Math.max(m.progress, progress),
+        // Animate every row the real scan hasn't finished yet — "active"
+        // gives the status circle its pulse and shows the stage caption.
+        rows: m.rows.map((row) =>
+          row.state === "done"
+            ? row
+            : { ...row, state: "active", activeCaption: stage.caption },
+        ),
+      };
+    });
   apply();
   const id: ReturnType<typeof setInterval> = setInterval(() => {
-    stage = Math.min(stage + 1, ACCURATE_RECALC_STAGES.length - 1);
-    // Ease toward 0.9 so the bar keeps moving but always leaves headroom for
-    // the real row-scan to complete it.
-    progress = progress + (0.9 - progress) * 0.45;
+    ticks += 1;
     apply();
-  }, 1100);
+  }, RECALC_TICK_MS);
   return () => clearInterval(id);
 }
 

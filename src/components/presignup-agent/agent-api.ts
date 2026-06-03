@@ -227,10 +227,14 @@ export async function consumeSSE(
   }
 }
 
-/** Parse a single `:::name{...json}\n:::` widget block from accumulated text. */
+/** Parse a single `:::name{...json}:::` widget block from accumulated text.
+ *  The closing fence may sit on its own line (`...}\n:::`, how Claude tends to
+ *  format it) or inline right after the JSON (`...}:::`, how Gemini tends to) —
+ *  so the newline before `:::` is optional. The non-greedy `{...}` with the
+ *  `:::` anchor still grabs the full nested JSON object up to the fence. */
 export function extractWidgetBlock(text: string, name: string): unknown | null {
   if (!text) return null;
-  const re = new RegExp(`:::${escapeRe(name)}(\\{[\\s\\S]*?\\})\\s*\\n:::`);
+  const re = new RegExp(`:::${escapeRe(name)}(\\{[\\s\\S]*?\\})\\s*:::`);
   const m = text.match(re);
   if (!m) return null;
   try {

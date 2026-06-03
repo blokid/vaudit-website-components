@@ -102,8 +102,13 @@ export type LiveAuditMode = "estimate" | "accurate";
 //   2. {step: "business", state: "researching", detail: {...}}
 //      — fine-grained timeline of the deep-research run inside the business
 //        profiler. `detail.type` is one of the five variants below.
+//
+// The `dns`/`tech`/`apollo`/`business`/`spend` ticks fire in the estimate
+// phase (turn 1). The `recovery` tick fires in turn 2, when the recovery tool
+// computes recoverable amounts on the visitor's edited spends — it drives the
+// accurate-phase recalc card (see startAccurateRecalcProgress).
 
-export type ProfilerStep = "dns" | "tech" | "apollo" | "business" | "spend";
+export type ProfilerStep = "dns" | "tech" | "apollo" | "business" | "spend" | "recovery";
 
 export type ProfilerState = "started" | "done" | "failed";
 
