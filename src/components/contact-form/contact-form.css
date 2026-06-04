@@ -19,8 +19,6 @@
   --rc-cf-privacy-link: #5f6258;
 
   width: 100%;
-  max-width: 1080px;
-  margin: 0 auto;
   font-family: inherit;
   color: var(--rc-cf-ink);
 }
