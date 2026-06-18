@@ -35,6 +35,7 @@ import ResultsGrid from "./results-grid";
 import FinalCta from "./final-cta";
 import AccurateSpends from "./accurate-spends";
 import HoldingRedirect from "./holding-redirect";
+import GuardrailsError from "./guardrails-error";
 import { IconRefresh } from "./icons";
 import type {
   AuditRow,
@@ -495,6 +496,9 @@ export default function PresignupAgent({ agentBaseUrl, replay }: PresignupAgentP
         });
       } catch (err) {
         if ((err as Error)?.name === "AbortError" || cancelledRef.current) return;
+        // Drop the half-built live-audit stub — its profiler rows are frozen
+        // mid-scan — so the guardrails error card is the clean focal point.
+        setMessages((prev) => prev.filter((m) => m.id !== liveId));
         append({
           id: nextId("err"),
           kind: "error",
@@ -975,6 +979,19 @@ export default function PresignupAgent({ agentBaseUrl, replay }: PresignupAgentP
     }
   }, [agentBaseUrl, resetLocalUiState]);
 
+  // "Run it again" on the guardrails error card: re-run the audit on the same
+  // input the visitor entered. Drop the failed run's transcript (ack + the
+  // frozen live-audit stub + the error card) and rotate to a fresh session id
+  // so the retry streams a clean audit instead of reusing a possibly-wedged
+  // backend session. `domainRef` still holds the input from the failed submit.
+  const handleRunItAgain = useCallback(() => {
+    const domain = domainRef.current;
+    if (!domain || busy) return;
+    setMessages([]);
+    resetSession();
+    runEstimate(domain);
+  }, [busy, runEstimate]);
+
   const handleHoldingSubmit = useCallback(
     (holdingId: string, rawDomain: string) => {
       const domain = normalizeDomain(rawDomain);
@@ -1021,6 +1038,8 @@ export default function PresignupAgent({ agentBaseUrl, replay }: PresignupAgentP
               onSpendsSubmit: handleSpendsSubmit,
               onDownloadReport: handleDownloadReport,
               onHoldingSubmit: handleHoldingSubmit,
+              onRunAgain: handleRunItAgain,
+              busy,
             }),
           )}
         </div>
@@ -1059,6 +1078,9 @@ type RenderHandlers = {
   onSpendsSubmit: (spendsId: string, exact: ExactMonthlyByVendor) => void;
   onDownloadReport: (email: string) => Promise<boolean>;
   onHoldingSubmit: (holdingId: string, domain: string) => void;
+  onRunAgain: () => void;
+  /** Gates the guardrails "Run it again" button while a retry is in flight. */
+  busy: boolean;
 };
 
 function renderMessage(msg: ChatMessage, h: RenderHandlers) {
@@ -1102,6 +1124,19 @@ function renderMessage(msg: ChatMessage, h: RenderHandlers) {
         />
       );
     case "error":
+      // A re-runnable phase-1 failure (5xx / network / empty estimate) gets the
+      // reassuring guardrails card with a "Run it again" path; non-retryable
+      // errors (recovery / download) keep the plain inline message.
+      if (msg.retry) {
+        return (
+          <GuardrailsError
+            key={msg.id}
+            onRunAgain={h.onRunAgain}
+            callUrl={CALL_URL}
+            busy={h.busy}
+          />
+        );
+      }
       return (
         <AgentSection key={msg.id} text={<span className="rc-pa-error">{msg.text}</span>}>
           {null}

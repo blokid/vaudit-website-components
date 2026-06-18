@@ -264,6 +264,41 @@ export function IconAlert(props: SVGProps<SVGSVGElement>) {
   );
 }
 
+export function IconHeadset(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg viewBox="0 0 24 24" {...stroke} {...props}>
+      <path d="M4 14v-2a8 8 0 0 1 16 0v2" />
+      <path d="M4 14h2a1 1 0 0 1 1 1v4a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1Z" />
+      <path d="M20 14h-2a1 1 0 0 0-1 1v4a1 1 0 0 0 1 1h1a1 1 0 0 0 1-1Z" />
+      <path d="M20 18v1a3 3 0 0 1-3 3h-3" />
+    </svg>
+  );
+}
+
+/** Loop with a slash — the "runaway loop was broken" guardrail glyph. */
+export function IconLoopBreaker(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg viewBox="0 0 24 24" {...stroke} {...props}>
+      <path d="M17 4a8 8 0 0 1 2.6 12" />
+      <path d="M7 20a8 8 0 0 1-2.6-12" />
+      <path d="M17 4h-3M17 4v3" />
+      <path d="M7 20h3M7 20v-3" />
+      <path d="m3 3 18 18" />
+    </svg>
+  );
+}
+
+/** Stacked layers with a slash — the "duplicate calls deduped" guardrail glyph. */
+export function IconDedupGuard(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg viewBox="0 0 24 24" {...stroke} {...props}>
+      <rect x="8" y="8" width="12" height="12" rx="2" />
+      <path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2" />
+      <path d="m3 3 18 18" />
+    </svg>
+  );
+}
+
 /** Backend category id → icon component. */
 export const CATEGORY_ICONS = {
   ad_id: IconAd,

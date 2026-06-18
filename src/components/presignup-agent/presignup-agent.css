@@ -1346,6 +1346,7 @@ html.dark .rc-pa-holding__input {
   font-size: 14px;
   font-weight: 600;
   line-height: 1;
+  text-decoration: none;
   transition: background 150ms ease, transform 100ms ease, box-shadow 200ms ease, border-color 150ms ease;
   white-space: nowrap;
 }
@@ -2030,6 +2031,127 @@ html.dark .rc-pa-error {
   padding: 4px 12px;
   font-size: 12px;
   cursor: pointer;
+}
+
+/* ---- guardrails error card ---------------------------------------------- */
+
+.rc-pa-guard {
+  border: 1px solid var(--rc-pa-border);
+  background: var(--rc-pa-card-bg);
+  border-radius: 18px;
+  padding: clamp(18px, 3vw, 26px);
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.rc-pa-guard__head {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+}
+
+.rc-pa-guard__badge {
+  flex-shrink: 0;
+  width: 46px;
+  height: 46px;
+  border-radius: 12px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--rc-pa-pill-bg);
+  border: 1px solid var(--rc-pa-pill-border);
+  color: var(--rc-pa-orange);
+}
+
+.rc-pa-guard__badge svg {
+  width: 22px;
+  height: 22px;
+}
+
+.rc-pa-guard__copy {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.rc-pa-guard__title {
+  margin: 0;
+  font-size: clamp(18px, 2.4vw, 21px);
+  font-weight: 700;
+  line-height: 1.2;
+  color: var(--rc-pa-fg);
+}
+
+.rc-pa-guard__body {
+  margin: 0;
+  font-size: 15px;
+  line-height: 1.55;
+  color: var(--rc-pa-fg-soft);
+}
+
+.rc-pa-guard__chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.rc-pa-guard__chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 14px;
+  border-radius: 999px;
+  background: var(--rc-pa-chip-bg);
+  border: 1px solid var(--rc-pa-border);
+  font-size: 14px;
+}
+
+.rc-pa-guard__chip-icon {
+  width: 17px;
+  height: 17px;
+  flex-shrink: 0;
+  color: var(--rc-pa-orange);
+}
+
+.rc-pa-guard__chip-name {
+  font-weight: 700;
+  color: var(--rc-pa-fg);
+}
+
+.rc-pa-guard__chip-detail {
+  color: var(--rc-pa-fg-muted);
+}
+
+.rc-pa-guard__chip-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background: #22c55e;
+  box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.18);
+  margin-left: 2px;
+}
+
+.rc-pa-guard__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.rc-pa-guard__footnote {
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  color: var(--rc-pa-fg-soft);
+}
+
+.rc-pa-guard__footnote-icon {
+  width: 17px;
+  height: 17px;
+  flex-shrink: 0;
+  color: #22c55e;
 }
 
 /* ---- animations ---------------------------------------------------------- */
