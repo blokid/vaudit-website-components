@@ -501,6 +501,22 @@ export async function freshStartSession(
   if (!res.ok) throw new FreshStartError(res.status);
 }
 
+/**
+ * The vaudit.com page the visitor is on when they download the report
+ * (e.g. "vaudit.com" or "vaudit.com/ai-spend"). Sent to the backend and
+ * forwarded to HubSpot as `roi_calculator_source` for lead attribution.
+ * Host + pathname only — the trailing slash and any query string (UTMs) are
+ * stripped so the value stays one of the clean landing-page identifiers.
+ */
+function currentPageSource(): string {
+  try {
+    const { host, pathname } = window.location;
+    return host + pathname.replace(/\/+$/, "");
+  } catch {
+    return "";
+  }
+}
+
 export async function downloadAuditReport(
   baseUrl: string,
   sessionId: string,
@@ -515,7 +531,7 @@ export async function downloadAuditReport(
         "Content-Type": "application/json",
         "X-Presignup-Token": token,
       },
-      body: JSON.stringify({ email: email.trim() }),
+      body: JSON.stringify({ email: email.trim(), source: currentPageSource() }),
     },
   );
   if (!res.ok) throw new Error(`Audit report request failed: ${res.status}`);
