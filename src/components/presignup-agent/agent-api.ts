@@ -24,7 +24,7 @@ const PROD_BASE = "https://onboarding-agent.vaudit.com";
 const LOCAL_BASE = "http://localhost:3000";
 
 const TOKEN_ENDPOINT = "/presignup/token";
-const SESSION_ENDPOINT = "/apps/presignup_agent/users/anonymous/sessions/";
+const SESSION_ENDPOINT = "/apps/presignup_agent/users/anonymous/sessions";
 const RUN_SSE_ENDPOINT = "/run_sse";
 const AUDIT_REPORT_ENDPOINT = "/presignup/audit-report/";
 const ACCURATE_BREAKDOWN_ENDPOINT = "/presignup/accurate-breakdown/";
@@ -132,11 +132,16 @@ export async function ensureSession(
   token: string,
   signal?: AbortSignal,
 ): Promise<string> {
-  const url = baseUrl + SESSION_ENDPOINT + encodeURIComponent(sessionId);
+  // ADK's create_session (collection) endpoint — the deprecated with-id
+  // variant (POST .../sessions/{id}) bound the whole body to `state`,
+  // nesting any seeded keys; this one takes a proper CreateSessionRequest
+  // ({sessionId, state}) so seeded state lands flat.
+  const url = baseUrl + SESSION_ENDPOINT;
   // Domain-submit ("website URL") flow: the raw /run_sse turn drops unknown
-  // body fields, so seed the UTMs into ADK session.state at creation — the
-  // earliest slot the backend can read and forward to HubSpot, same as the
-  // report-download body does.
+  // body fields, so seed the UTMs into ADK session.state at creation. NOTE:
+  // the backend deliberately does not consume session-state UTMs today —
+  // only the report-download POST body UTMs reach HubSpot. Kept so the data
+  // is already flowing if that decision is revisited.
   const utm = readUtms();
   const res = await fetch(url, {
     method: "POST",
@@ -144,7 +149,10 @@ export async function ensureSession(
       "Content-Type": "application/json",
       "X-Presignup-Token": token,
     },
-    body: Object.keys(utm).length ? JSON.stringify({ state: utm }) : undefined,
+    body: JSON.stringify({
+      sessionId,
+      ...(Object.keys(utm).length ? { state: utm } : {}),
+    }),
     signal,
   });
   if (!res.ok && res.status !== 409) {

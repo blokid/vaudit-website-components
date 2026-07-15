@@ -4,7 +4,7 @@ const STAGING_BASE = "https://onboarding-agent.staging.vaudit.com";
 const PROD_BASE = "https://onboarding-agent.vaudit.com";
 
 const TOKEN_ENDPOINT = "/presignup/token";
-const SESSION_ENDPOINT = "/apps/presignup_agent/users/anonymous/sessions/";
+const SESSION_ENDPOINT = "/apps/presignup_agent/users/anonymous/sessions";
 const RUN_SSE_ENDPOINT = "/run_sse";
 const AUDIT_REPORT_ENDPOINT = "/presignup/audit-report/";
 
@@ -75,13 +75,15 @@ export async function ensureSession(
   token: string,
   signal?: AbortSignal,
 ): Promise<string> {
-  const url = baseUrl + SESSION_ENDPOINT + encodeURIComponent(sessionId);
-  const res = await fetch(url, {
+  // ADK's create_session (collection) endpoint; the session id rides in the
+  // body (CreateSessionRequest) instead of the deprecated with-id URL form.
+  const res = await fetch(baseUrl + SESSION_ENDPOINT, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
       "X-Presignup-Token": token,
     },
+    body: JSON.stringify({ sessionId }),
     signal,
   });
   if (!res.ok && res.status !== 409) {
