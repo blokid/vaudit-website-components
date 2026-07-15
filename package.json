@@ -1,6 +1,6 @@
 {
   "name": "vaudit-components",
-  "version": "0.26.49",
+  "version": "0.26.50",
   "private": true,
   "description": "React + TS components rendered into Webflow, served as static files from api.vaudit.com. Mounts onto <div data-rc=\"...\"> markers.",
   "type": "module",
