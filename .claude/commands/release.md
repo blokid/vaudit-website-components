@@ -1,14 +1,16 @@
 ---
-description: Cut a new patch release of vaudit-components and verify it on jsDelivr.
+description: Cut a new patch release of vaudit-components — tag, then publish a GitHub Release with changelog + downloadable dist for the backend dev.
 ---
 
 # Cut a release
 
 Run the full release flow for vaudit-components. Source of truth: `docs/RELEASING.md` and `CLAUDE.md`. The arguments after `/release` (`$ARGUMENTS`) are optional notes describing what's shipping — use them as the commit body if present, otherwise infer from the staged/unstaged diff.
 
+The bundle is **no longer served from jsDelivr**. This repo produces a versioned, committed `dist/` and publishes it as a **GitHub Release** with a changelog and a downloadable artifact. The backend dev opens the release URL, downloads the artifact, and drops it into their repo's `static/components/`, which serves it at `https://api.vaudit.com/static/components/`.
+
 ## Pre-flight (silent if clean)
 
-1. `git status` — confirm the only uncommitted changes are the ones we're shipping. If unrelated `M` files are present, ask the user before bundling them in. (Exception: `scripts/purge.mjs` and other tooling tweaks already in the working tree are fine to ship with the feature commit.)
+1. `git status` — confirm the only uncommitted changes are the ones we're shipping. If unrelated `M` files are present, ask the user before bundling them in.
 2. Read `package.json` to know the current version.
 
 ## Release sequence
@@ -33,50 +35,56 @@ git tag -a vX.Y.Z -m "release: vX.Y.Z"
 git push --follow-tags
 ```
 
-The commit body should explain *why* the change ships, not what files moved. Keep it 1–3 short paragraphs. Include the standard `Co-Authored-By: Claude Opus 4.7 (1M context) <noreply@anthropic.com>` footer.
+The commit body should explain *why* the change ships, not what files moved. Keep it 1–3 short paragraphs. Include the standard `Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>` footer.
 
-## Verification — MANDATORY ORDER, do not skip
+## Publish the GitHub Release
 
-The v0.26.20 incident memo (`memory/feedback_jsdelivr_purge.md`) is authoritative — read it. Briefly:
+After the tag is on origin, cut a GitHub Release so the backend dev has one URL to download from. The artifact is a zip laid out exactly like the backend's `static/components/` (bundle + `assets/` sibling), plus the raw files for single-file grabs.
 
-1. **Confirm the tag is on origin** before any CDN call:
-   ```bash
-   git ls-remote --tags origin vX.Y.Z
-   ```
-   If empty, the tag is lightweight — push explicitly: `git push origin vX.Y.Z`.
+```bash
+# Changelog: commit subjects since the previous tag, excluding release/build noise
+PREV=$(git describe --tags --abbrev=0 vX.Y.Z^ 2>/dev/null)
+CHANGELOG=$(git log --pretty='- %s' --invert-grep --grep='^release:' --grep='^build:' \
+  ${PREV:+$PREV..}vX.Y.Z)
 
-2. **Wait ~35s** before the first jsDelivr curl. Use a background `sleep 35 && curl ...` pattern (or `run_in_background: true`) so you don't poll early and accidentally negative-cache the tag at jsDelivr's origin-fetch layer. Do NOT chain short sleeps to dodge the wait-block.
+# Stage the artifact in the exact shape the backend needs under static/components/
+STAGE=$(mktemp -d)
+cp dist/vaudit.js dist/vaudit.css "$STAGE/"
+cp -R assets "$STAGE/assets"
+( cd "$STAGE" && zip -qr "vaudit-components-vX.Y.Z.zip" vaudit.js vaudit.css assets )
 
-3. **One verification curl** after the wait:
-   ```bash
-   curl -sI "https://cdn.jsdelivr.net/gh/blokid/vaudit-website-components@vX.Y.Z/dist/vaudit.js"  | head -1
-   curl -sI "https://cdn.jsdelivr.net/gh/blokid/vaudit-website-components@vX.Y.Z/dist/vaudit.css" | head -1
-   ```
-   Both should return `HTTP/2 200`.
+# Build the release notes (heredoc → file avoids quoting hell with changelog text)
+NOTES=$(mktemp)
+cat > "$NOTES" <<EOF
+Static bundle for vX.Y.Z.
 
-4. **If either is 404** → jump straight to the batch POST purge, do NOT repeat single-path GETs (they rate-limit per path for ~45 min):
-   ```bash
-   node scripts/purge.mjs vX.Y.Z stuck
-   ```
-   Then wait another ~60s (background, no early polls) and re-verify the tag URL once. If still 404, sanity-check by SHA:
-   ```bash
-   SHA=$(git rev-parse vX.Y.Z^{commit})
-   curl -sI "https://cdn.jsdelivr.net/gh/blokid/vaudit-website-components@${SHA}/dist/vaudit.js" | head -1
-   ```
-   If the SHA URL is 200 but the tag URL is still 404, the bytes are live and only the tag alias is stuck — surface the SHA URL as a working stopgap and try one more `purge.mjs ... stuck` round.
+**Deploy:** unzip \`vaudit-components-vX.Y.Z.zip\` into the backend repo's \`static/components/\` (it contains \`vaudit.js\`, \`vaudit.css\`, and \`assets/\`), then deploy the backend. Serves at https://api.vaudit.com/static/components/vaudit.{js,css}
+
+## Changes
+$CHANGELOG
+EOF
+
+# Create the release with the changelog and three assets.
+# gh prints the release URL to stdout on success — capture it to hand back.
+RELEASE_URL=$(gh release create vX.Y.Z \
+  "$STAGE/vaudit-components-vX.Y.Z.zip" dist/vaudit.js dist/vaudit.css \
+  --title "vX.Y.Z" --notes-file "$NOTES")
+echo "$RELEASE_URL"
+```
+
+`$RELEASE_URL` is the exact URL to hand the backend dev. Cache invalidation is the backend's job (its `Cache-Control` headers) — this repo does not purge anything.
 
 ## Report
 
 End-of-turn output, in this order, nothing else:
 
 1. **Tag**: `vX.Y.Z`
-2. **Webflow Footer URLs** (both CSS and JS, with the new tag).
-3. A one-line note if anything anomalous happened during verify (e.g. "had to run stuck-tag purge once").
+2. **Release URL** for the backend dev — the actual `$RELEASE_URL` printed by `gh release create` (a `.../releases/tag/vX.Y.Z` link). Print it as a bare, clickable URL so it's easy to copy.
+3. A one-line note if anything anomalous happened during build/release.
 
 ## Hard rules — never break these
 
 - **Never push** until `git status` is what you expect AND the tag is annotated (`git tag -a`).
-- **Never fetch the @vX.Y.Z CDN URL before `git push` AND `git ls-remote` confirms AND ~35s has elapsed.** This is the only thing that causes the 30-min 404 incidents.
-- **Never repeat single-path purge GETs.** Always use `node scripts/purge.mjs <tag> stuck` for batch.
 - **Never move or delete an already-published tag.** Roll forward with a new patch instead.
 - **Never use `npm run release`** — it double-commits and produces noisier history than the manual flow above.
+- The Webflow Footer URLs are **unversioned and stable** (`https://api.vaudit.com/static/components/vaudit.{js,css}`). A release does not change them — it changes the bytes the backend serves. No Webflow edit needed per release.

@@ -264,14 +264,15 @@ widget shape stays backward-compatible with pre-Build-Guide backends.
 vs. staging; `force staging` pins the staging onboarding-agent. Light/dark
 toggle in the toolbar drives the `html.dark` class.
 
-`npm run build` produces `dist/vaudit.{js,css}`. `dist/` is committed —
-jsDelivr serves directly from the tagged ref.
+`npm run build` produces `dist/vaudit.{js,css}`. `dist/` is committed and
+tagged; the built files are copied into the backend repo's
+`static/components/` and served from `https://api.vaudit.com/static/components/`.
 
 ### Webflow (site `67e174863b0c93ae0a0cffee`, Home Copy page `69e701d3ab01c0394d226247`)
 
 The new build supersedes the previous **paste-into-custom-code** workflow.
-Production now loads a single jsDelivr `<script>` + `<link>` and mounts the
-React component into a `data-rc="presignup-agent"` marker.
+Production now loads a single `<script>` + `<link>` from the backend static
+host and mounts the React component into a `data-rc="presignup-agent"` marker.
 
 **Stale state to clean up before rolling the new bundle**, all via
 the Webflow Designer MCP (only one repo wires that — see
@@ -336,20 +337,20 @@ auto-detect (e.g. for staging previews).
 
 #### Footer custom code
 
-The Vaudit theme already loads the bundle once per page. Update the script /
-stylesheet `@vX.Y.Z` ref to the new release tag from this repo:
+The Vaudit theme already loads the bundle once per page from the stable,
+unversioned backend URL:
 
 ```html
 <link rel="stylesheet"
-      href="https://cdn.jsdelivr.net/gh/blokid/vaudit-website-components@vX.Y.Z/dist/vaudit.css">
-<script src="https://cdn.jsdelivr.net/gh/blokid/vaudit-website-components@vX.Y.Z/dist/vaudit.js"
+      href="https://api.vaudit.com/static/components/vaudit.css">
+<script src="https://api.vaudit.com/static/components/vaudit.js"
         defer></script>
 ```
 
-For dev iteration without bumping the tag, point at `@<commit-sha>` (immutable,
-no jsDelivr cache) or hit
-`https://purge.jsdelivr.net/gh/blokid/vaudit-website-components@<ref>/<path>`
-to flush a specific URL.
+A release changes the bytes the backend serves, not the URL — so this Footer
+block is set once and not touched per release. Cache behavior is the backend's
+`Cache-Control` headers; under a long TTL, append `?v=X.Y.Z` and republish to
+force a refresh.
 
 ## Deploy plan
 

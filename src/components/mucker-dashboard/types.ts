@@ -29,7 +29,7 @@ export type CompanyData = {
   name: string;
   /** Domain, e.g. "stripe.com". Fed to presignup-agent in replay mode. */
   domain: string;
-  /** Absolute logo URL — ideally jsDelivr-hosted in this repo's assets/. */
+  /** Absolute logo URL — ideally served from this repo's assets/ via the backend. */
   logoUrl?: string;
   /** Free-form tag like "E-commerce", "SaaS", "Healthcare", "Fintech", "Other". */
   industry?: string;

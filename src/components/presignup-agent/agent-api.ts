@@ -133,12 +133,19 @@ export async function ensureSession(
   signal?: AbortSignal,
 ): Promise<string> {
   const url = baseUrl + SESSION_ENDPOINT + encodeURIComponent(sessionId);
+  // Seed campaign attribution into the ADK session state at creation so the
+  // domain-submit ("website URL") flow carries UTMs too — the raw /run_sse
+  // turn has no custom backend hook to read them, but session.state does and
+  // it's the earliest first-touch slot. Backend forwards these to HubSpot the
+  // same way it forwards the report-download `utm_*` body fields.
+  const utm = collectUtms();
   const res = await fetch(url, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
       "X-Presignup-Token": token,
     },
+    body: Object.keys(utm).length ? JSON.stringify({ state: utm }) : undefined,
     signal,
   });
   if (!res.ok && res.status !== 409) {
@@ -517,6 +524,36 @@ function currentPageSource(): string {
   }
 }
 
+const UTM_KEYS = [
+  "utm_source",
+  "utm_medium",
+  "utm_campaign",
+  "utm_term",
+  "utm_content",
+] as const;
+
+/**
+ * The five standard UTM params for campaign attribution, read straight from
+ * the current URL query string (the audit widget sits on the UTM-tagged
+ * landing page, so the params are right there). Returns only the keys present
+ * — an empty object when there's no campaign context. Spread as flat `utm_*`
+ * fields into request bodies so they map 1:1 onto the HubSpot properties of
+ * the same name.
+ */
+export function collectUtms(): Record<string, string> {
+  const utm: Record<string, string> = {};
+  try {
+    const q = new URLSearchParams(window.location.search);
+    for (const k of UTM_KEYS) {
+      const v = q.get(k);
+      if (v) utm[k] = v;
+    }
+  } catch (_) {
+    /* non-browser — no query string */
+  }
+  return utm;
+}
+
 export async function downloadAuditReport(
   baseUrl: string,
   sessionId: string,
@@ -531,7 +568,11 @@ export async function downloadAuditReport(
         "Content-Type": "application/json",
         "X-Presignup-Token": token,
       },
-      body: JSON.stringify({ email: email.trim(), source: currentPageSource() }),
+      body: JSON.stringify({
+        email: email.trim(),
+        source: currentPageSource(),
+        ...collectUtms(),
+      }),
     },
   );
   if (!res.ok) throw new Error(`Audit report request failed: ${res.status}`);

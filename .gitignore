@@ -5,4 +5,5 @@ node_modules/
 .claude/*
 !.claude/commands/
 
-# NOTE: dist/ is intentionally NOT ignored — jsDelivr serves it from GitHub.
+# NOTE: dist/ is intentionally NOT ignored — it's the versioned build that
+# gets copied into the backend repo's static/components/ for serving.

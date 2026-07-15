@@ -1,14 +1,15 @@
 # vaudit-components
 
-React + TypeScript components for the Vaudit Webflow site, served from GitHub via jsDelivr.
+React + TypeScript components for the Vaudit Webflow site, served as static files from the backend at `https://api.vaudit.com/static/components/`.
 
 ## How it works
 
 1. Author components in `src/components/<name>/` and register them in `src/registry.ts`.
 2. `npm run build` compiles a single IIFE bundle to `dist/vaudit.js` + `dist/vaudit.css`.
 3. Commit `dist/` to `main` and tag releases with semver (`v0.1.0`, …).
-4. Webflow's footer Custom Code loads the bundle from jsDelivr.
-5. The bootstrap finds every `<div data-rc="component-name">` on the page and mounts the matching component into it.
+4. Copy the built `dist/vaudit.{js,css}` (+ `assets/`) into the backend repo's `static/components/` and deploy it. See [docs/RELEASING.md](docs/RELEASING.md).
+5. Webflow's footer Custom Code loads the bundle from the stable backend URL.
+6. The bootstrap finds every `<div data-rc="component-name">` on the page and mounts the matching component into it.
 
 ## Webflow setup
 
@@ -23,11 +24,11 @@ React + TypeScript components for the Vaudit Webflow site, served from GitHub vi
 **Project Settings → Custom Code → Footer** (after the existing theme toggle script):
 
 ```html
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/blokid/vaudit-website-components@v0.2.0/dist/vaudit.css">
-<script src="https://cdn.jsdelivr.net/gh/blokid/vaudit-website-components@v0.2.0/dist/vaudit.js" defer></script>
+<link rel="stylesheet" href="https://api.vaudit.com/static/components/vaudit.css">
+<script src="https://api.vaudit.com/static/components/vaudit.js" defer></script>
 ```
 
-Bump `@v0.2.0` per release. For local iteration use `@<commit-sha>` — branch URLs (`@main`) are cached for ~12 hours.
+These URLs are stable and unversioned — a release changes the bytes the backend serves, not the URL, so there's normally nothing to edit in Webflow per release.
 
 The bootstrap flips `data-rc-mounted="true"` on each marker after React commits but before the browser paints, so the Head cloak prevents any flash of empty markers. After all initial markers mount, `html.rc-ready` is added — use it for any whole-page reveal effects you want to gate on the bundle being live.
 
@@ -70,9 +71,10 @@ The Webflow site already toggles `html.dark` on the root. Components style light
 
 ## Cache busting
 
-jsDelivr cache TTLs:
-- `@v1.2.3` (semver tag) — permanent, immutable
-- `@<commit-sha>` — permanent, immutable
-- `@main` / `@latest` — ~12 hours
+The URL is unversioned, so cache behavior is set by the backend's `Cache-Control` headers on `static/components/*`. If the backend serves with a long TTL, force a refresh by appending a query bump in the Webflow Footer and republishing:
 
-Use semver tags for production. For dev, push and reference by SHA, or call `https://purge.jsdelivr.net/gh/<org>/vaudit-components@main/dist/vaudit.js` to flush.
+```html
+<script src="https://api.vaudit.com/static/components/vaudit.js?v=0.26.48" defer></script>
+```
+
+See [docs/RELEASING.md](docs/RELEASING.md) for the full flow.

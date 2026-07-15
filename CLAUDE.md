@@ -4,7 +4,7 @@ Guidance for Claude Code when working in this repository.
 
 ## What this repo is
 
-A buildable React + TypeScript repo whose output is a single bundle served from GitHub via **jsDelivr**. The Vaudit Webflow site loads that bundle once per page; the bootstrap then mounts components into `<div data-rc="component-name">` markers.
+A buildable React + TypeScript repo whose output is a single bundle. The built `dist/` is committed and tagged here, then copied by hand into the **backend repo**, which serves it as static files at `https://api.vaudit.com/static/components/`. The Vaudit Webflow site loads that bundle once per page; the bootstrap then mounts components into `<div data-rc="component-name">` markers.
 
 This repo is the migration target from `vaudit-website-pages`, where components used to live as hand-pasted HTML/CSS/JS in Webflow's Custom Code and Embed elements. The legacy snippets and Webflow-side conventions are preserved under `docs/` for reference — see [Reference docs](#reference-docs) below.
 
@@ -12,7 +12,7 @@ Unlike `vaudit-website-pages`, this repo **does** have a build pipeline: Vite + 
 
 ## ⚠️ Never commit sensitive information
 
-**This is a public GitHub repository** (jsDelivr requires public repos). Anything pushed here is publicly readable forever in git history.
+**Treat this as a public GitHub repository** (it has been public historically; don't assume that changed). Anything pushed here is publicly readable forever in git history.
 
 Do **not** commit:
 
@@ -55,7 +55,7 @@ export const registry = { ...registry, "my-thing": MyThing };
 
 ## Styling convention
 
-- **Plain CSS files, no styled-components / emotion.** The bundle is CDN-loaded; every kilobyte we add is paid by the browser on first hit. CSS-in-JS would cost ~12 KB gzip and replace exactly one thing — the existing `html.dark` cascade — which already works perfectly.
+- **Plain CSS files, no styled-components / emotion.** The bundle is loaded over the network on first hit; every kilobyte we add is paid by the browser then. CSS-in-JS would cost ~12 KB gzip and replace exactly one thing — the existing `html.dark` cascade — which already works perfectly.
 - **`clsx` for conditional class joining.** That is the one ergonomic gap plain CSS leaves; `clsx` is 0.5 KB and idiomatic.
 - **Class names: `rc-componentname__element` (BEM-ish prefix).** The `rc-` prefix prevents collisions with Webflow's authored classes, and the BEM structure keeps specificity flat so Webflow page-level Custom CSS can override us cleanly.
 - **Never set `font-family` on component roots.** Components inherit Webflow's typography from `<body>`. This is intentional so React-mounted blocks visually match surrounding native Webflow content. If a component truly needs a different font (rare), import it from the page (`font-family: var(--font-display)` etc. — see `docs/COLOR-SYSTEM.md` for variable names).
@@ -71,17 +71,20 @@ npm run dev              # vite build --watch (rebuilds dist/ on save)
 npm run typecheck        # tsc --noEmit only
 ```
 
-`dist/` is **committed** to `main` so jsDelivr serves it directly from the tagged ref.
+`dist/` is **committed** to `main` — it's the versioned build that gets copied into the backend.
 
-Release flow:
+Release flow (full detail in `docs/RELEASING.md`):
 
 1. Bump `package.json` version (semver).
 2. `npm run build`.
 3. Commit `dist/` + the version bump.
 4. `git tag vX.Y.Z && git push --follow-tags`.
-5. Update Webflow Footer custom code to the new tag URL.
+5. Publish a **GitHub Release** (`gh release create`) with a changelog and a downloadable zip of the bundle (`vaudit.js` + `vaudit.css` + `assets/`, laid out for `static/components/`). The `/release` command does this.
+6. Hand the backend dev the release URL. They download the zip, drop it into their repo's `static/components/`, and deploy the backend.
 
-Cache busting: tags and commit SHAs are immutable on jsDelivr. `@main` caches ~12 h. For dev iteration, point Webflow at `@<commit-sha>` (uncached, updates on every push) or hit `https://purge.jsdelivr.net/gh/<org>/<repo>@<ref>/<path>` to flush a specific URL.
+The Webflow Footer URLs are **stable and unversioned** (`https://api.vaudit.com/static/components/vaudit.{js,css}`), so a release does not touch Webflow — it changes the bytes the backend serves.
+
+Cache busting: the URL is unversioned, so cache behavior is the backend's `Cache-Control` headers. To force a refresh under a long TTL, append a `?v=X.Y.Z` bump in the Webflow Footer and republish. Coordinate the header strategy with whoever owns the backend repo.
 
 ## Webflow custom-code
 
@@ -135,15 +138,15 @@ Cache busting: tags and commit SHAs are immutable on jsDelivr. `@main` caches ~1
 </style>
 ```
 
-How it works: while the bundle is in flight from jsDelivr, `body::before` paints a full-viewport solid cover and `body::after` pulses the brand-orange "Vaudit" wordmark on top. Once `src/main.tsx` finishes mounting every initial `[data-rc]` marker on the page, it sets `html.rc-ready`; the selector flip kicks the 380 ms opacity transition and both pseudo-elements fade out, revealing the page. No extra HTML or JS to install — purely CSS reacting to a class the bundle already toggles.
+How it works: while the bundle is in flight from the backend, `body::before` paints a full-viewport solid cover and `body::after` pulses the brand-orange "Vaudit" wordmark on top. Once `src/main.tsx` finishes mounting every initial `[data-rc]` marker on the page, it sets `html.rc-ready`; the selector flip kicks the 380 ms opacity transition and both pseudo-elements fade out, revealing the page. No extra HTML or JS to install — purely CSS reacting to a class the bundle already toggles.
 
 If the bundle never loads (network failure, ad-blocker), the loader stays visible — fine for staging; if you want a max-duration fallback for production, set `html.rc-ready` from a `setTimeout` after a few seconds of grace.
 
-**Footer** — bundle and stylesheet from jsDelivr:
+**Footer** — bundle and stylesheet from the backend static host:
 
 ```html
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/blokid/vaudit-website-components@vX.Y.Z/dist/vaudit.css">
-<script src="https://cdn.jsdelivr.net/gh/blokid/vaudit-website-components@vX.Y.Z/dist/vaudit.js" defer></script>
+<link rel="stylesheet" href="https://api.vaudit.com/static/components/vaudit.css">
+<script src="https://api.vaudit.com/static/components/vaudit.js" defer></script>
 ```
 
 Place the footer block **after** the existing theme bootstrap and nav-dropdown scripts (see `docs/webflow/theme-custom-code.html.md`) so the `html.dark` class is set before any component reads it.
@@ -159,7 +162,7 @@ The bootstrap also adds **`html.rc-ready`** once every marker present at `DOMCon
 html.rc-ready .hero-fade-in { opacity: 1; }
 ```
 
-**Don't use `html { visibility: hidden }` until ready.** If jsDelivr is slow or blocked, the page stays blank. The per-marker skeleton fails open: nav, hero, and footer all paint immediately; only the React regions briefly show a shimmer placeholder.
+**Don't use `html { visibility: hidden }` until ready.** If the backend is slow or blocked, the page stays blank. The per-marker skeleton fails open: nav, hero, and footer all paint immediately; only the React regions briefly show a shimmer placeholder.
 
 If you ship your own placeholder (skeleton, spinner) inside the marker that should show *while* React loads, opt that marker out of the head block by giving it `data-rc-mounted="true"` from the start — then it's your HTML's job to render whatever loading state you want, until React mounts and replaces it.
 
@@ -173,7 +176,7 @@ The `docs/` folder holds Webflow-side conventions and frozen copies of the legac
 - [`docs/WEBFLOW-THEME-CONVENTION.md`](docs/WEBFLOW-THEME-CONVENTION.md) — dark-mode mechanism (`html.dark .foo` cascade). Critical.
 - [`docs/COLOR-SYSTEM.md`](docs/COLOR-SYSTEM.md) — hex ↔ Webflow Base-collection variable map (`Primary`, `charcoal-900`, `--muted-foreground`, etc.).
 - [`docs/DESIGN.md`](docs/DESIGN.md) — broader visual system / token notes.
-- [`docs/RELEASING.md`](docs/RELEASING.md) — how to cut a new version, update the Webflow Footer URL, and reason about jsDelivr caching.
+- [`docs/RELEASING.md`](docs/RELEASING.md) — how to cut a new version, copy `dist/` into the backend repo, and reason about caching.
 
 **Page + section context:**
 
