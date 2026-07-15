@@ -1940,6 +1940,17 @@ html.dark .rc-pa-composer__error {
 
 /* ---- email capture (inline) --------------------------------------------- */
 
+/* Hidden UTM inputs (utm-fields.tsx): kept off-screen rather than
+   display:none so campaign-tracking scripts still see live text fields. */
+.rc-pa-utm {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
 .rc-pa-email {
   display: flex;
   flex-direction: column;

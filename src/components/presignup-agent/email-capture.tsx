@@ -2,6 +2,7 @@ import { useState } from "react";
 import clsx from "clsx";
 import { EMAIL_RE } from "./agent-api";
 import { IconArrowLeft, IconCheck, IconSpinner } from "./icons";
+import UtmFields from "./utm-fields";
 
 type EmailCaptureProps = {
   /** Submit handler — returns true on a successful download. */
@@ -90,6 +91,7 @@ export default function EmailCapture({ onSubmit, onCancel }: EmailCaptureProps) 
         </button>
       </div>
       {error && <p className="rc-pa-email__error">{error}</p>}
+      <UtmFields />
     </div>
   );
 }

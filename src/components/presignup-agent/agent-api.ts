@@ -133,12 +133,11 @@ export async function ensureSession(
   signal?: AbortSignal,
 ): Promise<string> {
   const url = baseUrl + SESSION_ENDPOINT + encodeURIComponent(sessionId);
-  // Seed campaign attribution into the ADK session state at creation so the
-  // domain-submit ("website URL") flow carries UTMs too — the raw /run_sse
-  // turn has no custom backend hook to read them, but session.state does and
-  // it's the earliest first-touch slot. Backend forwards these to HubSpot the
-  // same way it forwards the report-download `utm_*` body fields.
-  const utm = collectUtms();
+  // Domain-submit ("website URL") flow: the raw /run_sse turn drops unknown
+  // body fields, so seed the UTMs into ADK session.state at creation — the
+  // earliest slot the backend can read and forward to HubSpot, same as the
+  // report-download body does.
+  const utm = readUtms();
   const res = await fetch(url, {
     method: "POST",
     headers: {
@@ -533,23 +532,23 @@ const UTM_KEYS = [
 ] as const;
 
 /**
- * The five standard UTM params for campaign attribution, read straight from
- * the current URL query string (the audit widget sits on the UTM-tagged
- * landing page, so the params are right there). Returns only the keys present
- * — an empty object when there's no campaign context. Spread as flat `utm_*`
- * fields into request bodies so they map 1:1 onto the HubSpot properties of
- * the same name.
+ * Read the campaign UTM values out of the hidden inputs the site's tracking
+ * script populates (see utm-fields.tsx). Returns only the non-empty keys.
+ * Those inputs are the agreed hand-off point: the tracking script owns *how*
+ * they get their values (URL / cookie / first-touch), and we read them at
+ * submit time and forward to the backend as flat `utm_*` fields (they map 1:1
+ * onto the HubSpot properties of the same name).
  */
-export function collectUtms(): Record<string, string> {
+export function readUtms(): Record<string, string> {
   const utm: Record<string, string> = {};
   try {
-    const q = new URLSearchParams(window.location.search);
     for (const k of UTM_KEYS) {
-      const v = q.get(k);
+      const el = document.querySelector<HTMLInputElement>(`input[name="${k}"]`);
+      const v = el?.value.trim();
       if (v) utm[k] = v;
     }
   } catch (_) {
-    /* non-browser — no query string */
+    /* non-browser — no DOM */
   }
   return utm;
 }
@@ -571,7 +570,7 @@ export async function downloadAuditReport(
       body: JSON.stringify({
         email: email.trim(),
         source: currentPageSource(),
-        ...collectUtms(),
+        ...readUtms(),
       }),
     },
   );

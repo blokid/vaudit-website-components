@@ -1,6 +1,7 @@
 import { useEffect, useRef } from "react";
 import clsx from "clsx";
 import { IconCaretRight, IconSend } from "./icons";
+import UtmFields from "./utm-fields";
 
 type ComposerProps = {
   /** True when the composer is the only thing on screen (initial empty state). */
@@ -81,6 +82,7 @@ export default function Composer({
             <IconSend className="rc-pa-cta-audit__send" />
           </button>
         </div>
+        <UtmFields />
       </div>
     );
   }
