@@ -46,6 +46,10 @@ After the tag is on origin, cut a GitHub Release so the backend dev has one URL 
 PREV=$(git describe --tags --abbrev=0 vX.Y.Z^ 2>/dev/null)
 CHANGELOG=$(git log --pretty='- %s' --invert-grep --grep='^release:' --grep='^build:' \
   ${PREV:+$PREV..}vX.Y.Z)
+# Squashed release (all work landed in the single "release:" commit) → the
+# filter leaves nothing, so fall back to that commit's body.
+[ -z "$CHANGELOG" ] && CHANGELOG=$(git log -1 --pretty='%b' vX.Y.Z \
+  | sed '/^Co-Authored-By:/d')
 
 # Stage the artifact in the exact shape the backend needs under static/components/
 STAGE=$(mktemp -d)

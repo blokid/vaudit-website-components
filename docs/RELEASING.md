@@ -42,6 +42,8 @@ The tag pins the source. To hand the build to the backend dev, publish a **GitHu
 PREV=$(git describe --tags --abbrev=0 vX.Y.Z^ 2>/dev/null)
 CHANGELOG=$(git log --pretty='- %s' --invert-grep --grep='^release:' --grep='^build:' \
   ${PREV:+$PREV..}vX.Y.Z)
+# Squashed release → fall back to the release commit's body
+[ -z "$CHANGELOG" ] && CHANGELOG=$(git log -1 --pretty='%b' vX.Y.Z | sed '/^Co-Authored-By:/d')
 
 # Stage the artifact in the exact shape the backend's static/components/ needs
 STAGE=$(mktemp -d)
