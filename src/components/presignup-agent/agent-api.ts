@@ -137,22 +137,13 @@ export async function ensureSession(
   // nesting any seeded keys; this one takes a proper CreateSessionRequest
   // ({sessionId, state}) so seeded state lands flat.
   const url = baseUrl + SESSION_ENDPOINT;
-  // Domain-submit ("website URL") flow: the raw /run_sse turn drops unknown
-  // body fields, so seed the UTMs into ADK session.state at creation. NOTE:
-  // the backend deliberately does not consume session-state UTMs today —
-  // only the report-download POST body UTMs reach HubSpot. Kept so the data
-  // is already flowing if that decision is revisited.
-  const utm = readUtms();
   const res = await fetch(url, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
       "X-Presignup-Token": token,
     },
-    body: JSON.stringify({
-      sessionId,
-      ...(Object.keys(utm).length ? { state: utm } : {}),
-    }),
+    body: JSON.stringify({ sessionId }),
     signal,
   });
   if (!res.ok && res.status !== 409) {
@@ -531,42 +522,16 @@ function currentPageSource(): string {
   }
 }
 
-const UTM_KEYS = [
-  "utm_source",
-  "utm_medium",
-  "utm_campaign",
-  "utm_term",
-  "utm_content",
-] as const;
-
-/**
- * Read the campaign UTM values out of the hidden inputs the site's tracking
- * script populates (see utm-fields.tsx). Returns only the non-empty keys.
- * Those inputs are the agreed hand-off point: the tracking script owns *how*
- * they get their values (URL / cookie / first-touch), and we read them at
- * submit time and forward to the backend as flat `utm_*` fields (they map 1:1
- * onto the HubSpot properties of the same name).
- */
-export function readUtms(): Record<string, string> {
-  const utm: Record<string, string> = {};
-  try {
-    for (const k of UTM_KEYS) {
-      const el = document.querySelector<HTMLInputElement>(`input[name="${k}"]`);
-      const v = el?.value.trim();
-      if (v) utm[k] = v;
-    }
-  } catch (_) {
-    /* non-browser — no DOM */
-  }
-  return utm;
-}
-
 export async function downloadAuditReport(
   baseUrl: string,
   sessionId: string,
   email: string,
 ): Promise<{ blob: Blob; filename: string }> {
   const token = await getToken(baseUrl);
+  // credentials: "include" — the backend reads the campaign UTMs from the
+  // first-party __vaudit_attr cookie (set by the site's attribution script
+  // with domain=.vaudit.com) and upserts them onto the HubSpot contact.
+  // Without it, fetch strips all cookies from this cross-origin request.
   const res = await fetch(
     baseUrl + AUDIT_REPORT_ENDPOINT + encodeURIComponent(sessionId),
     {
@@ -575,10 +540,10 @@ export async function downloadAuditReport(
         "Content-Type": "application/json",
         "X-Presignup-Token": token,
       },
+      credentials: "include",
       body: JSON.stringify({
         email: email.trim(),
         source: currentPageSource(),
-        ...readUtms(),
       }),
     },
   );
