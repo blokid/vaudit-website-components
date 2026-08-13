@@ -5,11 +5,11 @@
 // kinds of entries we render (plain text, the user's pill bubble, the live
 // audit card, the expanded results grid, the CTA cards, the phase-2 widgets).
 
-export type CategoryId = "ad_id" | "token_id" | "vendor_id";
+export type CategoryId = "ad_audit" | "token_audit" | "vendor_audit";
 
 /**
- * Per-provider verification depth for Token ID vendors. Marketing Language
- * Guide v1.0 requires this disclosure when Token ID products are shown:
+ * Per-provider verification depth for Token Audit vendors. Marketing Language
+ * Guide v1.0 requires this disclosure when Token Audit products are shown:
  * - "full" — full billing reconciliation against usage logs (OpenAI, AWS Bedrock).
  * - "partial" — partial reconciliation, statistical matching with invoice-level
  *   verification (Anthropic).
@@ -26,8 +26,16 @@ export type Vendor = {
 };
 
 export type Product = {
-  /** Backend category id, e.g. "ad_id" / "token_id" / "vendor_id". */
+  /** Backend category id, e.g. "ad_audit" / "token_audit" / "vendor_audit". */
   id: string;
+  /**
+   * Visitor-facing product name supplied by the backend (e.g. "Ad Audit").
+   * The UI renders this verbatim so the frontend no longer keeps its own
+   * id→name map that drifts on a backend rename. Optional: when absent
+   * (older payloads, an LLM that dropped the field) the UI humanizes the id
+   * as a fallback via `productLabel()`.
+   */
+  label?: string;
   wasteTotal: number;
   vendors: Vendor[];
   /**
@@ -55,9 +63,9 @@ export type ReasoningEntry = {
 };
 
 /**
- * Map of `pot` id → reasoning entry. Both display buckets (ad_id /
- * token_id / vendor_id) and the four vendor_id internal sub-pots
- * (kloud_id / seat_id / ship_id / payment_id) get their own entries —
+ * Map of `pot` id → reasoning entry. Both display buckets (ad_audit /
+ * token_audit / vendor_audit) and the four vendor_audit internal sub-pots
+ * (kloud_audit / seat_audit / ship_audit / payment_audit) get their own entries —
  * the simple UI renders the bucket-level entry; richer UIs can drill
  * down into the four sub-pots.
  */

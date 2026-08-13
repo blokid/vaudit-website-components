@@ -7,7 +7,7 @@ import type {
   Vendor,
   VerificationDepth,
 } from "./types";
-import { CATEGORY_ICONS, CATEGORY_LABELS, IconCheck } from "./icons";
+import { CATEGORY_ICONS, IconCheck, productLabel } from "./icons";
 import { USD, compactUsd, vendorIcon } from "./agent-api";
 
 type ResultsGridProps = {
@@ -15,24 +15,24 @@ type ResultsGridProps = {
 };
 
 const ANNUALIZE = 12;
-const TOP_ORDER = ["ad_id", "token_id"]; // top row 2-up
-const FULL = "vendor_id";
+const TOP_ORDER = ["ad_audit", "token_audit"]; // top row 2-up
+const FULL = "vendor_audit";
 
-// Sub-pot ids the backend emits reasoning for inside the vendor_id
+// Sub-pot ids the backend emits reasoning for inside the vendor_audit
 // display bucket. Build Guide §Stage 5.5 Pass 2 streams one event per
-// sub-pot; the UI shows the kloud_id paragraph at the top-level (it's
+// sub-pot; the UI shows the kloud_audit paragraph at the top-level (it's
 // the dominant signal in most audits) and tucks the other three under
 // a "see breakdown" toggle.
-const VENDOR_SUB_POTS = ["kloud_id", "seat_id", "ship_id", "payment_id"] as const;
+const VENDOR_SUB_POTS = ["kloud_audit", "seat_audit", "ship_audit", "payment_audit"] as const;
 
 const SUB_POT_LABEL: Record<(typeof VENDOR_SUB_POTS)[number], string> = {
-  kloud_id: "Cloud infrastructure",
-  seat_id: "SaaS seats",
-  ship_id: "Shipping",
-  payment_id: "Payment processing",
+  kloud_audit: "Cloud infrastructure",
+  seat_audit: "SaaS seats",
+  ship_audit: "Shipping",
+  payment_audit: "Payment processing",
 };
 
-// Marketing Language Guide v1.0 — visitor-facing one-liner per Token ID
+// Marketing Language Guide v1.0 — visitor-facing one-liner per Token Audit
 // reconciliation depth tier. Mirrors `_DEPTH_DESCRIPTION` in
 // `backend/presignup_agent/tools/recovery.py`.
 const DEPTH_LABEL: Record<VerificationDepth, string> = {
@@ -97,19 +97,19 @@ function CategoryCard({
   const total = (product.wasteTotal || 0) * ANNUALIZE;
   // Pass 2 reasoning routing: prefer the widget's reasoningId (set by
   // the coordinator), fall back to the product's display id. For the
-  // vendor_id bucket we pick kloud_id as the primary paragraph since
+  // vendor_audit bucket we pick kloud_audit as the primary paragraph since
   // cloud infra is the dominant signal across most industries.
   const primaryReasoningKey = product.reasoningId || product.id;
   const primaryEntry: ReasoningEntry | undefined =
-    primaryReasoningKey === "vendor_id"
-      ? reasoning["kloud_id"] ?? reasoning["vendor_id"]
+    primaryReasoningKey === "vendor_audit"
+      ? reasoning["kloud_audit"] ?? reasoning["vendor_audit"]
       : reasoning[primaryReasoningKey];
   return (
     <article className={clsx("rc-pa-card-cat", full && "rc-pa-card-cat--full")}>
       <div className="rc-pa-card-cat__head">
         <span className="rc-pa-card-cat__name">
           {Icon ? <Icon className="rc-pa-card-cat__icon" /> : null}
-          {CATEGORY_LABELS[product.id] ?? product.id}
+          {productLabel(product)}
         </span>
         <span
           className={clsx("rc-pa-chip-status", accurate && "rc-pa-chip-status--accurate")}
@@ -128,7 +128,7 @@ function CategoryCard({
         productId={product.id}
         primary={primaryEntry}
         reasoning={reasoning}
-        showSubPots={product.id === "vendor_id"}
+        showSubPots={product.id === "vendor_audit"}
       />
     </article>
   );
@@ -150,7 +150,7 @@ function ReasoningContainer({
   // pushed *any* event for this card yet, hide the container so the
   // visitor doesn't see an empty stub — appears on the first event.
   if (!primary && !showSubPots) return null;
-  // For the vendor_id bucket, even if the kloud_id pot isn't started
+  // For the vendor_audit bucket, even if the kloud_audit pot isn't started
   // yet we keep the container around so the "see breakdown" toggle
   // surfaces once any of the four sub-pots have data.
   const hasAnySubData =
