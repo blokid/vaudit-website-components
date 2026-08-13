@@ -3,11 +3,11 @@ import clsx from "clsx";
 import type { AccurateSpendsMessage, ExactMonthlyByVendor, Product } from "./types";
 import {
   CATEGORY_ICONS,
-  CATEGORY_LABELS,
   IconArrowLeft,
   IconCheck,
   IconLock,
   IconSpinner,
+  productLabel,
 } from "./icons";
 import { vendorIcon } from "./agent-api";
 import { AgentSection } from "./chat-message";
@@ -154,7 +154,7 @@ function SpendGroup({
   onChange: (key: string, value: string) => void;
 }) {
   const Icon = CATEGORY_ICONS[product.id as keyof typeof CATEGORY_ICONS];
-  const label = CATEGORY_LABELS[product.id] ?? product.id;
+  const label = productLabel(product);
   return (
     <div className="rc-pa-spends__group">
       <span className="rc-pa-spends__group-head">

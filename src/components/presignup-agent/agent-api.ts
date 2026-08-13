@@ -289,6 +289,12 @@ export function normalizeProducts(rawProducts: unknown): Product[] {
     }
     out.push({
       id: item.id,
+      // Visitor-facing name from the backend. Rendered verbatim by the UI
+      // (via productLabel()); absent on older payloads, where the UI falls
+      // back to a humanized id.
+      ...(typeof item.label === "string" && item.label.trim()
+        ? { label: item.label.trim() }
+        : {}),
       wasteTotal: Number(item.waste_total || 0),
       vendors,
       // Pass 2 reasoning routing key (Build Guide §Stage 5.5 Pass 2).
@@ -437,7 +443,7 @@ export async function postAccurateBreakdown(
       ai: AccurateBreakdownRange;
       vendor: AccurateBreakdownRange;
     }>;
-    selection: "ad_id" | "token_id" | "vendor_id" | "all";
+    selection: "ad_audit" | "token_audit" | "vendor_audit" | "all";
   },
   signal?: AbortSignal,
 ): Promise<void> {
@@ -583,12 +589,12 @@ export async function downloadAuditReport(
  * text so the slot is never empty).
  */
 export type ReasoningPot =
-  | "ad_id"
-  | "kloud_id"
-  | "token_id"
-  | "seat_id"
-  | "ship_id"
-  | "payment_id";
+  | "ad_audit"
+  | "kloud_audit"
+  | "token_audit"
+  | "seat_audit"
+  | "ship_audit"
+  | "payment_audit";
 
 export type ReasoningProgressEvent = {
   step: "reasoning";

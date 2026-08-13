@@ -56,10 +56,10 @@ const ROW_DONE_HOLD_MS = 220;
 const FINAL_HOLD_MS = 350;
 const ACCURATE_PER_ROW_MS = 1100;
 
-const CATEGORY_ORDER: ("ad_id" | "vendor_id" | "token_id")[] = [
-  "ad_id",
-  "vendor_id",
-  "token_id",
+const CATEGORY_ORDER: ("ad_audit" | "vendor_audit" | "token_audit")[] = [
+  "ad_audit",
+  "vendor_audit",
+  "token_audit",
 ];
 
 type PresignupAgentProps = {
@@ -78,7 +78,8 @@ type PresignupAgentProps = {
 
 const REPLAY_DEMO_PRODUCTS: Product[] = [
   {
-    id: "ad_id",
+    id: "ad_audit",
+    label: "Ad Audit",
     wasteTotal: 14_200,
     vendors: [
       { name: "Google Ads", estSpend: 95_000, waste: 9_500 },
@@ -86,7 +87,8 @@ const REPLAY_DEMO_PRODUCTS: Product[] = [
     ],
   },
   {
-    id: "token_id",
+    id: "token_audit",
+    label: "Token Audit",
     wasteTotal: 4_800,
     vendors: [
       { name: "OpenAI", estSpend: 12_000, waste: 3_600, verificationDepth: "full" },
@@ -94,7 +96,8 @@ const REPLAY_DEMO_PRODUCTS: Product[] = [
     ],
   },
   {
-    id: "vendor_id",
+    id: "vendor_audit",
+    label: "Vendor Audit",
     wasteTotal: 6_900,
     vendors: [
       { name: "AWS", estSpend: 38_000, waste: 3_800 },
@@ -208,12 +211,12 @@ const INITIAL_ESTIMATE_TITLE = "Looking up DNS records";
 // drop a $0 category. The backend `apply_spend_edits` upserts these on submit,
 // so they flow into recovery whether or not the widget included them.
 const DEFAULT_SPEND_VENDORS: Record<string, string[]> = {
-  ad_id: ["Google Ads", "Meta Ads"],
-  token_id: ["OpenAI", "Anthropic"],
+  ad_audit: ["Google Ads", "Meta Ads"],
+  token_audit: ["OpenAI", "Anthropic"],
 };
-const SPEND_GROUP_ORDER = ["ad_id", "token_id", "vendor_id"];
+const SPEND_GROUP_ORDER = ["ad_audit", "token_audit", "vendor_audit"];
 
-/** Ensure AdID + Token ID groups expose every default vendor (seeded $0 when
+/** Ensure Ad Audit + Token Audit groups expose every default vendor (seeded $0 when
  *  missing), in canonical order, so the form never silently drops a vendor the
  *  backend will upsert on submit. We merge per-vendor — not per-group — because
  *  the LLM widget may return a group with *some* vendors (e.g. Google Vertex AI,
@@ -268,9 +271,9 @@ function toSpendOverrides(
 /** One "Ad spend: $X /yr"-style line per edited category, for the user echo. */
 function spendEditEcho(exact: ExactMonthlyByVendor): string[] {
   const LABEL: Record<string, string> = {
-    ad_id: "Ad spend",
-    token_id: "AI / API spend",
-    vendor_id: "Vendor spend",
+    ad_audit: "Ad spend",
+    token_audit: "AI / API spend",
+    vendor_audit: "Vendor spend",
   };
   const lines: string[] = [];
   for (const [productId, vendors] of Object.entries(exact)) {
@@ -476,7 +479,7 @@ export default function PresignupAgent({ agentBaseUrl, replay }: PresignupAgentP
         if (!parsed?.length) {
           throw new Error("Agent did not return any estimated spends.");
         }
-        // Defensively guarantee the AdID + Token ID groups (seeded $0 if the
+        // Defensively guarantee the Ad Audit + Token Audit groups (seeded $0 if the
         // LLM widget dropped them) so a zero-spend category is never hidden.
         const products = ensureDefaultSpendGroups(parsed);
         phase1ProductsRef.current = products;

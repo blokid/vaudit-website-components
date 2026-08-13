@@ -13,7 +13,7 @@ const stroke = {
 };
 
 export function IconAd(props: SVGProps<SVGSVGElement>) {
-  // Sparkle / target — used for Ad ID rows and the picker chip.
+  // Sparkle / target — used for Ad Audit rows and the picker chip.
   return (
     <svg viewBox="0 0 24 24" {...stroke} {...props}>
       <path d="M12 3v3" />
@@ -30,7 +30,7 @@ export function IconAd(props: SVGProps<SVGSVGElement>) {
 }
 
 export function IconVendor(props: SVGProps<SVGSVGElement>) {
-  // Storefront — used for Vendor ID rows.
+  // Storefront — used for Vendor Audit rows.
   return (
     <svg viewBox="0 0 24 24" {...stroke} {...props}>
       <path d="M3 9 5 4h14l2 5" />
@@ -42,7 +42,7 @@ export function IconVendor(props: SVGProps<SVGSVGElement>) {
 }
 
 export function IconToken(props: SVGProps<SVGSVGElement>) {
-  // CPU chip — used for Token ID / AI / API rows.
+  // CPU chip — used for Token Audit / AI / API rows.
   return (
     <svg viewBox="0 0 24 24" {...stroke} {...props}>
       <rect x="5" y="5" width="14" height="14" rx="2" />
@@ -299,11 +299,13 @@ export function IconDedupGuard(props: SVGProps<SVGSVGElement>) {
   );
 }
 
-/** Backend category id → icon component. */
+/** Backend category id → icon component. Presentation-only (SVG assets live
+ *  here, not on the wire); an unmapped id renders no icon — callers guard with
+ *  `Icon ? <Icon/> : null`, so a new/renamed backend id degrades gracefully. */
 export const CATEGORY_ICONS = {
-  ad_id: IconAd,
-  vendor_id: IconVendor,
-  token_id: IconToken,
+  ad_audit: IconAd,
+  vendor_audit: IconVendor,
+  token_audit: IconToken,
 } as const;
 
 /** Profiler step → icon component (for the live-audit timeline). */
@@ -324,9 +326,43 @@ export const PROFILER_LABELS: Record<string, string> = {
   spend: "Spend benchmarks",
 };
 
-/** Backend category id → display label used in cards / rows. */
+/**
+ * Local fallback display labels, keyed by backend category id. The backend now
+ * sends the visitor-facing name on each product (`product.label`), so this map
+ * is only a secondary fallback used by `productLabel()` when a payload omits
+ * the label. Kept in sync with the backend ids as a convenience; an unknown id
+ * still resolves via `humanizeCategoryId()`.
+ */
 export const CATEGORY_LABELS: Record<string, string> = {
-  ad_id: "Ad ID",
-  vendor_id: "Vendor ID",
-  token_id: "Token ID",
+  ad_audit: "Ad Audit",
+  vendor_audit: "Vendor Audit",
+  token_audit: "Token Audit",
 };
+
+/**
+ * Humanize a raw backend id into a display label — e.g. `"ad_audit"` →
+ * `"Ad Audit"`, `"vendor_audit"` → `"Vendor Audit"`. The last-resort fallback
+ * so a backend rename (or an id we don't have a hardcoded label for) still
+ * renders a clean name instead of the raw id or a phantom card.
+ */
+export function humanizeCategoryId(id: string): string {
+  return id
+    .split(/[_-]/)
+    .filter(Boolean)
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(" ");
+}
+
+/**
+ * Resolve the visitor-facing name for a product. Priority:
+ *   1. the backend-supplied `product.label` (authoritative),
+ *   2. the local `CATEGORY_LABELS` override, then
+ *   3. a humanized form of the raw id.
+ * This is the single decoupling point: the UI never hardcodes a name against a
+ * specific id, so renaming a product family on the backend can't break the UI.
+ */
+export function productLabel(product: { id: string; label?: string }): string {
+  const label = product.label?.trim();
+  if (label) return label;
+  return CATEGORY_LABELS[product.id] ?? humanizeCategoryId(product.id);
+}
